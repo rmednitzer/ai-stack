@@ -58,13 +58,22 @@ spec:
               containerPort: 8888
               protocol: TCP
           env:
-            - name: JUPYTER_ENABLE_LAB
-              value: "yes"
+            {{- range $key, $value := .Values.jupyter.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             - name: JUPYTER_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}-secret
                   key: token
+            {{- if .Values.qdrant.enabled }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                  key: api-key
+            {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "jupyter") | nindent 12 }}
           args:
             - start-notebook.py

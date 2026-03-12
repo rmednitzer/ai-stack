@@ -12,6 +12,7 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 graph TD
   Ingress --> OpenWebUI["Open WebUI (T1)"]
   Ingress --> Jupyter["Jupyter (T2)"]
+  Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
 
   OpenWebUI --> Ollama["Ollama (T1)"]
   OpenWebUI --> Qdrant["Qdrant (T1)"]
@@ -24,7 +25,11 @@ graph TD
   Jupyter --> Qdrant
   Jupyter --> Pipelines
 
-  Ollama --> Workbench["Workbench (T1, opt-in GPU)"]
+  Workbench --> Ollama
+  Workbench --> Qdrant
+  Workbench --> Pipelines
+  Workbench --> Tika
+  Workbench --> SearXNG
 
   OTel["OTel Collector (T0)"]
 

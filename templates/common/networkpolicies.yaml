@@ -364,6 +364,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
       ports:
         - protocol: TCP
           port: 8080
@@ -407,6 +410,12 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: jupyter
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
       ports:
         - protocol: TCP
           port: 9099
@@ -613,16 +622,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    {{- end }}
-    # Valkey
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
     {{- end }}
     # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
     - ports:
