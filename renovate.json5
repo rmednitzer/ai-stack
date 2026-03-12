@@ -105,6 +105,17 @@
     },
     {
       "customType": "regex",
+      "description": "Kubernetes version in kubeconform validation",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": [
+        "KUBERNETES_VERSION:\\s*\"?(?<currentValue>[\\d.]+)\"?\\s*#\\s*renovate:\\s*depName=kubernetes/kubernetes"
+      ],
+      "depNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
       "description": "Helm version in CI workflow",
       "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
       "matchStrings": [
