@@ -2,35 +2,28 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), and supporting infrastructure as a single Helm chart.
+Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), and supporting infrastructure as a single Helm chart.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
 ## Architecture
 
-```
-                        +-----------+
-                        |  Ingress  |
-                        +-----+-----+
-                              |
-                     +--------v--------+
-                     |   Open WebUI    |  (T1 - decision boundary)
-                     +--------+--------+
-                              |
-          +-------+-------+---+---+-------+-------+
-          |       |       |       |       |       |
-       +--v--+ +--v--+ +-v-+ +---v--+ +--v--+ +--v---+
-       |Ollama| |Qdrant| |Tika| |SearXNG| |Redis| |Pipes |
-       | (T1) | | (T1) | |(T2)| | (T2)  | |(T2) | | (T1) |
-       +------+ +------+ +----+ +-------+ +------+ +------+
-          |
-       +--v-------+
-       | Workbench |  (T1 - opt-in, GPU)
-       +----------+
+```mermaid
+graph TD
+  Ingress --> OpenWebUI["Open WebUI (T1)"]
 
-       +-------------------+
-       | OTel Collector (T0)|  (when global.otel.enabled)
-       +-------------------+
+  OpenWebUI --> Ollama["Ollama (T1)"]
+  OpenWebUI --> Qdrant["Qdrant (T1)"]
+  OpenWebUI --> Tika["Tika (T2)"]
+  OpenWebUI --> SearXNG["SearXNG (T2)"]
+  OpenWebUI --> Valkey["Valkey (T2)"]
+  OpenWebUI --> Pipelines["Pipelines (T1)"]
+
+  Ollama --> Workbench["Workbench (T1, opt-in GPU)"]
+
+  OTel["OTel Collector (T0)"]
+
+  style OTel stroke-dasharray: 5 5
 ```
 
 Tiering follows the platform-assurance stack-bom classification:
@@ -39,7 +32,7 @@ Tiering follows the platform-assurance stack-bom classification:
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector |
 | T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench |
-| T2 | Productivity | Tika, SearXNG, Jupyter, Redis |
+| T2 | Productivity | Tika, SearXNG, Jupyter, Valkey |
 
 ## Prerequisites
 
@@ -124,7 +117,7 @@ workbench:
 pipelines:
   enabled: true     # Function pipelines (default: true)
 redis:
-  enabled: true     # Session cache (default: true)
+  enabled: true     # Valkey session cache (default: true)
 ```
 
 ### Secrets
