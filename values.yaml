@@ -111,6 +111,10 @@ openwebui:
     # -- Verify TLS when loading web content for RAG
     ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION: "true"
 
+    # --- Memory (experimental) ---
+    # -- Enable cross-conversation memory; stores user facts as vector embeddings
+    ENABLE_MEMORIES: "true"
+
     # --- Agentic / tool configuration ---
     # -- Enable function/tool calling
     ENABLE_TOOLS: "true"
