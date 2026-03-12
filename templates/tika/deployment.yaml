@@ -48,8 +48,10 @@ spec:
             - name: http
               containerPort: 9998
               protocol: TCP
+          {{- if .Values.global.otel.enabled }}
           env:
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "tika") | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
