@@ -1,0 +1,23 @@
+# Patterns to ignore when building packages.
+.git
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+
+# Documentation and CI (not needed in packaged chart)
+README.md
+CONTRIBUTING.md
+LICENSE
+ct.yaml
+.github/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor temps
+*.swp
+*.swo
+*~
