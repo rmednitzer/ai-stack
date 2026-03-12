@@ -108,6 +108,15 @@ jupyter:
 workbench:
   enabled: false  # Disable in prod by default; enable per-request with GPU scheduling
 
+valkey:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
 pipelines:
   resources:
     requests:

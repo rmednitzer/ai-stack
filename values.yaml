@@ -52,9 +52,9 @@ global:
     labels: {}
 
   # -- Annotations added to all pods for evidence pipeline integration
+  # Note: assurance.platform/version is injected automatically from Chart.AppVersion
   podAnnotations:
     assurance.platform/chart: "ai-stack"
-    assurance.platform/version: "0.1.0"
 
 # =============================================================================
 # Open WebUI — Primary user interface for LLM interaction
@@ -364,6 +364,12 @@ jupyter:
     port: 8888
   env:
     JUPYTER_ENABLE_LAB: "yes"
+    # -- Stack service URLs for notebook access (mirrors Workbench env)
+    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
+    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    # QDRANT_API_KEY injected from Secret in deployment template
+    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
+    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
   ingress:
     enabled: false
     className: ""
