@@ -1,0 +1,64 @@
+# ArgoCD Application — ai-stack (production environment)
+# Deploy with: kubectl apply -f argocd/application-prod.yaml
+# Requires: ArgoCD installed + repo credentials configured
+#
+# Production uses manual sync to enforce change-control gates.
+# Renovate PRs update image tags on main → ArgoCD detects OutOfSync →
+# operator reviews diff and clicks "Sync" (or approves via CI pipeline).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-stack-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: ai-stack
+    assurance.platform/tier: "T1"
+    assurance.platform/profile: prod
+  annotations:
+    argocd.argoproj.io/manifest-generate-paths: .
+    # Notification hooks (configure argocd-notifications)
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: ai-stack-alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default  # Use a dedicated AppProject in production
+  source:
+    repoURL: https://github.com/rmednitzer/ai-stack.git
+    targetRevision: main
+    path: .
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters: []
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-stack
+  syncPolicy:
+    # Production: manual sync for change-control compliance
+    # Automated prune/selfHeal intentionally disabled — require explicit sync
+    syncOptions:
+      - CreateNamespace=false  # Namespace managed externally in prod
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 2m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+  revisionHistoryLimit: 10

@@ -27,7 +27,7 @@ global:
 openwebui:
   replicaCount: 2
   image:
-    tag: "latest"  # FIXME: replace with @sha256:... digest
+    tag: "v0.8.10"
   ingress:
     enabled: true
     className: "envoy"
@@ -60,7 +60,7 @@ openwebui:
 ollama:
   replicaCount: 1
   image:
-    tag: "latest"  # FIXME: replace with @sha256:... digest
+    tag: "0.17.7"
   gpu:
     enabled: true
     count: 1
