@@ -536,7 +536,7 @@ pipelines:
 # Tier: T2 (productivity) | Boundary: none (ephemeral cache)
 # Note: Using Valkey (BSD 3-Clause) per license audit recommendation
 # =============================================================================
-redis:
+valkey:
   enabled: true
   replicaCount: 1
   image:

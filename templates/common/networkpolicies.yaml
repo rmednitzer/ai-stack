@@ -212,11 +212,11 @@ spec:
         - protocol: TCP
           port: 8080
     {{- end }}
-    {{- if .Values.redis.enabled }}
+    {{- if .Values.valkey.enabled }}
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: redis
+              app.kubernetes.io/name: valkey
       ports:
         - protocol: TCP
           port: 6379
@@ -368,11 +368,11 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
-    {{- if .Values.redis.enabled }}
+    {{- if .Values.valkey.enabled }}
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: redis
+              app.kubernetes.io/name: valkey
       ports:
         - protocol: TCP
           port: 6379
@@ -447,11 +447,11 @@ spec:
         - protocol: TCP
           port: 8080
     {{- end }}
-    {{- if .Values.redis.enabled }}
+    {{- if .Values.valkey.enabled }}
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: redis
+              app.kubernetes.io/name: valkey
       ports:
         - protocol: TCP
           port: 6379
@@ -615,11 +615,11 @@ spec:
           port: 8080
     {{- end }}
     # Valkey
-    {{- if .Values.redis.enabled }}
+    {{- if .Values.valkey.enabled }}
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: redis
+              app.kubernetes.io/name: valkey
       ports:
         - protocol: TCP
           port: 6379
@@ -637,18 +637,18 @@ spec:
 # =============================================================================
 # Valkey
 # =============================================================================
-{{- if .Values.redis.enabled }}
+{{- if .Values.valkey.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "ai-stack.fullname" . }}-redis
+  name: {{ include "ai-stack.fullname" . }}-valkey
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 6 }}
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 6 }}
   policyTypes:
     - Ingress
   ingress:

@@ -116,7 +116,7 @@ workbench:
   enabled: false    # GPU ML workbench (default: false, opt-in)
 pipelines:
   enabled: true     # Function pipelines (default: true)
-redis:
+valkey:
   enabled: true     # Valkey session cache (default: true)
 ```
 
