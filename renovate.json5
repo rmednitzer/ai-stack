@@ -54,14 +54,15 @@
     },
     // --- Group T2 (productivity) images ---
     {
-      "description": "T2 productivity images (Tika, SearXNG, Jupyter, Valkey)",
+      "description": "T2 productivity images (Tika, SearXNG, Jupyter, Valkey, Open Terminal)",
       "groupName": "T2 productivity images",
       "matchPackageNames": [
         "apache/tika",
         "searxng/searxng",
         "quay.io/jupyter/scipy-notebook",
         "quay.io/jupyter/pytorch-notebook",
-        "valkey/valkey"
+        "valkey/valkey",
+        "ghcr.io/open-webui/open-terminal"
       ],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": false
