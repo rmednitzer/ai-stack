@@ -4,6 +4,7 @@ description: >-
   Comprehensive AI inference and tooling stack for EU-regulated on-premises
   and hybrid platform operations. Includes Open WebUI, Ollama, Qdrant,
   Apache Tika, SearXNG, Jupyter, Workbench, Valkey, and Open WebUI Pipelines.
+  Includes Open Terminal for AI-agent sandboxed command execution.
   Designed for deployment into governance-as-code environments with
   PSA restricted baseline, NetworkPolicy default-deny, and OTel
   instrumentation hooks.
@@ -28,6 +29,7 @@ keywords:
   - workbench
   - valkey
   - pipelines
+  - open-terminal
 annotations:
   # platform-assurance tier classification
   assurance.platform/tier: "T1"

@@ -491,6 +491,59 @@ workbench:
       periodSeconds: 10
 
 # =============================================================================
+# Open Terminal — AI-agent sandboxed terminal with REST API
+# Tier: T2 (productivity) | Boundary: execution (command execution)
+# =============================================================================
+openTerminal:
+  enabled: false  # Opt-in; provides sandboxed code execution environment
+  replicaCount: 1
+  # -- Override API key (auto-generated if empty; stored in Secret)
+  apiKey: ""
+  image:
+    repository: ghcr.io/open-webui/open-terminal
+    tag: "latest"  # No versioned releases; Renovate tracks via digest
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    # -- CORS origins for Open WebUI integration
+    OPEN_TERMINAL_CORS_ALLOWED_ORIGINS: "*"
+    # -- Disable telemetry
+    SCARF_NO_ANALYTICS: "true"
+    DO_NOT_TRACK: "true"
+    # -- Enable notebook execution support
+    OPEN_TERMINAL_ENABLE_NOTEBOOKS: "true"
+    # -- Enable interactive terminal sessions
+    OPEN_TERMINAL_ENABLE_TERMINAL: "true"
+    # -- Max concurrent terminal sessions
+    OPEN_TERMINAL_MAX_SESSIONS: "10"
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    mountPath: /home/user
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
 # Tier: T1 (operational) | Boundary: decision (pre/post-processing)
 # =============================================================================

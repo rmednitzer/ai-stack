@@ -117,6 +117,9 @@ valkey:
       cpu: "1"
       memory: 1Gi
 
+openTerminal:
+  enabled: false  # Disable in prod by default; enable per-request
+
 pipelines:
   resources:
     requests:

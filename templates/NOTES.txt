@@ -30,6 +30,9 @@ COMPONENTS:
 {{- if .Values.workbench.enabled }}
   ✓ Workbench         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}:{{ .Values.workbench.service.port }}  GPU={{ .Values.workbench.gpu.enabled }}
 {{- end }}
+{{- if .Values.openTerminal.enabled }}
+  ✓ Open Terminal    {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}:{{ .Values.openTerminal.service.port }}
+{{- end }}
 {{- if .Values.valkey.enabled }}
   ✓ Valkey            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}
 {{- end }}
@@ -43,7 +46,7 @@ GOVERNANCE:
   ServiceMonitors:  {{ if .Values.global.serviceMonitor.enabled }}ENABLED{{ else }}DISABLED{{ end }}
   ServiceAccounts:  per-component (automountServiceAccountToken: false)
   PDBs:             ollama, qdrant{{ if gt (int .Values.openwebui.replicaCount) 1 }}, openwebui{{ end }}
-  Secrets:          auto-generated (qdrant API key, searxng key, jupyter token, workbench token)
+  Secrets:          auto-generated (qdrant API key, searxng key, jupyter token, workbench token, open-terminal API key)
 
 VERIFY:
   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/part-of=ai-stack
