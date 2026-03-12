@@ -27,6 +27,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -70,6 +71,12 @@ spec:
                   key: api-key
             {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "pipelines") | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 20
+            periodSeconds: 5
           volumeMounts:
             - name: data
               mountPath: {{ .Values.pipelines.persistence.mountPath }}
@@ -130,6 +137,9 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "pipelines") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.pipelines.persistence.accessMode }}

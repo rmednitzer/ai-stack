@@ -35,14 +35,14 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
-  maxUnavailable: 0
+  maxUnavailable: 1
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 6 }}
 {{- end }}
 
 {{/*
-Qdrant: stateful data — never disrupt without replacement
+Qdrant: stateful data — allow at most one unavailable during voluntary disruption
 */}}
 {{- if .Values.qdrant.enabled }}
 ---
@@ -53,14 +53,14 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
-  maxUnavailable: 0
+  maxUnavailable: 1
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
 {{- end }}
 
 {{/*
-Workbench: GPU workload with long-running computations — never evict mid-training
+Workbench: GPU workload — allow at most one unavailable during voluntary disruption
 */}}
 {{- if .Values.workbench.enabled }}
 ---
@@ -71,7 +71,7 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
-  maxUnavailable: 0
+  maxUnavailable: 1
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}

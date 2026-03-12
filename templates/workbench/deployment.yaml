@@ -29,6 +29,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -199,6 +200,9 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.workbench.persistence.accessMode }}
@@ -224,6 +228,16 @@ metadata:
 spec:
   {{- if .Values.workbench.ingress.className }}
   ingressClassName: {{ .Values.workbench.ingress.className }}
+  {{- end }}
+  {{- if .Values.workbench.ingress.tls }}
+  tls:
+    {{- range .Values.workbench.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
   {{- end }}
   rules:
     {{- range .Values.workbench.ingress.hosts }}

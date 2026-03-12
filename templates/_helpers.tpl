@@ -74,6 +74,16 @@ OTel environment variables (injected into all pods when otel.enabled=true).
 {{- end }}
 
 {{/*
+DNS config helper — applies global.dnsConfig when set.
+*/}}
+{{- define "ai-stack.dnsConfig" -}}
+{{- with .Values.global.dnsConfig }}
+dnsConfig:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
 Image pull secrets helper.
 */}}
 {{- define "ai-stack.imagePullSecrets" -}}

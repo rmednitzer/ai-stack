@@ -1,0 +1,82 @@
+{{/*
+Helm test: verify core services are reachable after install/upgrade.
+Usage: helm test <release-name>
+*/}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-connection-test
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: connection-test
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - |
+          PASS=0
+          FAIL=0
+          check() {
+            if nc -z -w 5 "$1" "$2" 2>/dev/null; then
+              echo "PASS: $3 ($1:$2)"
+              PASS=$((PASS+1))
+            else
+              echo "FAIL: $3 ($1:$2)"
+              FAIL=$((FAIL+1))
+            fi
+          }
+          {{- if .Values.openwebui.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}" "{{ .Values.openwebui.service.port }}" "Open WebUI"
+          {{- end }}
+          {{- if .Values.ollama.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}" "{{ .Values.ollama.service.port }}" "Ollama"
+          {{- end }}
+          {{- if .Values.qdrant.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}" "{{ .Values.qdrant.service.httpPort }}" "Qdrant"
+          {{- end }}
+          {{- if .Values.tika.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}" "{{ .Values.tika.service.port }}" "Tika"
+          {{- end }}
+          {{- if .Values.searxng.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "SearXNG"
+          {{- end }}
+          {{- if .Values.pipelines.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "Pipelines"
+          {{- end }}
+          {{- if .Values.redis.enabled }}
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}" "{{ .Values.redis.service.port }}" "Redis"
+          {{- end }}
+          echo "---"
+          echo "Results: ${PASS} passed, ${FAIL} failed"
+          [ "$FAIL" -eq 0 ]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65534
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 50m
+          memory: 32Mi
+  restartPolicy: Never
