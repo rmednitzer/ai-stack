@@ -124,7 +124,7 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, resourcedetection, resource, attributes/genai, batch]
+          processors: [memory_limiter, resourcedetection, resource, attributes/genai{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
@@ -134,7 +134,7 @@ data:
             {{- end }}
         metrics:
           receivers: [otlp, prometheus]
-          processors: [memory_limiter, resourcedetection, resource, batch]
+          processors: [memory_limiter, resourcedetection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
@@ -147,7 +147,7 @@ data:
             {{- end }}
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, resourcedetection, resource, batch]
+          processors: [memory_limiter, resourcedetection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
@@ -268,6 +268,10 @@ spec:
             sizeLimit: 100Mi
       {{- with .Values.global.nodeSelector }}
       nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 ---
