@@ -1,0 +1,78 @@
+{{/*
+PodDisruptionBudgets for T1 (operational) components when replicas > 1.
+Ensures at least one pod survives voluntary disruption (node drain, upgrade).
+*/}}
+
+{{- $t1Components := list "openwebui" "pipelines" }}
+{{- range $component := $t1Components }}
+{{- $spec := index $.Values $component }}
+{{- if and $spec.enabled (gt (int $spec.replicaCount) 1) }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" $component) }}
+  labels:
+    {{- include "ai-stack.labels" $ | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 6 }}
+{{- end }}
+{{- end }}
+
+{{/*
+Ollama: always PDB with maxUnavailable=1 (GPU workload — never double-evict)
+*/}}
+{{- if .Values.ollama.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 6 }}
+{{- end }}
+
+{{/*
+Qdrant: stateful data — never disrupt without replacement
+*/}}
+{{- if .Values.qdrant.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
+{{- end }}
+
+{{/*
+Workbench: GPU workload with long-running computations — never evict mid-training
+*/}}
+{{- if .Values.workbench.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
+{{- end }}

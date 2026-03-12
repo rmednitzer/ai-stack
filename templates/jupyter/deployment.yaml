@@ -1,0 +1,167 @@
+{{- if .Values.jupyter.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 4 }}
+    assurance.platform/tier: "T2"
+    assurance.platform/boundary: "decision"
+spec:
+  replicas: {{ .Values.jupyter.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 100
+        fsGroup: 100
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        {{- if .Values.ollama.enabled }}
+        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: jupyter
+          image: "{{ .Values.jupyter.image.repository }}:{{ .Values.jupyter.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+          env:
+            - name: JUPYTER_ENABLE_LAB
+              value: "yes"
+            - name: JUPYTER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}-secret
+                  key: token
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "jupyter") | nindent 12 }}
+          args:
+            - start-notebook.py
+            - "--NotebookApp.base_url=/"
+            - "--ServerApp.allow_origin=*"
+            - "--IdentityProvider.token=$(JUPYTER_TOKEN)"
+          volumeMounts:
+            - name: work
+              mountPath: {{ .Values.jupyter.persistence.mountPath }}
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.jupyter.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.jupyter.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.jupyter.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: work
+          {{- if .Values.jupyter.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 4 }}
+spec:
+  type: {{ .Values.jupyter.service.type }}
+  ports:
+    - port: {{ .Values.jupyter.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 4 }}
+{{- if .Values.jupyter.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.jupyter.persistence.accessMode }}
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.jupyter.persistence.size }}
+{{- end }}
+{{- if .Values.jupyter.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+  {{- with .Values.jupyter.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.jupyter.ingress.className }}
+  ingressClassName: {{ .Values.jupyter.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range .Values.jupyter.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" "jupyter") }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

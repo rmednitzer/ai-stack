@@ -1,0 +1,618 @@
+# =============================================================================
+# ai-stack Helm Chart — values.yaml
+# =============================================================================
+# Tiering key (per platform-assurance stack-bom.md):
+#   T0 = safety/integrity  |  T1 = operational  |  T2 = productivity  |  T3 = exploratory
+#
+# Deployment targets:
+#   lab   — single-node, no HA, relaxed resource limits
+#   prod  — multi-replica where applicable, strict PSA, full NetworkPolicy
+# =============================================================================
+
+global:
+  # -- Deployment profile: "lab" or "prod"
+  profile: lab
+  # -- Namespace for the stack (create externally; chart does not create namespaces)
+  namespace: ai-stack
+  # -- Image pull policy
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets (list of secret names)
+  imagePullSecrets: []
+  # -- Storage class for all PVCs (override per-component if needed)
+  storageClass: ""
+  # -- Node selector applied to all pods
+  nodeSelector: {}
+  # -- Tolerations applied to all pods
+  tolerations: []
+  # -- Pod-level DNS config
+  dnsConfig: {}
+
+  # -- Pod Security: enforce restricted baseline (PSA)
+  # Applied as labels on namespace externally; chart sets securityContext to comply
+  podSecurityStandard: restricted
+
+  # -- OpenTelemetry endpoint for all instrumented components
+  otel:
+    enabled: false
+    endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+    protocol: grpc  # grpc | http
+    insecure: true
+
+  # -- Network policy: default-deny with explicit allow rules per component
+  networkPolicy:
+    enabled: true
+
+  # -- Prometheus ServiceMonitor (requires Prometheus Operator CRDs)
+  serviceMonitor:
+    enabled: false
+    # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
+    labels: {}
+
+  # -- Annotations added to all pods for evidence pipeline integration
+  podAnnotations:
+    assurance.platform/chart: "ai-stack"
+    assurance.platform/version: "0.1.0"
+
+# =============================================================================
+# Open WebUI — Primary user interface for LLM interaction
+# Tier: T1 (operational) | Boundary: decision
+# =============================================================================
+openwebui:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/open-webui/open-webui
+    tag: "latest"  # Pin to digest in prod
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: ai.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  env:
+    # -- Ollama backend URL (internal service DNS)
+    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
+    # -- Open WebUI Pipelines URL
+    OPENAI_API_BASE_URLS: "http://ai-stack-pipelines:9099;http://ai-stack-ollama:11434"
+
+    # --- RAG configuration ---
+    # -- Web search via SearXNG
+    RAG_WEB_SEARCH_ENGINE: "searxng"
+    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+    # -- Vector store
+    VECTOR_DB: "qdrant"
+    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    # QDRANT_API_KEY injected from Secret in deployment template
+    # -- Document extraction
+    CONTENT_EXTRACTION_ENGINE: "tika"
+    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
+    # -- Embedding engine: "ollama" uses Ollama, "openai" uses OpenAI-compatible API
+    RAG_EMBEDDING_ENGINE: "ollama"
+    # -- Embedding model (must be pulled in Ollama: ollama pull nomic-embed-text)
+    RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    # -- Chunk size in characters for document splitting
+    RAG_CHUNK_SIZE: "1500"
+    # -- Overlap between chunks
+    RAG_CHUNK_OVERLAP: "100"
+    # -- Number of top chunks to retrieve
+    RAG_TOP_K: "5"
+    # -- Minimum relevance score (0.0 = no filter)
+    RAG_RELEVANCE_THRESHOLD: "0.0"
+    # -- Verify TLS when loading web content for RAG
+    ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION: "true"
+
+    # --- Agentic / tool configuration ---
+    # -- Enable function/tool calling
+    ENABLE_TOOLS: "true"
+    # -- Maximum file upload size in bytes (50 MB)
+    MAX_UPLOAD_SIZE: "52428800"
+
+    # --- Auth and security ---
+    # -- Require authentication (disable only in lab with single-user)
+    WEBUI_AUTH: "true"
+    # -- Enable websocket for streaming responses
+    ENABLE_WEBSOCKET_SUPPORT: "true"
+
+    # --- Data and telemetry ---
+    DATA_DIR: "/app/backend/data"
+    SCARF_NO_ANALYTICS: "true"
+    DO_NOT_TRACK: "true"
+    ANONYMIZED_TELEMETRY: "false"
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/backend/data
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # -- Liveness and readiness probes
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 5
+    readiness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+
+# =============================================================================
+# Ollama — Local LLM inference server
+# Tier: T1 (operational) | Boundary: model serving (TB3 — PIAL)
+# =============================================================================
+ollama:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ollama/ollama
+    tag: "latest"  # Pin to digest in prod
+  service:
+    type: ClusterIP
+    port: 11434
+  # -- GPU resources (NVIDIA)
+  gpu:
+    enabled: false
+    # -- Number of GPUs to request
+    count: 1
+    # -- NVIDIA device plugin resource name
+    resourceName: nvidia.com/gpu
+  env:
+    OLLAMA_HOST: "0.0.0.0"
+    OLLAMA_KEEP_ALIVE: "5m"
+    # -- Restrict to specific models (comma-separated) — empty = all
+    # OLLAMA_MODELS: ""
+  persistence:
+    enabled: true
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    mountPath: /root/.ollama
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      cpu: "8"
+      memory: 32Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 10
+    readiness:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+
+# =============================================================================
+# Qdrant — Vector database for RAG
+# Tier: T1 (operational) | Boundary: retrieval (TB4)
+# =============================================================================
+qdrant:
+  enabled: true
+  replicaCount: 1
+  # -- Override Qdrant API key (auto-generated if empty; stored in Secret)
+  apiKey: ""
+  image:
+    repository: qdrant/qdrant
+    tag: "v1.13.2"
+  service:
+    type: ClusterIP
+    httpPort: 6333
+    grpcPort: 6334
+  env:
+    QDRANT__SERVICE__HTTP_PORT: "6333"
+    QDRANT__SERVICE__GRPC_PORT: "6334"
+    # -- Enable API key authentication (set via secret)
+    # QDRANT__SERVICE__API_KEY: ""
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessMode: ReadWriteOnce
+    mountPath: /qdrant/storage
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /healthz
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /readyz
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
+# Apache Tika — Document content extraction for RAG pipeline
+# Tier: T2 (productivity) | Boundary: ingestion
+# =============================================================================
+tika:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: apache/tika
+    tag: "3.0.0.0"
+  service:
+    type: ClusterIP
+    port: 9998
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /tika
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /tika
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+# =============================================================================
+# SearXNG — Privacy-respecting metasearch engine for web RAG
+# Tier: T2 (productivity) | Boundary: ingestion (external data)
+# =============================================================================
+searxng:
+  enabled: true
+  replicaCount: 1
+  # -- Override secret key (auto-generated if empty; stored in Secret)
+  secretKey: ""
+  image:
+    repository: searxng/searxng
+    tag: "latest"  # Pin to digest in prod
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    SEARXNG_BASE_URL: "http://ai-stack-searxng:8080/"
+    INSTANCE_NAME: "AI Stack Search"
+  # -- SearXNG settings.yml override (mounted as ConfigMap)
+  settings:
+    use_default_settings: true
+    server:
+      secret_key: ""  # Injected at runtime from Secret via SEARXNG_SECRET_KEY env
+      limiter: false
+      image_proxy: false
+    search:
+      safe_search: 0
+      autocomplete: ""
+      default_lang: "en"
+      formats:
+        - html
+        - json
+    # -- Enable JSON output format (required for Open WebUI integration)
+    general:
+      enable_metrics: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /healthz
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /healthz
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
+# JupyterHub / Jupyter Notebook — Interactive compute environment
+# Tier: T2 (productivity) | Boundary: decision (user code execution)
+# =============================================================================
+jupyter:
+  enabled: true
+  replicaCount: 1
+  # -- Override Jupyter token (auto-generated if empty; stored in Secret)
+  token: ""
+  image:
+    repository: quay.io/jupyter/scipy-notebook
+    tag: "2024-12-02"
+  service:
+    type: ClusterIP
+    port: 8888
+  env:
+    JUPYTER_ENABLE_LAB: "yes"
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: jupyter.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessMode: ReadWriteOnce
+    mountPath: /home/jovyan/work
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /api
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /api
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+# =============================================================================
+# Workbench — GPU-enabled ML engineering environment
+# Tier: T1 (operational) | Boundary: decision (user code execution + GPU)
+#
+# Purpose: full-featured compute environment for ML experimentation,
+# model evaluation, data pipeline development, and infrastructure
+# operations. Separated from Jupyter to isolate the GPU scheduling,
+# wider attack surface, and heavier resource profile.
+#
+# Base image: NVIDIA CUDA + JupyterLab + system tools.
+# Custom image recommended — build from the Dockerfile reference below.
+# =============================================================================
+workbench:
+  enabled: false  # Opt-in; GPU workload
+  replicaCount: 1
+  image:
+    # -- Use a custom image built from the Dockerfile in this chart,
+    # or any CUDA-enabled Jupyter image. The quay.io/jupyter/pytorch-notebook
+    # includes PyTorch + CUDA but not system tools — extend as needed.
+    repository: quay.io/jupyter/pytorch-notebook
+    tag: "cuda12-python-3.11"
+  service:
+    type: ClusterIP
+    port: 8888
+  # -- GPU resources (NVIDIA)
+  gpu:
+    enabled: true
+    count: 1
+    resourceName: nvidia.com/gpu
+  env:
+    JUPYTER_ENABLE_LAB: "yes"
+    # -- Grant access to all stack services
+    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
+    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    # QDRANT_API_KEY injected from Secret in deployment template
+    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
+    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+    PIPELINES_URL: "http://ai-stack-pipelines:9099"
+    # -- NVIDIA visibility
+    NVIDIA_VISIBLE_DEVICES: "all"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    # -- Default pip packages installed at runtime (extend via custom image)
+    PIP_PACKAGES: "openai langchain langchain-community qdrant-client httpx tiktoken transformers datasets accelerate bitsandbytes"
+  # -- Override token (auto-generated if empty; stored in Secret)
+  token: ""
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: workbench.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 100Gi
+    accessMode: ReadWriteOnce
+    mountPath: /home/jovyan/work
+  # -- Shared memory for PyTorch DataLoader workers (required for multi-worker)
+  shmSize: 8Gi
+  resources:
+    requests:
+      cpu: "2"
+      memory: 16Gi
+    limits:
+      cpu: "16"
+      memory: 64Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /api
+        port: http
+      initialDelaySeconds: 120
+      periodSeconds: 30
+      timeoutSeconds: 10
+    readiness:
+      httpGet:
+        path: /api
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+# =============================================================================
+# Open WebUI Pipelines — Function/filter pipeline server
+# Tier: T1 (operational) | Boundary: decision (pre/post-processing)
+# =============================================================================
+pipelines:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/open-webui/pipelines
+    tag: "main"  # Pin to digest in prod
+  service:
+    type: ClusterIP
+    port: 9099
+  env:
+    PIPELINES_DIR: "/app/pipelines"
+    # -- Backend URLs for pipeline functions that need to call stack services
+    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
+    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    # QDRANT_API_KEY injected from Secret in deployment template
+    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
+    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+  persistence:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/pipelines
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
+# Redis (Valkey) — Session cache / rate limiting backend
+# Tier: T2 (productivity) | Boundary: none (ephemeral cache)
+# Note: Using Valkey (BSD 3-Clause) per license audit recommendation
+# =============================================================================
+redis:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: valkey/valkey
+    tag: "8.0"
+  service:
+    type: ClusterIP
+    port: 6379
+  persistence:
+    enabled: false  # Ephemeral cache; no durable state
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      exec:
+        command: ["valkey-cli", "ping"]
+      initialDelaySeconds: 10
+      periodSeconds: 15
+    readiness:
+      exec:
+        command: ["valkey-cli", "ping"]
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+# =============================================================================
+# OTel Collector — observability pipeline for the AI stack
+# Tier: T0 (safety/integrity) | Boundary: observability
+# Deployed when global.otel.enabled=true
+#
+# Receives OTLP from all stack components, enriches with K8s metadata,
+# applies GenAI semantic conventions, redacts PII, and forwards to the
+# platform observability pipeline.
+#
+# Aligns with:
+#   - stack-bom.md §5: OTel Collector (T0, non-negotiable)
+#   - observability-iam.md §3.1: collection layer
+#   - ai-api-management.md: GenAI semantic conventions
+#   - CTL-0006, CTL-0009
+# =============================================================================
+otelCollector:
+  replicaCount: 1
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.116.0"
+  logLevel: info
+  memoryLimitMiB: 400
+  spikeMemoryLimitMiB: 100
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  # -- PII redaction (GDPR Art 5(1)(c) data minimisation)
+  redaction:
+    enabled: true
+    blockedPatterns:
+      # Email addresses
+      - '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+      # Austrian social security numbers (VSNR)
+      - '\b\d{4}\s?\d{6}\b'
+      # Credit card numbers
+      - '\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+  exporters:
+    # -- Forward to platform OTel Collector (Thanos/VictoriaMetrics/Tempo/Loki)
+    otlp:
+      enabled: true
+      endpoint: "otel-collector.observability.svc.cluster.local:4317"
+      insecure: true
+    # -- Expose Prometheus /metrics endpoint (for ServiceMonitor scrape)
+    prometheus:
+      enabled: true
+    # -- Push logs to Loki
+    loki:
+      enabled: false
+      endpoint: "http://loki-gateway.observability.svc.cluster.local:3100/loki/api/v1/push"

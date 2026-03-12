@@ -1,0 +1,304 @@
+{{- if .Values.global.otel.enabled }}
+{{/*
+OpenTelemetry Collector — receives traces/metrics/logs from all AI stack
+components and forwards to the platform observability pipeline.
+
+Aligns with:
+  - stack-bom.md §5: OTel Collector (T0, non-negotiable)
+  - observability-iam.md §3.1: OTel Collector pipeline
+  - ai-api-management.md Part 4: GenAI semantic conventions
+  - CTL-0006: Logging legality, minimisation, and forensic correlation
+  - CTL-0009: AI gateway policy (OTel GenAI instrumentation)
+*/}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}-config
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+      # Prometheus scrape for components that expose /metrics
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'ai-stack-openwebui'
+              scrape_interval: 30s
+              static_configs:
+                - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}:{{ .Values.openwebui.service.port }}']
+              metrics_path: /metrics
+            {{- if .Values.ollama.enabled }}
+            - job_name: 'ai-stack-ollama'
+              scrape_interval: 30s
+              static_configs:
+                - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:{{ .Values.ollama.service.port }}']
+            {{- end }}
+            {{- if .Values.qdrant.enabled }}
+            - job_name: 'ai-stack-qdrant'
+              scrape_interval: 30s
+              static_configs:
+                - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:{{ .Values.qdrant.service.httpPort }}']
+              metrics_path: /metrics
+            {{- end }}
+
+    processors:
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+      memory_limiter:
+        check_interval: 5s
+        limit_mib: {{ .Values.otelCollector.memoryLimitMiB | default 400 }}
+        spike_limit_mib: {{ .Values.otelCollector.spikeMemoryLimitMiB | default 100 }}
+      # Resource detection — enrich with K8s metadata
+      resourcedetection:
+        detectors: [env]
+        timeout: 5s
+      # Add standard attributes
+      resource:
+        attributes:
+          - key: deployment.environment
+            value: {{ .Values.global.profile }}
+            action: upsert
+          - key: service.namespace
+            value: {{ .Release.Namespace }}
+            action: upsert
+      # Attribute processing — GenAI semantic conventions enrichment
+      attributes/genai:
+        actions:
+          - key: gen_ai.system
+            value: "ai-stack"
+            action: upsert
+      # Redaction — strip PII before export per GDPR Art 5(1)(c)
+      # and observability-iam.md §3.2 (PII handling)
+      {{- if .Values.otelCollector.redaction.enabled }}
+      redaction:
+        allow_all_keys: true
+        blocked_values:
+          {{- range .Values.otelCollector.redaction.blockedPatterns }}
+          - {{ . | quote }}
+          {{- end }}
+      {{- end }}
+
+    exporters:
+      {{- if .Values.otelCollector.exporters.otlp.enabled }}
+      otlp:
+        endpoint: {{ .Values.otelCollector.exporters.otlp.endpoint | quote }}
+        tls:
+          insecure: {{ .Values.otelCollector.exporters.otlp.insecure }}
+      {{- end }}
+      {{- if .Values.otelCollector.exporters.prometheus.enabled }}
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: "ai_stack"
+        resource_to_telemetry_conversion:
+          enabled: true
+      {{- end }}
+      {{- if .Values.otelCollector.exporters.loki.enabled }}
+      loki:
+        endpoint: {{ .Values.otelCollector.exporters.loki.endpoint | quote }}
+      {{- end }}
+      # Debug exporter for lab profile
+      {{- if eq .Values.global.profile "lab" }}
+      debug:
+        verbosity: basic
+        sampling_initial: 5
+        sampling_thereafter: 200
+      {{- end }}
+
+    extensions:
+      health_check:
+        endpoint: "0.0.0.0:13133"
+      zpages:
+        endpoint: "0.0.0.0:55679"
+
+    service:
+      extensions: [health_check, zpages]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, resource, attributes/genai, batch]
+          exporters:
+            {{- if .Values.otelCollector.exporters.otlp.enabled }}
+            - otlp
+            {{- end }}
+            {{- if eq .Values.global.profile "lab" }}
+            - debug
+            {{- end }}
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, resourcedetection, resource, batch]
+          exporters:
+            {{- if .Values.otelCollector.exporters.otlp.enabled }}
+            - otlp
+            {{- end }}
+            {{- if .Values.otelCollector.exporters.prometheus.enabled }}
+            - prometheus
+            {{- end }}
+            {{- if eq .Values.global.profile "lab" }}
+            - debug
+            {{- end }}
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, resource, batch]
+          exporters:
+            {{- if .Values.otelCollector.exporters.otlp.enabled }}
+            - otlp
+            {{- end }}
+            {{- if .Values.otelCollector.exporters.loki.enabled }}
+            - loki
+            {{- end }}
+            {{- if eq .Values.global.profile "lab" }}
+            - debug
+            {{- end }}
+      telemetry:
+        metrics:
+          address: "0.0.0.0:8888"
+        logs:
+          level: {{ .Values.otelCollector.logLevel | default "info" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
+    assurance.platform/tier: "T0"
+    assurance.platform/boundary: "observability"
+    assurance.platform/control-refs: "CTL-0006,CTL-0009"
+spec:
+  replicas: {{ .Values.otelCollector.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        checksum/config: {{ .Values.otelCollector | toYaml | sha256sum }}
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: otel-collector
+          image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          args:
+            - "--config=/etc/otelcol/otel-collector-config.yaml"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            {{- if .Values.otelCollector.exporters.prometheus.enabled }}
+            - name: prom-export
+              containerPort: 8889
+              protocol: TCP
+            {{- end }}
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+            - name: zpages
+              containerPort: 55679
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.otelCollector.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4317
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+    - port: 4318
+      targetPort: otlp-http
+      protocol: TCP
+      name: otlp-http
+    - port: 8888
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- if .Values.otelCollector.exporters.prometheus.enabled }}
+    - port: 8889
+      targetPort: prom-export
+      protocol: TCP
+      name: prom-export
+    {{- end }}
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
+{{- end }}

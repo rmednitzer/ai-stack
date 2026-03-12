@@ -1,0 +1,130 @@
+{{- if .Values.searxng.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}-settings
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+data:
+  settings.yml: |
+    use_default_settings: true
+    server:
+      secret_key: "placeholder-overridden-by-env"
+      limiter: {{ .Values.searxng.settings.server.limiter }}
+      image_proxy: {{ .Values.searxng.settings.server.image_proxy }}
+    search:
+      safe_search: {{ .Values.searxng.settings.search.safe_search }}
+      autocomplete: {{ .Values.searxng.settings.search.autocomplete | default "" | quote }}
+      default_lang: {{ .Values.searxng.settings.search.default_lang | quote }}
+      formats:
+        {{- range .Values.searxng.settings.search.formats }}
+        - {{ . }}
+        {{- end }}
+    general:
+      enable_metrics: {{ .Values.searxng.settings.general.enable_metrics }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 4 }}
+    assurance.platform/tier: "T2"
+    assurance.platform/boundary: "ingestion"
+spec:
+  replicas: {{ .Values.searxng.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        checksum/config: {{ .Values.searxng.settings | toYaml | sha256sum }}
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: false
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: searxng
+          image: "{{ .Values.searxng.image.repository }}:{{ .Values.searxng.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - SETUID
+                - SETGID
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.searxng.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: SEARXNG_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}-secret
+                  key: secret-key
+          volumeMounts:
+            - name: settings
+              mountPath: /etc/searxng/settings.yml
+              subPath: settings.yml
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.searxng.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.searxng.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.searxng.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: settings
+          configMap:
+            name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}-settings
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 4 }}
+spec:
+  type: {{ .Values.searxng.service.type }}
+  ports:
+    - port: {{ .Values.searxng.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 4 }}
+{{- end }}

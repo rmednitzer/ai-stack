@@ -1,0 +1,125 @@
+# =============================================================================
+# values-prod.yaml — Production overlay for EU-regulated deployment
+# Usage: helm install ai-stack . -f values.yaml -f values-prod.yaml
+# =============================================================================
+
+global:
+  profile: prod
+  imagePullPolicy: Always
+  # -- Pin your storage class
+  storageClass: "zfs-production"
+
+  otel:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+
+  networkPolicy:
+    enabled: true
+
+  podAnnotations:
+    assurance.platform/chart: "ai-stack"
+    assurance.platform/profile: "prod"
+    assurance.platform/control-refs: "CTL-0009"
+
+# -- All images pinned to digest in prod (replace with actual digests)
+# Example: ghcr.io/open-webui/open-webui@sha256:abc123...
+
+openwebui:
+  replicaCount: 2
+  image:
+    tag: "latest"  # FIXME: replace with @sha256:... digest
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      # Websocket support for streaming responses
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: ai.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ai-tls
+        hosts:
+          - ai.example.com
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+  persistence:
+    size: 50Gi
+
+ollama:
+  replicaCount: 1
+  image:
+    tag: "latest"  # FIXME: replace with @sha256:... digest
+  gpu:
+    enabled: true
+    count: 1
+  resources:
+    requests:
+      cpu: "2"
+      memory: 8Gi
+    limits:
+      cpu: "16"
+      memory: 64Gi
+  persistence:
+    size: 200Gi
+
+qdrant:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  persistence:
+    size: 100Gi
+
+tika:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+searxng:
+  settings:
+    server:
+      secret_key: ""  # FIXME: generate with: openssl rand -hex 32
+      limiter: true
+      image_proxy: false
+
+jupyter:
+  enabled: false  # Disable in prod by default; enable per-request
+  env:
+    JUPYTER_TOKEN: ""  # FIXME: set via secret
+
+pipelines:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  persistence:
+    size: 20Gi

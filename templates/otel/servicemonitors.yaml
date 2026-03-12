@@ -1,0 +1,88 @@
+{{/*
+Prometheus ServiceMonitors for all components exposing /metrics.
+Requires Prometheus Operator CRDs (monitoring.coreos.com/v1).
+Gated behind global.serviceMonitor.enabled to avoid CRD dependency in lab.
+
+Aligns with:
+  - stack-bom.md §5: Prometheus + Alertmanager (T0)
+  - observability-iam.md §3.4: metrics architecture
+  - CTL-0006: Logging legality, minimisation, and forensic correlation
+*/}}
+
+{{- if .Values.global.serviceMonitor.enabled }}
+
+{{/* OTel Collector self-monitoring */}}
+{{- if .Values.global.otel.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 6 }}
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+    {{- if .Values.otelCollector.exporters.prometheus.enabled }}
+    - port: prom-export
+      interval: 30s
+      path: /metrics
+    {{- end }}
+{{- end }}
+
+{{/* Qdrant metrics */}}
+{{- if .Values.qdrant.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+{{- end }}
+
+{{/* Open WebUI metrics (if available) */}}
+{{- if .Values.openwebui.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 6 }}
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+{{- end }}
+
+{{- end }}

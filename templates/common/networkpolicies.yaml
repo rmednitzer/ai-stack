@@ -1,0 +1,641 @@
+{{- if .Values.global.networkPolicy.enabled }}
+# =============================================================================
+# Default deny + DNS — foundation per security-assessment.md TB2
+# =============================================================================
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-default-deny
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-stack
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-allow-dns
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-stack
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+# =============================================================================
+# OTel Collector — accepts OTLP from all stack pods; exports to platform
+# =============================================================================
+{{- if .Values.global.otel.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-otel-collector
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept OTLP from any ai-stack pod
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: ai-stack
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+    # Prometheus scrape from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8888
+        - protocol: TCP
+          port: 8889
+  egress:
+    # Forward to platform OTel Collector / Prometheus / Loki
+    - ports:
+        - protocol: TCP
+          port: 4317  # OTLP gRPC
+        - protocol: TCP
+          port: 4318  # OTLP HTTP
+        - protocol: TCP
+          port: 3100  # Loki
+        - protocol: TCP
+          port: 9090  # Prometheus remote write
+    # Scrape ai-stack component metrics
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: ai-stack
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 11434
+        - protocol: TCP
+          port: 6333
+        - protocol: TCP
+          port: 9998
+        - protocol: TCP
+          port: 9099
+        - protocol: TCP
+          port: 8888
+{{- end }}
+
+# =============================================================================
+# All stack pods — egress to OTel Collector (OTLP)
+# =============================================================================
+{{- if .Values.global.otel.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-allow-otel-egress
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-stack
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+{{- end }}
+
+# =============================================================================
+# Open WebUI
+# =============================================================================
+{{- if .Values.openwebui.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-openwebui
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    {{- if .Values.pipelines.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 9099
+    {{- end }}
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    {{- end }}
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: 8080
+    {{- end }}
+    {{- if .Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+{{- end }}
+
+# =============================================================================
+# Ollama
+# =============================================================================
+{{- if .Values.ollama.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-ollama
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: jupyter
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+      ports:
+        - protocol: TCP
+          port: 11434
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443
+{{- end }}
+
+# =============================================================================
+# Qdrant
+# =============================================================================
+{{- if .Values.qdrant.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-qdrant
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: jupyter
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+      ports:
+        - protocol: TCP
+          port: 6333
+        - protocol: TCP
+          port: 6334
+{{- end }}
+
+# =============================================================================
+# Tika
+# =============================================================================
+{{- if .Values.tika.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-tika
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+      ports:
+        - protocol: TCP
+          port: 9998
+{{- end }}
+
+# =============================================================================
+# SearXNG
+# =============================================================================
+{{- if .Values.searxng.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-searxng
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+{{- end }}
+
+# =============================================================================
+# Pipelines
+# =============================================================================
+{{- if .Values.pipelines.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-pipelines
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "pipelines") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+      ports:
+        - protocol: TCP
+          port: 9099
+  egress:
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    {{- end }}
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: 8080
+    {{- end }}
+    {{- if .Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+    # Pipelines may call external APIs (agentic tool calls)
+    - ports:
+        - protocol: TCP
+          port: 443
+{{- end }}
+
+# =============================================================================
+# Jupyter
+# =============================================================================
+{{- if .Values.jupyter.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-jupyter
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8888
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8888
+  egress:
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+          port: 6334
+    {{- end }}
+    {{- if .Values.pipelines.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 9099
+    {{- end }}
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+{{- end }}
+
+# =============================================================================
+# Workbench — widest egress in stack; full access to all AI services + internet
+# =============================================================================
+{{- if .Values.workbench.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-workbench
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8888
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8888
+  egress:
+    # Ollama (inference + embeddings)
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    # Qdrant (vector operations)
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+        - protocol: TCP
+          port: 6334
+    {{- end }}
+    # Pipelines
+    {{- if .Values.pipelines.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 9099
+    {{- end }}
+    # Tika (document extraction from notebooks)
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    # SearXNG (web search from notebooks)
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: 8080
+    {{- end }}
+    # Redis
+    {{- if .Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+    # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 22   # git+ssh
+{{- end }}
+
+# =============================================================================
+# Redis
+# =============================================================================
+{{- if .Values.redis.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-redis
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 6379
+{{- end }}
+{{- end }}

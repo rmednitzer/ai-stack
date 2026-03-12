@@ -1,0 +1,244 @@
+{{- if .Values.workbench.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 4 }}
+    assurance.platform/tier: "T1"
+    assurance.platform/boundary: "decision"
+spec:
+  replicas: {{ .Values.workbench.replicaCount }}
+  strategy:
+    type: Recreate  # GPU workload — avoid double-scheduling
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 100
+        fsGroup: 100
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        {{- if .Values.ollama.enabled }}
+        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
+        {{- end }}
+        # Install additional Python packages at startup
+        # For production, bake these into a custom image instead
+        {{- if .Values.workbench.env.PIP_PACKAGES }}
+        - name: install-packages
+          image: "{{ .Values.workbench.image.repository }}:{{ .Values.workbench.image.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              pip install --user --no-cache-dir ${PIP_PACKAGES} 2>&1 | tail -5
+              echo "Package installation complete"
+          env:
+            - name: PIP_PACKAGES
+              value: {{ .Values.workbench.env.PIP_PACKAGES | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: work
+              mountPath: /home/jovyan/work
+            - name: pip-cache
+              mountPath: /home/jovyan/.local
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+        {{- end }}
+      containers:
+        - name: workbench
+          image: "{{ .Values.workbench.image.repository }}:{{ .Values.workbench.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.workbench.env }}
+            {{- if ne $key "PIP_PACKAGES" }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            - name: JUPYTER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}-secret
+                  key: token
+            {{- if .Values.qdrant.enabled }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                  key: api-key
+            {{- end }}
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "workbench") | nindent 12 }}
+          args:
+            - start-notebook.py
+            - "--NotebookApp.base_url=/"
+            - "--ServerApp.allow_origin=*"
+            - "--IdentityProvider.token=$(JUPYTER_TOKEN)"
+          volumeMounts:
+            - name: work
+              mountPath: {{ .Values.workbench.persistence.mountPath }}
+            - name: pip-cache
+              mountPath: /home/jovyan/.local
+            - name: dshm
+              mountPath: /dev/shm
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.workbench.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workbench.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.workbench.resources.requests.cpu | quote }}
+              memory: {{ .Values.workbench.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.workbench.resources.limits.cpu | quote }}
+              memory: {{ .Values.workbench.resources.limits.memory | quote }}
+              {{- if .Values.workbench.gpu.enabled }}
+              {{ .Values.workbench.gpu.resourceName }}: {{ .Values.workbench.gpu.count }}
+              {{- end }}
+      volumes:
+        - name: work
+          {{- if .Values.workbench.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: pip-cache
+          emptyDir:
+            sizeLimit: 10Gi
+        # /dev/shm — shared memory for PyTorch DataLoader multi-worker
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.workbench.shmSize | default "8Gi" }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 10Gi
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 4 }}
+spec:
+  type: {{ .Values.workbench.service.type }}
+  ports:
+    - port: {{ .Values.workbench.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 4 }}
+{{- if .Values.workbench.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.workbench.persistence.accessMode }}
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.workbench.persistence.size }}
+{{- end }}
+{{- if .Values.workbench.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+  {{- with .Values.workbench.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.workbench.ingress.className }}
+  ingressClassName: {{ .Values.workbench.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range .Values.workbench.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" "workbench") }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
