@@ -22,6 +22,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 999

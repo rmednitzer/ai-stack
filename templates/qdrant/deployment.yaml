@@ -29,6 +29,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -36,6 +37,7 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
       containers:
         - name: qdrant
           image: "{{ .Values.qdrant.image.repository }}:{{ .Values.qdrant.image.tag }}"
@@ -67,6 +69,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
                   key: api-key
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "qdrant") | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
           volumeMounts:
             - name: data
               mountPath: {{ .Values.qdrant.persistence.mountPath }}

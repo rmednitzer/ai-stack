@@ -27,6 +27,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: false
         seccompProfile:
@@ -47,6 +48,8 @@ spec:
             - name: http
               containerPort: 9998
               protocol: TCP
+          env:
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "tika") | nindent 12 }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp

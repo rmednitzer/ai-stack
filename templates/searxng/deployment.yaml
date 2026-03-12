@@ -52,6 +52,7 @@ spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: false
         seccompProfile:
@@ -85,6 +86,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}-secret
                   key: secret-key
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "searxng") | nindent 12 }}
           volumeMounts:
             - name: settings
               mountPath: /etc/searxng/settings.yml
