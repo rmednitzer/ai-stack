@@ -67,6 +67,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}-secret
                   key: token
+            {{- if .Values.qdrant.enabled }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                  key: api-key
+            {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "jupyter") | nindent 12 }}
           args:
             - start-notebook.py
