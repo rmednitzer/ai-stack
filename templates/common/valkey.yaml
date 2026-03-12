@@ -1,29 +1,29 @@
-{{- if .Values.redis.enabled }}
+{{- if .Values.valkey.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
-    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
     assurance.platform/tier: "T2"
 spec:
-  replicas: {{ .Values.redis.replicaCount }}
+  replicas: {{ .Values.valkey.replicaCount }}
   selector:
     matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 6 }}
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 8 }}
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         {{- with .Values.global.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
       automountServiceAccountToken: false
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
@@ -36,7 +36,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: valkey
-          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
@@ -48,7 +48,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           ports:
-            - name: redis
+            - name: valkey
               containerPort: 6379
               protocol: TCP
           volumeMounts:
@@ -56,15 +56,15 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
-          {{- with .Values.redis.probes.liveness }}
+          {{- with .Values.valkey.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.redis.probes.readiness }}
+          {{- with .Values.valkey.probes.readiness }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.redis.resources }}
+          {{- with .Values.valkey.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -86,16 +86,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
-    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
 spec:
-  type: {{ .Values.redis.service.type }}
+  type: {{ .Values.valkey.service.type }}
   ports:
-    - port: {{ .Values.redis.service.port }}
-      targetPort: redis
-      name: redis
+    - port: {{ .Values.valkey.service.port }}
+      targetPort: valkey
+      name: valkey
   selector:
-    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "redis") | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
 {{- end }}
