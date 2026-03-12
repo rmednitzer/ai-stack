@@ -58,8 +58,10 @@ spec:
               containerPort: 8888
               protocol: TCP
           env:
-            - name: JUPYTER_ENABLE_LAB
-              value: "yes"
+            {{- range $key, $value := .Values.jupyter.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             - name: JUPYTER_TOKEN
               valueFrom:
                 secretKeyRef:

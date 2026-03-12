@@ -43,7 +43,7 @@ GOVERNANCE:
   ServiceMonitors:  {{ if .Values.global.serviceMonitor.enabled }}ENABLED{{ else }}DISABLED{{ end }}
   ServiceAccounts:  per-component (automountServiceAccountToken: false)
   PDBs:             ollama, qdrant{{ if gt (int .Values.openwebui.replicaCount) 1 }}, openwebui{{ end }}
-  Secrets:          auto-generated (qdrant API key, searxng key, jupyter token)
+  Secrets:          auto-generated (qdrant API key, searxng key, jupyter token, workbench token)
 
 VERIFY:
   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/part-of=ai-stack
