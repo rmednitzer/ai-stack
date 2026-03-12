@@ -268,4 +268,4 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 | Name | Email |
 |------|-------|
-| Roman Mednitzer | roman@mednitzer.at |
+| Roman Mednitzer | r.mednitzer@outlook.com |
