@@ -2,7 +2,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), and supporting infrastructure as a single Helm chart.
+Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), and supporting infrastructure as a single Helm chart.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -20,8 +20,8 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
           +-------+-------+---+---+-------+-------+
           |       |       |       |       |       |
        +--v--+ +--v--+ +-v-+ +---v--+ +--v--+ +--v---+
-       |Ollama| |Qdrant| |Tika| |SearXNG| |Redis| |Pipes |
-       | (T1) | | (T1) | |(T2)| | (T2)  | |(T2) | | (T1) |
+       |Ollama| |Qdrant| |Tika| |SearXNG| |Valkey| |Pipes |
+       | (T1) | | (T1) | |(T2)| | (T2)  | | (T2) | | (T1) |
        +------+ +------+ +----+ +-------+ +------+ +------+
           |
        +--v-------+
@@ -39,7 +39,7 @@ Tiering follows the platform-assurance stack-bom classification:
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector |
 | T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench |
-| T2 | Productivity | Tika, SearXNG, Jupyter, Redis |
+| T2 | Productivity | Tika, SearXNG, Jupyter, Valkey |
 
 ## Prerequisites
 
@@ -124,7 +124,7 @@ workbench:
 pipelines:
   enabled: true     # Function pipelines (default: true)
 redis:
-  enabled: true     # Session cache (default: true)
+  enabled: true     # Valkey session cache (default: true)
 ```
 
 ### Secrets

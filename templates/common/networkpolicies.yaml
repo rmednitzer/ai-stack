@@ -614,7 +614,7 @@ spec:
         - protocol: TCP
           port: 8080
     {{- end }}
-    # Redis
+    # Valkey
     {{- if .Values.redis.enabled }}
     - to:
         - podSelector:
@@ -635,7 +635,7 @@ spec:
 {{- end }}
 
 # =============================================================================
-# Redis
+# Valkey
 # =============================================================================
 {{- if .Values.redis.enabled }}
 ---

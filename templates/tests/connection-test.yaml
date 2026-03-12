@@ -57,7 +57,7 @@ spec:
           check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "Pipelines"
           {{- end }}
           {{- if .Values.redis.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}" "{{ .Values.redis.service.port }}" "Redis"
+          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "redis") }}" "{{ .Values.redis.service.port }}" "Valkey"
           {{- end }}
           echo "---"
           echo "Results: ${PASS} passed, ${FAIL} failed"

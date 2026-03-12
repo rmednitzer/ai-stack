@@ -532,7 +532,7 @@ pipelines:
       periodSeconds: 10
 
 # =============================================================================
-# Redis (Valkey) — Session cache / rate limiting backend
+# Valkey — Session cache / rate limiting backend
 # Tier: T2 (productivity) | Boundary: none (ephemeral cache)
 # Note: Using Valkey (BSD 3-Clause) per license audit recommendation
 # =============================================================================
