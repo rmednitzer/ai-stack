@@ -232,6 +232,15 @@ spec:
         - protocol: TCP
           port: 8000
     {{- end }}
+    {{- if .Values.mcpo.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpo
+      ports:
+        - protocol: TCP
+          port: 8000
+    {{- end }}
 {{- end }}
 
 # =============================================================================
@@ -690,6 +699,42 @@ spec:
           port: 8000
   egress:
     # Internet (pip install, apt, git clone, etc.)
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+{{- end }}
+
+# =============================================================================
+# MCPO — MCP-to-OpenAPI proxy; accepts from Open WebUI, needs internet for
+# remote MCP servers (SSE/streamable-http)
+# =============================================================================
+{{- if .Values.mcpo.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-mcpo
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Remote MCP servers (SSE / streamable-http over HTTPS)
     - ports:
         - protocol: TCP
           port: 443

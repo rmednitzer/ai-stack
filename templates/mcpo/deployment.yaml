@@ -1,0 +1,139 @@
+{{- if .Values.mcpo.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 4 }}
+    assurance.platform/tier: "T2"
+    assurance.platform/boundary: "decision"
+spec:
+  replicas: {{ .Values.mcpo.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "mcpo" "replicaCount" .Values.mcpo.replicaCount) | nindent 6 }}
+      containers:
+        - name: mcpo
+          image: "{{ .Values.mcpo.image.repository }}:{{ .Values.mcpo.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.mcpo.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: MCPO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}-secret
+                  key: api-key
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "mcpo") | nindent 12 }}
+          args:
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--config"
+            - "/config/config.json"
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 20
+            periodSeconds: 5
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.mcpo.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.mcpo.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.mcpo.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 4 }}
+spec:
+  type: {{ .Values.mcpo.service.type }}
+  ports:
+    - port: {{ .Values.mcpo.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}-config
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 4 }}
+data:
+  config.json: |
+    {{- .Values.mcpo.config | toPrettyJson | nindent 4 }}
+{{- end }}
