@@ -200,6 +200,9 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.workbench.persistence.accessMode }}

@@ -131,6 +131,9 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.ollama.persistence.accessMode }}
