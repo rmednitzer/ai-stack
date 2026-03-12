@@ -548,6 +548,64 @@ openTerminal:
       periodSeconds: 10
 
 # =============================================================================
+# MCPO — MCP-to-OpenAPI proxy for Open WebUI tool integration
+# Tier: T2 (productivity) | Boundary: decision (tool gateway)
+#
+# Bridges MCP (Model Context Protocol) servers to OpenAPI endpoints that
+# Open WebUI can consume. Configure upstream MCP servers in the config
+# block below (follows Claude Desktop config format).
+# =============================================================================
+mcpo:
+  enabled: false  # Opt-in; requires MCP server configuration
+  replicaCount: 1
+  # -- Override API key (auto-generated if empty; stored in Secret)
+  apiKey: ""
+  image:
+    repository: ghcr.io/open-webui/mcpo
+    tag: "main"  # No versioned releases; Renovate tracks via digest
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    LOG_LEVEL: "INFO"
+  # -- MCP server configuration (Claude Desktop config format)
+  # Each entry under mcpServers defines an upstream MCP server that MCPO
+  # will expose as an OpenAPI endpoint. Add your MCP servers here.
+  config:
+    mcpServers: {}
+    #   # Example: filesystem MCP server
+    #   filesystem:
+    #     command: "npx"
+    #     args:
+    #       - "-y"
+    #       - "@modelcontextprotocol/server-filesystem"
+    #       - "/data"
+    #   # Example: remote SSE MCP server
+    #   remote-tools:
+    #     url: "https://mcp.example.com/sse"
+    #     type: "sse"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
 # Tier: T1 (operational) | Boundary: decision (pre/post-processing)
 # =============================================================================
