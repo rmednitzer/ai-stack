@@ -104,8 +104,9 @@ searxng:
 
 jupyter:
   enabled: false  # Disable in prod by default; enable per-request
-  env:
-    JUPYTER_TOKEN: ""  # FIXME: set via secret
+
+workbench:
+  enabled: false  # Disable in prod by default; enable per-request with GPU scheduling
 
 pipelines:
   resources:
