@@ -27,6 +27,9 @@ global:
   # -- Pod-level DNS config
   dnsConfig: {}
 
+  # -- Namespace where the ingress controller runs (used in NetworkPolicy ingress rules)
+  ingressNamespace: "envoy-gateway-system"
+
   # -- Pod Security: enforce restricted baseline (PSA)
   # Applied as labels on namespace externally; chart sets securityContext to comply
   podSecurityStandard: restricted

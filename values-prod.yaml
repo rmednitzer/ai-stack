@@ -30,19 +30,13 @@ openwebui:
     tag: "latest"  # FIXME: replace with @sha256:... digest
   ingress:
     enabled: true
-    className: "nginx"
+    className: "envoy"
     annotations:
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      # Envoy Gateway — TLS and routing
+      gateway.envoyproxy.io/tls-terminate: "true"
       # Websocket support for streaming responses
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
-      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+      gateway.envoyproxy.io/timeout: "300s"
+      gateway.envoyproxy.io/request-body-max-size: "50m"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
       - host: ai.example.com
