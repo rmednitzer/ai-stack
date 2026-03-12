@@ -19,9 +19,7 @@ spec:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
-        {{- with .Values.global.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
       automountServiceAccountToken: false
@@ -56,6 +54,11 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+          startupProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            failureThreshold: 10
+            periodSeconds: 3
           {{- with .Values.valkey.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

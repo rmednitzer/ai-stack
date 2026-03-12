@@ -22,9 +22,7 @@ spec:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
-        {{- with .Values.global.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
       automountServiceAccountToken: false

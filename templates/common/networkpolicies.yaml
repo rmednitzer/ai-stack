@@ -523,6 +523,24 @@ spec:
         - protocol: TCP
           port: 6334
     {{- end }}
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: 8080
+    {{- end }}
     {{- if .Values.pipelines.enabled }}
     - to:
         - podSelector:

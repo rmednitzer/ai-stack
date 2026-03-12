@@ -96,19 +96,18 @@ imagePullSecrets:
 {{- end }}
 
 {{/*
-Pod annotations (global + component).
+Pod annotations (global + component + auto-injected version).
+Automatically adds assurance.platform/version from Chart.AppVersion.
 */}}
 {{- define "ai-stack.podAnnotations" -}}
-{{- $merged := dict }}
+{{- $merged := dict "assurance.platform/version" .Chart.AppVersion }}
 {{- with .Values.global.podAnnotations }}
 {{- $merged = merge $merged . }}
 {{- end }}
 {{- with .componentAnnotations }}
 {{- $merged = merge $merged . }}
 {{- end }}
-{{- if $merged }}
 {{- toYaml $merged }}
-{{- end }}
 {{- end }}
 
 {{/*

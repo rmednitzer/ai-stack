@@ -62,6 +62,29 @@ spec:
       path: /metrics
 {{- end }}
 
+{{/* Ollama metrics */}}
+{{- if .Values.ollama.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 6 }}
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+{{- end }}
+
 {{/* Open WebUI metrics (if available) */}}
 {{- if .Values.openwebui.enabled }}
 ---
