@@ -8,29 +8,22 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 
 ## Architecture
 
-```
-                        +-----------+
-                        |  Ingress  |
-                        +-----+-----+
-                              |
-                     +--------v--------+
-                     |   Open WebUI    |  (T1 - decision boundary)
-                     +--------+--------+
-                              |
-          +-------+-------+---+---+-------+-------+
-          |       |       |       |       |       |
-       +--v--+ +--v--+ +-v-+ +---v--+ +--v--+ +--v---+
-       |Ollama| |Qdrant| |Tika| |SearXNG| |Valkey| |Pipes |
-       | (T1) | | (T1) | |(T2)| | (T2)  | | (T2) | | (T1) |
-       +------+ +------+ +----+ +-------+ +------+ +------+
-          |
-       +--v-------+
-       | Workbench |  (T1 - opt-in, GPU)
-       +----------+
+```mermaid
+graph TD
+  Ingress --> OpenWebUI["Open WebUI (T1)"]
 
-       +-------------------+
-       | OTel Collector (T0)|  (when global.otel.enabled)
-       +-------------------+
+  OpenWebUI --> Ollama["Ollama (T1)"]
+  OpenWebUI --> Qdrant["Qdrant (T1)"]
+  OpenWebUI --> Tika["Tika (T2)"]
+  OpenWebUI --> SearXNG["SearXNG (T2)"]
+  OpenWebUI --> Valkey["Valkey (T2)"]
+  OpenWebUI --> Pipelines["Pipelines (T1)"]
+
+  Ollama --> Workbench["Workbench (T1, opt-in GPU)"]
+
+  OTel["OTel Collector (T0)"]
+
+  style OTel stroke-dasharray: 5 5
 ```
 
 Tiering follows the platform-assurance stack-bom classification:
