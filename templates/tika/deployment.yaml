@@ -50,6 +50,12 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /tika
+              port: http
+            failureThreshold: 20
+            periodSeconds: 5
           {{- with .Values.tika.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -66,6 +72,14 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 2Gi
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

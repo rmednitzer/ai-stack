@@ -144,6 +144,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-openwebui
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -230,6 +232,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-ollama
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -269,6 +273,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-qdrant
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -308,6 +314,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-tika
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -339,6 +347,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-searxng
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -358,6 +368,15 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
+    {{- if .Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
     - ports:
         - protocol: TCP
           port: 443
@@ -374,6 +393,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-pipelines
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -450,6 +471,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-jupyter
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -488,6 +511,7 @@ spec:
       ports:
         - protocol: TCP
           port: 6333
+        - protocol: TCP
           port: 6334
     {{- end }}
     {{- if .Values.pipelines.enabled }}
@@ -515,6 +539,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-workbench
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -617,6 +643,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "ai-stack.fullname" . }}-redis
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
