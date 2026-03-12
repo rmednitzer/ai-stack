@@ -11,6 +11,7 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 ```mermaid
 graph TD
   Ingress --> OpenWebUI["Open WebUI (T1)"]
+  Ingress --> Jupyter["Jupyter (T2)"]
 
   OpenWebUI --> Ollama["Ollama (T1)"]
   OpenWebUI --> Qdrant["Qdrant (T1)"]
@@ -18,6 +19,10 @@ graph TD
   OpenWebUI --> SearXNG["SearXNG (T2)"]
   OpenWebUI --> Valkey["Valkey (T2)"]
   OpenWebUI --> Pipelines["Pipelines (T1)"]
+
+  Jupyter --> Ollama
+  Jupyter --> Qdrant
+  Jupyter --> Pipelines
 
   Ollama --> Workbench["Workbench (T1, opt-in GPU)"]
 
