@@ -30,19 +30,19 @@ data:
       prometheus:
         config:
           scrape_configs:
-            - job_name: 'ai-stack-openwebui'
+            - job_name: '{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}'
               scrape_interval: 30s
               static_configs:
                 - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}:{{ .Values.openwebui.service.port }}']
               metrics_path: /metrics
             {{- if .Values.ollama.enabled }}
-            - job_name: 'ai-stack-ollama'
+            - job_name: '{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}'
               scrape_interval: 30s
               static_configs:
                 - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:{{ .Values.ollama.service.port }}']
             {{- end }}
             {{- if .Values.qdrant.enabled }}
-            - job_name: 'ai-stack-qdrant'
+            - job_name: '{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}'
               scrape_interval: 30s
               static_configs:
                 - targets: ['{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:{{ .Values.qdrant.service.httpPort }}']

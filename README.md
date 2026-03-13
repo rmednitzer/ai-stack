@@ -76,14 +76,16 @@ helm install ai-stack . -n ai-stack --create-namespace \
 After installation, pull your first model:
 
 ```bash
-kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull llama3.2
-kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull nomic-embed-text
+RELEASE_NAME=ai-stack
+kubectl exec -n ai-stack deploy/${RELEASE_NAME}-ollama -- ollama pull llama3.2
+kubectl exec -n ai-stack deploy/${RELEASE_NAME}-ollama -- ollama pull nomic-embed-text
 ```
 
 Access Open WebUI:
 
 ```bash
-kubectl port-forward -n ai-stack svc/ai-stack-openwebui 8080:8080
+RELEASE_NAME=ai-stack
+kubectl port-forward -n ai-stack svc/${RELEASE_NAME}-openwebui 8080:8080
 # Open http://localhost:8080
 ```
 
@@ -207,6 +209,8 @@ When `global.otel.enabled=true`, the chart:
 1. Deploys an OTel Collector with OTLP receivers, GenAI semantic conventions, and PII redaction
 2. Injects `OTEL_*` environment variables into all component pods
 3. Optionally creates ServiceMonitor resources for Prometheus scraping
+
+When providing component URLs via `*.env` values, the chart supports Helm templates (rendered with `tpl`) so internal service endpoints can safely follow custom Helm release names.
 
 ## Security
 

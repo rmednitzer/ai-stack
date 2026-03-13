@@ -58,7 +58,7 @@ spec:
           env:
             {{- range $key, $value := .Values.jupyter.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             - name: JUPYTER_TOKEN
               valueFrom:

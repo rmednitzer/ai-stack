@@ -98,7 +98,7 @@ spec:
             {{- range $key, $value := .Values.workbench.env }}
             {{- if ne $key "PIP_PACKAGES" }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- end }}
             - name: JUPYTER_TOKEN

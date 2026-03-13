@@ -55,7 +55,7 @@ spec:
           env:
             {{- range $key, $value := .Values.openTerminal.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             - name: OPEN_TERMINAL_API_KEY
               valueFrom:
