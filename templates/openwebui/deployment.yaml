@@ -62,7 +62,7 @@ spec:
           env:
             {{- range $key, $value := .Values.openwebui.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- if .Values.qdrant.enabled }}
             - name: QDRANT_API_KEY

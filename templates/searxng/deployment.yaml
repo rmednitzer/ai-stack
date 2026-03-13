@@ -77,7 +77,7 @@ spec:
           env:
             {{- range $key, $value := .Values.searxng.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             - name: SEARXNG_SECRET_KEY
               valueFrom:

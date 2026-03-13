@@ -60,7 +60,7 @@ spec:
           env:
             {{- range $key, $value := .Values.qdrant.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             - name: QDRANT__SERVICE__API_KEY
               valueFrom:

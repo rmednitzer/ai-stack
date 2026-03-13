@@ -81,21 +81,21 @@ openwebui:
     tls: []
   env:
     # -- Ollama backend URL (internal service DNS)
-    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
     # -- Open WebUI Pipelines URL
-    OPENAI_API_BASE_URLS: "http://ai-stack-pipelines:9099;http://ai-stack-ollama:11434"
+    OPENAI_API_BASE_URLS: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099;http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
 
     # --- RAG configuration ---
     # -- Web search via SearXNG
     RAG_WEB_SEARCH_ENGINE: "searxng"
-    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
     # -- Vector store
     VECTOR_DB: "qdrant"
-    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     # QDRANT_API_KEY injected from Secret in deployment template
     # -- Document extraction
     CONTENT_EXTRACTION_ENGINE: "tika"
-    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
     # -- Embedding engine: "ollama" uses Ollama, "openai" uses OpenAI-compatible API
     RAG_EMBEDDING_ENGINE: "ollama"
     # -- Embedding model (must be pulled in Ollama: ollama pull nomic-embed-text)
@@ -311,7 +311,7 @@ searxng:
     type: ClusterIP
     port: 8080
   env:
-    SEARXNG_BASE_URL: "http://ai-stack-searxng:8080/"
+    SEARXNG_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/'
     INSTANCE_NAME: "AI Stack Search"
   # -- SearXNG settings.yml override (mounted as ConfigMap)
   settings:
@@ -369,11 +369,11 @@ jupyter:
   env:
     JUPYTER_ENABLE_LAB: "yes"
     # -- Stack service URLs for notebook access (mirrors Workbench env)
-    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
-    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
-    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
   ingress:
     enabled: false
     className: ""
@@ -442,12 +442,12 @@ workbench:
   env:
     JUPYTER_ENABLE_LAB: "yes"
     # -- Grant access to all stack services
-    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
-    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
-    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
-    PIPELINES_URL: "http://ai-stack-pipelines:9099"
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
+    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
     # -- NVIDIA visibility
     NVIDIA_VISIBLE_DEVICES: "all"
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
@@ -621,11 +621,11 @@ pipelines:
   env:
     PIPELINES_DIR: "/app/pipelines"
     # -- Backend URLs for pipeline functions that need to call stack services
-    OLLAMA_BASE_URL: "http://ai-stack-ollama:11434"
-    QDRANT_URI: "http://ai-stack-qdrant:6333"
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: "http://ai-stack-tika:9998"
-    SEARXNG_QUERY_URL: "http://ai-stack-searxng:8080/search?q=<query>&format=json"
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
   persistence:
     enabled: true
     size: 5Gi
