@@ -352,72 +352,13 @@ searxng:
       periodSeconds: 10
 
 # =============================================================================
-# JupyterHub / Jupyter Notebook — Interactive compute environment
-# Tier: T2 (productivity) | Boundary: decision (user code execution)
-# =============================================================================
-jupyter:
-  enabled: true
-  replicaCount: 1
-  # -- Override Jupyter token (auto-generated if empty; stored in Secret)
-  token: ""
-  image:
-    repository: quay.io/jupyter/scipy-notebook
-    tag: "2024-12-02"
-  service:
-    type: ClusterIP
-    port: 8888
-  env:
-    JUPYTER_ENABLE_LAB: "yes"
-    # -- Stack service URLs for notebook access (mirrors Workbench env)
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts:
-      - host: jupyter.example.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  persistence:
-    enabled: true
-    size: 20Gi
-    accessMode: ReadWriteOnce
-    mountPath: /home/jovyan/work
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: "4"
-      memory: 8Gi
-  probes:
-    liveness:
-      httpGet:
-        path: /api
-        port: http
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readiness:
-      httpGet:
-        path: /api
-        port: http
-      initialDelaySeconds: 10
-      periodSeconds: 10
-
-# =============================================================================
 # Workbench — GPU-enabled ML engineering environment
 # Tier: T1 (operational) | Boundary: decision (user code execution + GPU)
 #
 # Purpose: full-featured compute environment for ML experimentation,
 # model evaluation, data pipeline development, and infrastructure
-# operations. Separated from Jupyter to isolate the GPU scheduling,
-# wider attack surface, and heavier resource profile.
+# operations. Isolated GPU scheduling, wider attack surface, and
+# heavier resource profile.
 #
 # Base image: NVIDIA CUDA + JupyterLab + system tools.
 # Custom image recommended — build from the Dockerfile reference below.

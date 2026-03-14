@@ -102,9 +102,6 @@ searxng:
       limiter: true
       image_proxy: false
 
-jupyter:
-  enabled: false  # Disable in prod by default; enable per-request
-
 workbench:
   enabled: false  # Disable in prod by default; enable per-request with GPU scheduling
 
