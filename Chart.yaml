@@ -3,7 +3,7 @@ name: ai-stack
 description: >-
   Comprehensive AI inference and tooling stack for EU-regulated on-premises
   and hybrid platform operations. Includes Open WebUI, Ollama, Qdrant,
-  Apache Tika, SearXNG, Jupyter, Workbench, Valkey, and Open WebUI Pipelines.
+  Apache Tika, SearXNG, Workbench, Valkey, and Open WebUI Pipelines.
   Includes Open Terminal for AI-agent sandboxed command execution.
   Includes MCPO for MCP-to-OpenAPI tool server proxying.
   Designed for deployment into governance-as-code environments with
@@ -24,7 +24,6 @@ keywords:
   - open-webui
   - ollama
   - qdrant
-  - jupyter
   - searxng
   - tika
   - workbench

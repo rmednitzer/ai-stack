@@ -2,7 +2,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), and supporting infrastructure as a single Helm chart.
+Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), and supporting infrastructure as a single Helm chart.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -11,7 +11,6 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 ```mermaid
 graph TD
   Ingress --> OpenWebUI["Open WebUI (T1)"]
-  Ingress --> Jupyter["Jupyter (T2)"]
   Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
 
   OpenWebUI --> Ollama["Ollama (T1)"]
@@ -20,10 +19,6 @@ graph TD
   OpenWebUI --> SearXNG["SearXNG (T2)"]
   OpenWebUI --> Valkey["Valkey (T2)"]
   OpenWebUI --> Pipelines["Pipelines (T1)"]
-
-  Jupyter --> Ollama
-  Jupyter --> Qdrant
-  Jupyter --> Pipelines
 
   Workbench --> Ollama
   Workbench --> Qdrant
@@ -47,7 +42,7 @@ Tiering follows the platform-assurance stack-bom classification:
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector |
 | T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench |
-| T2 | Productivity | Tika, SearXNG, Jupyter, Valkey, Open Terminal, MCPO |
+| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO |
 
 ## Prerequisites
 
@@ -127,8 +122,6 @@ tika:
   enabled: true     # Document extraction (default: true)
 searxng:
   enabled: true     # Web search (default: true)
-jupyter:
-  enabled: true     # Notebook environment (default: true)
 workbench:
   enabled: false    # GPU ML workbench (default: false, opt-in)
 pipelines:
@@ -147,7 +140,6 @@ The chart auto-generates secrets on first install for:
 
 - **Qdrant API key** (`qdrant-secret`)
 - **SearXNG secret key** (`searxng-secret`)
-- **Jupyter token** (`jupyter-secret`)
 - **Workbench token** (`workbench-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
@@ -159,8 +151,6 @@ qdrant:
   apiKey: "your-external-key"
 searxng:
   secretKey: "your-external-key"
-jupyter:
-  token: "your-external-token"
 openTerminal:
   apiKey: "your-external-key"
 mcpo:

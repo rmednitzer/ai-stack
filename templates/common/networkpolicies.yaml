@@ -271,9 +271,6 @@ spec:
               app.kubernetes.io/name: pipelines
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: jupyter
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: workbench
       ports:
         - protocol: TCP
@@ -309,9 +306,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: jupyter
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
@@ -432,9 +426,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: jupyter
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: workbench
       ports:
         - protocol: TCP
@@ -489,92 +480,6 @@ spec:
     - ports:
         - protocol: TCP
           port: 443
-{{- end }}
-
-# =============================================================================
-# Jupyter
-# =============================================================================
-{{- if .Values.jupyter.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-jupyter
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "jupyter") | nindent 6 }}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
-      ports:
-        - protocol: TCP
-          port: 8888
-    - from:
-        - podSelector: {}
-      ports:
-        - protocol: TCP
-          port: 8888
-  egress:
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-        - protocol: TCP
-          port: 6334
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    - ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 80
 {{- end }}
 
 # =============================================================================
