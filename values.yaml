@@ -163,7 +163,7 @@ openwebui:
 
 # =============================================================================
 # Ollama — Local LLM inference server
-# Tier: T1 (operational) | Boundary: model serving (TB3 — PIAL)
+# Tier: T1 (operational) | Boundary: model serving (TB3)
 # =============================================================================
 ollama:
   enabled: true
