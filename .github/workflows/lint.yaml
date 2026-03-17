@@ -61,18 +61,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install CycloneDX CLI
-        run: |
-          curl -sSL https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64 -o /usr/local/bin/cyclonedx
-          chmod +x /usr/local/bin/cyclonedx
+      - name: Install check-jsonschema
+        run: pip install --quiet check-jsonschema
 
-      - name: Validate SBOM schema
-        run: cyclonedx validate --input-file sbom.cdx.json --input-format json --input-version v1_6 --fail-on-errors
+      - name: Validate SBOM against CycloneDX 1.6 schema
+        run: |
+          check-jsonschema \
+            --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
+            sbom.cdx.json
 
       - name: Verify SBOM component count matches values.yaml images
         run: |
           # Count unique image repositories in values.yaml
-          VALUES_IMAGES=$(grep -E '^\s+repository:' values.yaml | wc -l)
+          VALUES_IMAGES=$(grep -cE '^\s+repository:' values.yaml)
           # Count components in SBOM
           SBOM_COMPONENTS=$(python3 -c "import json; print(len(json.load(open('sbom.cdx.json'))['components']))")
           echo "values.yaml images: $VALUES_IMAGES"
