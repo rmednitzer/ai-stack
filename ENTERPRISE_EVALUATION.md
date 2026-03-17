@@ -67,6 +67,9 @@ alignment with governance, security, observability, and operational requirements
 - Internal-only services (ClusterIP) with ingress controller integration
 - Opt-in components (Workbench, Open Terminal, MCPO) reduce default attack surface
 - All images pinned to versioned tags; Renovate automates digest pinning
+- CycloneDX 1.6 SBOM ([sbom.cdx.json](sbom.cdx.json)) with full license and dependency graph
+- License compliance matrix ([LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md)) with copyleft analysis
+- SBOM validation in CI (schema + component count cross-check)
 
 ### 6. Disaster Recovery
 
@@ -108,7 +111,7 @@ alignment with governance, security, observability, and operational requirements
 | Observability | Production-grade |
 | High Availability | Good (HPA for stateless; stateful needs operator for full HA) |
 | Disaster Recovery | Addressed (snapshot + model backup CronJobs) |
-| Supply Chain Security | Strong (versioned tags + Renovate digest pinning) |
+| Supply Chain Security | Excellent (versioned tags + Renovate digest pinning + CycloneDX SBOM + license compliance) |
 | Scalability | Good (HPA autoscaling for stateless components) |
 | Operational Maturity | Strong |
 

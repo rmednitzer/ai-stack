@@ -262,6 +262,22 @@ The chart aligns with the platform-assurance governance framework:
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |
 
+## SBOM and License Compliance
+
+The chart includes a machine-readable Software Bill of Materials (SBOM) and license compliance documentation for enterprise procurement and audit:
+
+| File | Format | Purpose |
+|------|--------|---------|
+| [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 JSON | Machine-readable SBOM with all container images, licenses, purls, and dependency graph |
+| [LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md) | Markdown | Human-readable license matrix, copyleft analysis, and enterprise compliance checklist |
+
+All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-Clause). Notable exceptions:
+
+- **SearXNG** (AGPL-3.0): Low risk when using the upstream container unmodified. See compliance doc for details.
+- **LangGraph API** (Elastic License 2.0): Opt-in only. Permits self-hosted use but prohibits offering as a managed service.
+
+The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness.
+
 ## Verification
 
 After installation, verify the deployment:
