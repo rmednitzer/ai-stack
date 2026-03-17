@@ -3,7 +3,7 @@ PodDisruptionBudgets for scalable components when replicas > 1 or HPA active.
 Ensures at least one pod survives voluntary disruption (node drain, upgrade).
 */}}
 
-{{- $t1Components := list "openwebui" "pipelines" "tika" }}
+{{- $t1Components := list "openwebui" "pipelines" "tika" "langgraph" }}
 {{- range $component := $t1Components }}
 {{- $spec := index $.Values $component }}
 {{- $multiReplica := gt (int $spec.replicaCount) 1 }}
@@ -59,6 +59,24 @@ spec:
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
+{{- end }}
+
+{{/*
+PostgreSQL: stateful data — allow at most one unavailable during voluntary disruption
+*/}}
+{{- if .Values.postgres.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 6 }}
 {{- end }}
 
 {{/*

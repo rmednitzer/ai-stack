@@ -2,7 +2,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), and supporting infrastructure as a single Helm chart.
+Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/) for agentic workflows, and supporting infrastructure as a single Helm chart.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -28,12 +28,22 @@ graph TD
 
   OpenWebUI --> OpenTerminal["Open Terminal (T2, opt-in)"]
   OpenWebUI --> MCPO["MCPO (T2, opt-in)"]
+  OpenWebUI --> LangGraph["LangGraph (T1, opt-in)"]
+
+  LangGraph --> Ollama
+  LangGraph --> Qdrant
+  LangGraph --> Tika
+  LangGraph --> SearXNG
+  LangGraph --> Pipelines
+  LangGraph --> Postgres["PostgreSQL (T2, opt-in)"]
 
   OTel["OTel Collector (T0)"]
 
   style OTel stroke-dasharray: 5 5
   style OpenTerminal stroke-dasharray: 5 5
   style MCPO stroke-dasharray: 5 5
+  style LangGraph stroke-dasharray: 5 5
+  style Postgres stroke-dasharray: 5 5
 ```
 
 Tiering follows the platform-assurance stack-bom classification:
@@ -41,8 +51,8 @@ Tiering follows the platform-assurance stack-bom classification:
 | Tier | Meaning | Components |
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector |
-| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench |
-| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO |
+| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench, LangGraph |
+| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL |
 
 ## Prerequisites
 
@@ -132,6 +142,10 @@ openTerminal:
   enabled: false    # Sandboxed terminal for AI agents (default: false, opt-in)
 mcpo:
   enabled: false    # MCP-to-OpenAPI proxy (default: false, opt-in)
+langgraph:
+  enabled: false    # LangGraph agentic runtime (default: false, opt-in)
+postgres:
+  enabled: false    # PostgreSQL for LangGraph checkpoints (default: false, opt-in)
 ```
 
 ### Secrets
@@ -143,6 +157,8 @@ The chart auto-generates secrets on first install for:
 - **Workbench token** (`workbench-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
+- **LangGraph API key** (`langgraph-secret`)
+- **PostgreSQL password** (`postgres-secret`)
 
 Secrets are annotated with `helm.sh/resource-policy: keep` so they survive `helm upgrade`. To use an external secret manager (e.g., ESO or Vault), set the corresponding value:
 
@@ -155,6 +171,10 @@ openTerminal:
   apiKey: "your-external-key"
 mcpo:
   apiKey: "your-external-key"
+langgraph:
+  apiKey: "your-external-key"
+postgres:
+  password: "your-external-password"
 ```
 
 ### GPU Support
@@ -191,6 +211,22 @@ openwebui:
         hosts:
           - ai.example.com
 ```
+
+### LangGraph (Agentic Workloads)
+
+Enable stateful agentic workflows with LangGraph Platform. Requires PostgreSQL for checkpoint persistence:
+
+```yaml
+langgraph:
+  enabled: true
+postgres:
+  enabled: true
+```
+
+LangGraph connects to Ollama for LLM inference, Qdrant for vector retrieval, Tika for document extraction, and SearXNG for web search. Deploy custom graphs by either:
+
+1. **Custom image** (recommended): Build with `langgraph build -t my-graphs` and override `langgraph.image.repository`/`tag`
+2. **Volume mount**: Place graph code in the `/deps/graphs` persistent volume
 
 ### OpenTelemetry
 

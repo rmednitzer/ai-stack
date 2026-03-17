@@ -574,6 +574,142 @@ mcpo:
       periodSeconds: 10
 
 # =============================================================================
+# LangGraph — Agentic workflow runtime (LangGraph Platform API server)
+# Tier: T1 (operational) | Boundary: decision (agentic orchestration)
+#
+# Purpose: stateful, multi-step agentic workflows with tool calling,
+# human-in-the-loop, and persistent checkpointing. Provides an OpenAPI-
+# compatible REST API for creating, running, and streaming agent graphs.
+#
+# Requires PostgreSQL for checkpoint persistence (enable postgres below).
+# Connects to Ollama for LLM inference and Qdrant for vector retrieval.
+#
+# Image: langchain/langgraph-api — the official self-hosted runtime.
+# Deploy custom graphs by building an image with `langgraph build` or
+# by mounting graph code into the /deps/graphs volume.
+# =============================================================================
+langgraph:
+  enabled: false  # Opt-in; requires postgres for checkpoint persistence
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  image:
+    # -- Override with a custom image built via `langgraph build`
+    repository: docker.io/langchain/langgraph-api
+    tag: "0.2"
+  service:
+    type: ClusterIP
+    port: 8000
+  # -- Override API key (auto-generated if empty; stored in Secret)
+  apiKey: ""
+  env:
+    # -- Ollama backend URL (OpenAI-compatible via /v1)
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    # -- Qdrant vector store URL
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
+    # QDRANT_API_KEY injected from Secret in deployment template
+    # -- SearXNG web search URL
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
+    # -- Tika document extraction URL
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
+    # -- Pipelines URL
+    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
+    # -- Disable LangSmith telemetry (keep data on-prem)
+    LANGCHAIN_TRACING_V2: "false"
+    LANGSMITH_API_KEY: ""
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: langgraph.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    mountPath: /deps/graphs
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /ok
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /ok
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
+# PostgreSQL — Checkpoint persistence for LangGraph agentic state
+# Tier: T2 (productivity) | Boundary: storage
+#
+# Purpose: durable storage for LangGraph agent checkpoints, thread state,
+# and run history. Required when langgraph.enabled=true.
+#
+# Note: this is a lightweight single-instance PostgreSQL — not intended as
+# a general-purpose database. For production HA, consider an external
+# managed PostgreSQL and set postgres.enabled=false with a custom
+# POSTGRES_URI in langgraph.env.
+# =============================================================================
+postgres:
+  enabled: false  # Enable together with langgraph
+  replicaCount: 1
+  image:
+    repository: docker.io/library/postgres
+    tag: "16-alpine"
+  service:
+    type: ClusterIP
+    port: 5432
+  # -- Override password (auto-generated if empty; stored in Secret)
+  password: ""
+  # -- Database name
+  database: "langgraph"
+  # -- Database user
+  user: "langgraph"
+  env: {}
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    mountPath: /var/lib/postgresql/data
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  probes:
+    liveness:
+      exec:
+        command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readiness:
+      exec:
+        command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
 # Tier: T1 (operational) | Boundary: decision (pre/post-processing)
 # =============================================================================

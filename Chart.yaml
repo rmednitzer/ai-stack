@@ -6,6 +6,8 @@ description: >-
   Apache Tika, SearXNG, Workbench, Valkey, and Open WebUI Pipelines.
   Includes Open Terminal for AI-agent sandboxed command execution.
   Includes MCPO for MCP-to-OpenAPI tool server proxying.
+  Includes LangGraph for stateful agentic workflows with checkpoint
+  persistence via PostgreSQL.
   Designed for deployment into governance-as-code environments with
   PSA restricted baseline, NetworkPolicy default-deny, and OTel
   instrumentation hooks.
@@ -31,6 +33,9 @@ keywords:
   - pipelines
   - open-terminal
   - mcpo
+  - langgraph
+  - agentic
+  - postgres
 annotations:
   # platform-assurance tier classification
   assurance.platform/tier: "T1"

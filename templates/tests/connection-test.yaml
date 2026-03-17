@@ -88,6 +88,13 @@ spec:
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}" "{{ .Values.mcpo.service.port }}" "MCPO"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}" "{{ .Values.mcpo.service.port }}" "/" "MCPO health"
           {{- end }}
+          {{- if .Values.langgraph.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "LangGraph"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "/ok" "LangGraph health"
+          {{- end }}
+          {{- if .Values.postgres.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}" "{{ .Values.postgres.service.port }}" "PostgreSQL"
+          {{- end }}
           echo "---"
           echo "Results: ${PASS} passed, ${FAIL} failed"
           [ "$FAIL" -eq 0 ]
