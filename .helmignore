@@ -10,7 +10,12 @@
 README.md
 CONTRIBUTING.md
 LICENSE
+LICENSE_COMPLIANCE.md
+ENTERPRISE_EVALUATION.md
+sbom.cdx.json
 ct.yaml
+renovate.json5
+argocd/
 .github/
 
 # OS files

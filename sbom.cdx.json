@@ -1,0 +1,620 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:ai-stack-sbom-2026-1",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-17T00:00:00Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "manual-curation",
+          "version": "1.0.0",
+          "description": "Manually curated SBOM for Helm chart container images"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "ai-stack",
+      "name": "ai-stack",
+      "version": "1.0.0",
+      "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "Roman Mednitzer",
+        "contact": [
+          {
+            "email": "r.mednitzer@outlook.com"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/frameworks",
+          "value": "NIS2,GDPR,AI-Act"
+        }
+      ]
+    },
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "container",
+      "bom-ref": "open-webui",
+      "name": "open-webui",
+      "version": "v0.8.10",
+      "description": "Primary user interface for LLM interaction",
+      "purl": "pkg:docker/open-webui/open-webui@v0.8.10?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/open-webui/open-webui"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "ollama",
+      "name": "ollama",
+      "version": "0.17.7",
+      "description": "Local LLM inference server",
+      "purl": "pkg:docker/ollama/ollama@0.17.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "model-serving"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/ollama/ollama"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "qdrant",
+      "name": "qdrant",
+      "version": "v1.13.2",
+      "description": "Vector database for RAG retrieval",
+      "purl": "pkg:docker/qdrant/qdrant@v1.13.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "retrieval"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qdrant/qdrant"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pipelines",
+      "name": "pipelines",
+      "version": "0.1.2",
+      "description": "Open WebUI function/filter pipeline server",
+      "purl": "pkg:docker/open-webui/pipelines@0.1.2?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/open-webui/pipelines"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "tika",
+      "name": "tika",
+      "version": "3.0.0.0",
+      "description": "Document content extraction for RAG pipeline",
+      "purl": "pkg:docker/apache/tika@3.0.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "ingestion"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/apache/tika"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "searxng",
+      "name": "searxng",
+      "version": "2026.3.10-8b95b2058",
+      "description": "Privacy-respecting metasearch engine for web RAG",
+      "purl": "pkg:docker/searxng/searxng@2026.3.10-8b95b2058",
+      "licenses": [
+        {
+          "license": {
+            "id": "AGPL-3.0-or-later"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "ingestion"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        },
+        {
+          "name": "chart.ai-stack/license-note",
+          "value": "AGPL copyleft applies to modifications of SearXNG source code. Unmodified container use as a network service does not trigger copyleft obligations for the ai-stack chart itself."
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/searxng/searxng"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "valkey",
+      "name": "valkey",
+      "version": "8.0",
+      "description": "In-memory session cache and rate-limiting backend",
+      "purl": "pkg:docker/valkey/valkey@8.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "cache"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/valkey-io/valkey"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "otel-collector",
+      "name": "opentelemetry-collector-contrib",
+      "version": "0.116.0",
+      "description": "OpenTelemetry Collector for observability pipeline",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.116.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T0"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "observability"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "conditional (global.otel.enabled)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/open-telemetry/opentelemetry-collector-contrib"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "langgraph-api",
+      "name": "langgraph-api",
+      "version": "0.2",
+      "description": "LangGraph Platform API server for stateful agentic workflows",
+      "purl": "pkg:docker/langchain/langgraph-api@0.2?repository_url=docker.io",
+      "licenses": [
+        {
+          "license": {
+            "name": "Elastic License 2.0 (ELv2)",
+            "url": "https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph-api/LICENSE"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        },
+        {
+          "name": "chart.ai-stack/license-note",
+          "value": "ELv2 permits self-hosted use but prohibits offering LangGraph Platform as a managed service to third parties. Review ELv2 terms before offering as SaaS."
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/langchain-ai/langgraph"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "postgres",
+      "name": "postgres",
+      "version": "16-alpine",
+      "description": "PostgreSQL for LangGraph checkpoint persistence",
+      "purl": "pkg:docker/library/postgres@16-alpine?repository_url=docker.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "PostgreSQL"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "storage"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/postgres/postgres"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "workbench",
+      "name": "pytorch-notebook",
+      "version": "cuda12-python-3.11",
+      "description": "GPU-enabled ML engineering environment (JupyterLab)",
+      "purl": "pkg:docker/jupyter/pytorch-notebook@cuda12-python-3.11?repository_url=quay.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/jupyter/docker-stacks"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "open-terminal",
+      "name": "open-terminal",
+      "version": "0.1.2",
+      "description": "Sandboxed terminal with REST API for AI agent code execution",
+      "purl": "pkg:docker/open-webui/open-terminal@0.1.2?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "execution"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/open-webui/open-terminal"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "mcpo",
+      "name": "mcpo",
+      "version": "0.2.0",
+      "description": "MCP-to-OpenAPI proxy for Open WebUI tool integration",
+      "purl": "pkg:docker/open-webui/mcpo@0.2.0?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/open-webui/mcpo"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "ai-stack",
+      "dependsOn": [
+        "open-webui",
+        "ollama",
+        "qdrant",
+        "pipelines",
+        "tika",
+        "searxng",
+        "valkey",
+        "otel-collector",
+        "langgraph-api",
+        "postgres",
+        "workbench",
+        "open-terminal",
+        "mcpo"
+      ]
+    },
+    {
+      "ref": "open-webui",
+      "dependsOn": [
+        "ollama",
+        "qdrant",
+        "tika",
+        "searxng",
+        "valkey",
+        "pipelines"
+      ]
+    },
+    {
+      "ref": "langgraph-api",
+      "dependsOn": [
+        "postgres",
+        "ollama",
+        "qdrant",
+        "tika",
+        "searxng",
+        "pipelines"
+      ]
+    },
+    {
+      "ref": "workbench",
+      "dependsOn": [
+        "ollama",
+        "qdrant",
+        "tika",
+        "searxng",
+        "pipelines"
+      ]
+    },
+    {
+      "ref": "ollama",
+      "dependsOn": []
+    },
+    {
+      "ref": "qdrant",
+      "dependsOn": []
+    },
+    {
+      "ref": "pipelines",
+      "dependsOn": [
+        "ollama",
+        "qdrant",
+        "tika",
+        "searxng"
+      ]
+    },
+    {
+      "ref": "tika",
+      "dependsOn": []
+    },
+    {
+      "ref": "searxng",
+      "dependsOn": []
+    },
+    {
+      "ref": "valkey",
+      "dependsOn": []
+    },
+    {
+      "ref": "postgres",
+      "dependsOn": []
+    },
+    {
+      "ref": "otel-collector",
+      "dependsOn": []
+    },
+    {
+      "ref": "open-terminal",
+      "dependsOn": []
+    },
+    {
+      "ref": "mcpo",
+      "dependsOn": []
+    }
+  ]
+}

@@ -7,6 +7,7 @@ on:
       - "Chart.yaml"
       - "values*.yaml"
       - "templates/**"
+      - "sbom.cdx.json"
       - ".github/workflows/lint.yaml"
   push:
     branches: [main]
@@ -53,6 +54,33 @@ jobs:
 
       - name: Lint with chart-testing
         run: ct lint --config ct.yaml --charts .
+
+  sbom-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install CycloneDX CLI
+        run: |
+          curl -sSL https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64 -o /usr/local/bin/cyclonedx
+          chmod +x /usr/local/bin/cyclonedx
+
+      - name: Validate SBOM schema
+        run: cyclonedx validate --input-file sbom.cdx.json --input-format json --input-version v1_6 --fail-on-errors
+
+      - name: Verify SBOM component count matches values.yaml images
+        run: |
+          # Count unique image repositories in values.yaml
+          VALUES_IMAGES=$(grep -E '^\s+repository:' values.yaml | wc -l)
+          # Count components in SBOM
+          SBOM_COMPONENTS=$(python3 -c "import json; print(len(json.load(open('sbom.cdx.json'))['components']))")
+          echo "values.yaml images: $VALUES_IMAGES"
+          echo "SBOM components: $SBOM_COMPONENTS"
+          if [ "$VALUES_IMAGES" -ne "$SBOM_COMPONENTS" ]; then
+            echo "::error::SBOM component count ($SBOM_COMPONENTS) does not match values.yaml image count ($VALUES_IMAGES). Update sbom.cdx.json."
+            exit 1
+          fi
 
   kubeconform:
     runs-on: ubuntu-latest
