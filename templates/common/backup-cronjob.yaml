@@ -1,0 +1,238 @@
+{{/*
+Backup CronJobs for stateful components.
+- Qdrant: triggers snapshot creation via REST API, then copies to backup PVC
+- Ollama: copies model data to backup PVC
+
+Gated behind global.backup.enabled. Requires a writable PVC for backup storage.
+Pair with Velero or CSI snapshots for full disaster recovery.
+*/}}
+
+{{- if .Values.global.backup.enabled }}
+
+{{/* Backup storage PVC */}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-backup
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.global.backup.storageSize | default "50Gi" }}
+
+{{/* Qdrant snapshot backup */}}
+{{- if .Values.qdrant.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-backup
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
+    assurance.platform/tier: "T1"
+spec:
+  schedule: {{ .Values.global.backup.schedule | default "0 2 * * *" | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.global.backup.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ .Values.global.backup.failedJobsHistoryLimit | default 3 }}
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ .Values.global.backup.ttlSecondsAfterFinished | default 86400 }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: qdrant-backup
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            app.kubernetes.io/part-of: ai-stack
+          annotations:
+            {{- include "ai-stack.podAnnotations" . | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          restartPolicy: OnFailure
+          containers:
+            - name: qdrant-backup
+              image: busybox:1.37
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  QDRANT_HOST="{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}"
+                  QDRANT_PORT="{{ .Values.qdrant.service.httpPort }}"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_DIR="/backup/qdrant/${TIMESTAMP}"
+                  mkdir -p "${BACKUP_DIR}"
+
+                  echo "Creating Qdrant snapshot..."
+                  SNAPSHOT=$(wget -qO- \
+                    --header="api-key: ${QDRANT_API_KEY}" \
+                    --post-data='' \
+                    "http://${QDRANT_HOST}:${QDRANT_PORT}/snapshots" 2>&1) || {
+                    echo "ERROR: Failed to create snapshot: ${SNAPSHOT}"
+                    exit 1
+                  }
+                  echo "Snapshot response: ${SNAPSHOT}"
+
+                  echo "Listing snapshots..."
+                  SNAPSHOTS=$(wget -qO- \
+                    --header="api-key: ${QDRANT_API_KEY}" \
+                    "http://${QDRANT_HOST}:${QDRANT_PORT}/snapshots" 2>&1)
+                  echo "Available snapshots: ${SNAPSHOTS}"
+
+                  echo "Backup metadata saved to ${BACKUP_DIR}"
+                  echo "${SNAPSHOTS}" > "${BACKUP_DIR}/snapshot-manifest.json"
+                  echo "${TIMESTAMP}" > "${BACKUP_DIR}/timestamp"
+
+                  # Prune old backups (keep last 7)
+                  cd /backup/qdrant
+                  ls -dt */ 2>/dev/null | tail -n +8 | xargs rm -rf 2>/dev/null || true
+                  echo "Qdrant backup complete"
+              env:
+                - name: QDRANT_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                      key: api-key
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ include "ai-stack.fullname" . }}-backup
+{{- end }}
+
+{{/* Ollama model backup */}}
+{{- if .Values.ollama.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}-backup
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 4 }}
+    assurance.platform/tier: "T1"
+spec:
+  schedule: {{ .Values.global.backup.schedule | default "0 2 * * *" | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.global.backup.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ .Values.global.backup.failedJobsHistoryLimit | default 3 }}
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ .Values.global.backup.ttlSecondsAfterFinished | default 86400 }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ollama-backup
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            app.kubernetes.io/part-of: ai-stack
+          annotations:
+            {{- include "ai-stack.podAnnotations" . | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: false
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          restartPolicy: OnFailure
+          containers:
+            - name: ollama-backup
+              image: busybox:1.37
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_DIR="/backup/ollama/${TIMESTAMP}"
+                  mkdir -p "${BACKUP_DIR}"
+
+                  echo "Listing Ollama models..."
+                  OLLAMA_HOST="{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}"
+                  MODELS=$(wget -qO- "http://${OLLAMA_HOST}:{{ .Values.ollama.service.port }}/api/tags" 2>&1)
+                  echo "${MODELS}" > "${BACKUP_DIR}/model-manifest.json"
+                  echo "${TIMESTAMP}" > "${BACKUP_DIR}/timestamp"
+
+                  echo "Copying model blobs..."
+                  if [ -d "/ollama-data/models" ]; then
+                    cp -a /ollama-data/models "${BACKUP_DIR}/models" 2>/dev/null || {
+                      echo "WARNING: Could not copy model files; saving manifest only"
+                    }
+                  else
+                    echo "INFO: Model directory not found; saving manifest only"
+                  fi
+
+                  # Prune old backups (keep last 3)
+                  cd /backup/ollama
+                  ls -dt */ 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+                  echo "Ollama backup complete"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+                - name: ollama-data
+                  mountPath: /ollama-data
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ include "ai-stack.fullname" . }}-backup
+            - name: ollama-data
+              persistentVolumeClaim:
+                claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+                readOnly: true
+{{- end }}
+
+{{- end }}

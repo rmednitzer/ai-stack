@@ -1,0 +1,56 @@
+{{/*
+HorizontalPodAutoscalers for stateless components.
+Gated behind <component>.autoscaling.enabled to avoid resource conflicts
+with static replicaCount in lab environments.
+*/}}
+
+{{- $components := dict "openwebui" .Values.openwebui "tika" .Values.tika "pipelines" .Values.pipelines }}
+{{- range $component, $spec := $components }}
+{{- if and $spec.enabled (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" $component) }}
+  labels:
+    {{- include "ai-stack.labels" $ | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" $component) }}
+  minReplicas: {{ $spec.autoscaling.minReplicas | default 2 }}
+  maxReplicas: {{ $spec.autoscaling.maxReplicas | default 5 }}
+  metrics:
+    {{- if $spec.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $spec.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if $spec.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $spec.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+{{- end }}
+{{- end }}
