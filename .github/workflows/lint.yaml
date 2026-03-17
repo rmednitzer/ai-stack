@@ -70,11 +70,21 @@ jobs:
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
 
-      - name: Validate manifests against Kubernetes schemas
+      - name: Validate manifests (lab profile)
         env:
           KUBERNETES_VERSION: "1.32.0"  # renovate: depName=kubernetes/kubernetes
         run: |
           helm template ai-stack . | kubeconform \
+            -strict \
+            -summary \
+            -kubernetes-version "$KUBERNETES_VERSION" \
+            -skip CustomResourceDefinition,ServiceMonitor
+
+      - name: Validate manifests (prod profile)
+        env:
+          KUBERNETES_VERSION: "1.32.0"  # renovate: depName=kubernetes/kubernetes
+        run: |
+          helm template ai-stack . -f values.yaml -f values-prod.yaml | kubeconform \
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
