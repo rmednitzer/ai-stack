@@ -104,6 +104,7 @@ consult legal counsel before enabling LangGraph. The component is opt-in
 | Source-available components identified | Done | LangGraph API (ELv2) — opt-in only |
 | Attribution requirements met | Done | License file included; component licenses in SBOM |
 | Dependency update tracking | Done | Renovate with digest pinning |
+| Deep SBOM generation | Done | Syft scans all images in CI (`syft-sbom` job) |
 | License review on update | Recommended | Add license check to Renovate PR review process |
 
 ---
@@ -119,8 +120,8 @@ When adding or updating a component:
    add an analysis section and update the compliance checklist
 5. Run `helm lint` and CI to validate the SBOM
 
-For automated SBOM generation from running containers, consider integrating
-[Syft](https://github.com/anchore/syft) or
-[Trivy](https://github.com/aquasecurity/trivy) into the CI pipeline to
-produce deep SBOMs that include OS packages and language-level dependencies
-within each container image.
+Deep SBOMs (OS packages and language-level dependencies) are generated
+automatically in CI by [Syft](https://github.com/anchore/syft). The
+`syft-sbom` workflow job scans every container image via registry, produces
+per-image CycloneDX 1.6 JSON SBOMs, validates them against the CycloneDX
+schema, and uploads them as build artifacts (retained for 90 days).

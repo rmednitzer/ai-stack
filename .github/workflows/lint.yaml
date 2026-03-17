@@ -83,6 +83,92 @@ jobs:
             exit 1
           fi
 
+  syft-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin v1.21.0  # renovate: depName=anchore/syft
+          syft version
+
+      - name: Extract image references from values.yaml
+        id: images
+        run: |
+          python3 -c "
+          import yaml
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          for key, section in vals.items():
+              if isinstance(section, dict) and 'image' in section:
+                  img = section['image']
+                  repo = img.get('repository', '')
+                  tag = img.get('tag', 'latest')
+                  if repo:
+                      print(f'{repo}:{tag}')
+          " | tee /tmp/images.txt
+          echo "count=$(wc -l < /tmp/images.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate deep SBOMs with Syft
+        run: |
+          set -euo pipefail
+          mkdir -p syft-sbom-output
+          FAILED=0
+          TOTAL=0
+          while IFS= read -r IMAGE; do
+            TOTAL=$((TOTAL + 1))
+            SAFE_NAME=$(echo "$IMAGE" | tr '/:' '__')
+            echo "::group::Scanning ${IMAGE}"
+            if syft "registry:${IMAGE}" \
+                -o "cyclonedx-json=syft-sbom-output/${SAFE_NAME}.cdx.json" \
+                --quiet; then
+              COMPONENTS=$(python3 -c "
+          import json
+          bom = json.load(open('syft-sbom-output/${SAFE_NAME}.cdx.json'))
+          print(len(bom.get('components', [])))
+          ")
+              echo "OK ${IMAGE}: ${COMPONENTS} components"
+            else
+              FAILED=$((FAILED + 1))
+              echo "::error::Syft scan failed for ${IMAGE}"
+            fi
+            echo "::endgroup::"
+          done < /tmp/images.txt
+
+          echo ""
+          echo "=== Summary: $((TOTAL - FAILED))/${TOTAL} images scanned ==="
+          if [ "$FAILED" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Validate generated SBOMs against CycloneDX schema
+        run: |
+          pip install --quiet check-jsonschema
+          FAILED=0
+          for f in syft-sbom-output/*.cdx.json; do
+            echo "Validating $(basename "$f")"
+            if ! check-jsonschema \
+              --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
+              "$f"; then
+              FAILED=$((FAILED + 1))
+            fi
+          done
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::${FAILED} SBOM(s) failed CycloneDX schema validation"
+            exit 1
+          fi
+
+      - name: Upload deep SBOMs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syft-deep-sboms
+          path: syft-sbom-output/
+          retention-days: 90
+
   kubeconform:
     runs-on: ubuntu-latest
     steps:
