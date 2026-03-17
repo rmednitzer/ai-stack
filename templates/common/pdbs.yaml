@@ -6,7 +6,9 @@ Ensures at least one pod survives voluntary disruption (node drain, upgrade).
 {{- $t1Components := list "openwebui" "pipelines" }}
 {{- range $component := $t1Components }}
 {{- $spec := index $.Values $component }}
-{{- if and $spec.enabled (gt (int $spec.replicaCount) 1) }}
+{{- $multiReplica := gt (int $spec.replicaCount) 1 }}
+{{- $hpaActive := and (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}
+{{- if and $spec.enabled (or $multiReplica $hpaActive) }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

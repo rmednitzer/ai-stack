@@ -114,7 +114,8 @@ Automatically adds assurance.platform/version from Chart.AppVersion.
 Topology spread constraints for prod multi-replica deployments.
 */}}
 {{- define "ai-stack.topologySpread" -}}
-{{- if and (eq .Values.global.profile "prod") (gt (int .replicaCount) 1) }}
+{{- $multiReplica := or (gt (int .replicaCount) 1) (.autoscaling | default false) -}}
+{{- if and (eq .Values.global.profile "prod") $multiReplica }}
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname

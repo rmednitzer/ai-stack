@@ -137,7 +137,7 @@ spec:
                 claimName: {{ include "ai-stack.fullname" . }}-backup
 {{- end }}
 
-{{/* Ollama model backup */}}
+{{/* Ollama model manifest backup (API-only — no PVC mount to avoid RWO conflicts) */}}
 {{- if .Values.ollama.enabled }}
 ---
 apiVersion: batch/v1
@@ -168,7 +168,9 @@ spec:
           serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
           automountServiceAccountToken: false
           securityContext:
-            runAsNonRoot: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             fsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
@@ -185,28 +187,34 @@ spec:
                   BACKUP_DIR="/backup/ollama/${TIMESTAMP}"
                   mkdir -p "${BACKUP_DIR}"
 
-                  echo "Listing Ollama models..."
                   OLLAMA_HOST="{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}"
-                  MODELS=$(wget -qO- "http://${OLLAMA_HOST}:{{ .Values.ollama.service.port }}/api/tags" 2>&1)
+                  OLLAMA_PORT="{{ .Values.ollama.service.port }}"
+
+                  echo "Fetching Ollama model manifest..."
+                  MODELS=$(wget -qO- "http://${OLLAMA_HOST}:${OLLAMA_PORT}/api/tags" 2>&1) || {
+                    echo "ERROR: Failed to reach Ollama API"
+                    exit 1
+                  }
                   echo "${MODELS}" > "${BACKUP_DIR}/model-manifest.json"
                   echo "${TIMESTAMP}" > "${BACKUP_DIR}/timestamp"
 
-                  echo "Copying model blobs..."
-                  if [ -d "/ollama-data/models" ]; then
-                    cp -a /ollama-data/models "${BACKUP_DIR}/models" 2>/dev/null || {
-                      echo "WARNING: Could not copy model files; saving manifest only"
-                    }
-                  else
-                    echo "INFO: Model directory not found; saving manifest only"
-                  fi
+                  # Save individual model details for reproducible restore
+                  echo "${MODELS}" | sed -n 's/.*"name":"\([^"]*\)".*/\1/gp' | while read -r MODEL; do
+                    echo "Recording model: ${MODEL}"
+                    echo "${MODEL}" >> "${BACKUP_DIR}/model-list.txt"
+                  done
 
-                  # Prune old backups (keep last 3)
+                  echo "Manifest saved. To restore, run: ollama pull <model> for each model in model-list.txt"
+
+                  # Prune old backups (keep last 7)
                   cd /backup/ollama
-                  ls -dt */ 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+                  ls -dt */ 2>/dev/null | tail -n +8 | xargs rm -rf 2>/dev/null || true
                   echo "Ollama backup complete"
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: false
+                runAsNonRoot: true
+                runAsUser: 1000
                 capabilities:
                   drop:
                     - ALL
@@ -215,24 +223,17 @@ spec:
               volumeMounts:
                 - name: backup
                   mountPath: /backup
-                - name: ollama-data
-                  mountPath: /ollama-data
-                  readOnly: true
               resources:
                 requests:
                   cpu: 100m
                   memory: 128Mi
                 limits:
-                  cpu: "1"
-                  memory: 1Gi
+                  cpu: 500m
+                  memory: 512Mi
           volumes:
             - name: backup
               persistentVolumeClaim:
                 claimName: {{ include "ai-stack.fullname" . }}-backup
-            - name: ollama-data
-              persistentVolumeClaim:
-                claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
-                readOnly: true
 {{- end }}
 
 {{- end }}

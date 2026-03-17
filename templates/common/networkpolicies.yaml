@@ -272,6 +272,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama-backup
       ports:
         - protocol: TCP
           port: 11434
@@ -312,6 +315,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: otel-collector
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant-backup
       ports:
         - protocol: TCP
           port: 6333
@@ -678,5 +684,57 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
+{{- end }}
+
+# =============================================================================
+# Backup CronJob pods — egress to Qdrant and Ollama APIs
+# =============================================================================
+{{- if .Values.global.backup.enabled }}
+{{- if .Values.qdrant.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-qdrant-backup
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: qdrant-backup
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+{{- end }}
+{{- if .Values.ollama.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-ollama-backup
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ollama-backup
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+{{- end }}
 {{- end }}
 {{- end }}

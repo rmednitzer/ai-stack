@@ -10,7 +10,9 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
 spec:
+  {{- if not (and (hasKey .Values.pipelines "autoscaling") .Values.pipelines.autoscaling.enabled) }}
   replicas: {{ .Values.pipelines.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "pipelines") | nindent 6 }}
@@ -33,7 +35,7 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "pipelines" "replicaCount" .Values.pipelines.replicaCount) | nindent 6 }}
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "pipelines" "replicaCount" .Values.pipelines.replicaCount "autoscaling" (and (hasKey .Values.pipelines "autoscaling") .Values.pipelines.autoscaling.enabled)) | nindent 6 }}
       initContainers:
         {{- if .Values.ollama.enabled }}
         {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
