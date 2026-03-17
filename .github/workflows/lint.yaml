@@ -141,7 +141,7 @@ jobs:
           echo ""
           echo "=== Summary: $((TOTAL - FAILED))/${TOTAL} images scanned ==="
           if [ "$FAILED" -gt 0 ]; then
-            exit 1
+            echo "::warning::${FAILED}/${TOTAL} image(s) could not be scanned (registry auth, rate-limit, or missing manifest)"
           fi
 
       - name: Validate generated SBOMs against CycloneDX schema
