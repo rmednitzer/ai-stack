@@ -10,7 +10,9 @@ metadata:
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "ingestion"
 spec:
+  {{- if not (and (hasKey .Values.tika "autoscaling") .Values.tika.autoscaling.enabled) }}
   replicas: {{ .Values.tika.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 6 }}
@@ -20,6 +22,8 @@ spec:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        assurance.platform/security-exception: "tika-requires-root"
+        assurance.platform/security-exception-reason: "Upstream Tika image runs as root for Java process management"
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}
@@ -30,6 +34,7 @@ spec:
         runAsNonRoot: false
         seccompProfile:
           type: RuntimeDefault
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (and (hasKey .Values.tika "autoscaling") .Values.tika.autoscaling.enabled)) | nindent 6 }}
       containers:
         - name: tika
           image: "{{ .Values.tika.image.repository }}:{{ .Values.tika.image.tag }}"

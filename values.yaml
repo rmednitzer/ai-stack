@@ -29,6 +29,8 @@ global:
 
   # -- Namespace where the ingress controller runs (used in NetworkPolicy ingress rules)
   ingressNamespace: "envoy-gateway-system"
+  # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for scrape ingress)
+  monitoringNamespace: "monitoring"
 
   # -- Pod Security: enforce restricted baseline (PSA)
   # Applied as labels on namespace externally; chart sets securityContext to comply
@@ -51,6 +53,19 @@ global:
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
     labels: {}
 
+  # -- Backup configuration for stateful components
+  backup:
+    enabled: false
+    # -- Cron schedule (default: daily at 02:00 UTC)
+    schedule: "0 2 * * *"
+    # -- Number of successful/failed jobs to retain
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    # -- Backup storage PVC size
+    storageSize: 50Gi
+    # -- TTL for completed backup jobs (24h)
+    ttlSecondsAfterFinished: 86400
+
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
   podAnnotations:
@@ -63,6 +78,12 @@ global:
 openwebui:
   enabled: true
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
   image:
     repository: ghcr.io/open-webui/open-webui
     tag: "v0.8.10"
@@ -268,6 +289,12 @@ qdrant:
 tika:
   enabled: true
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
   image:
     repository: apache/tika
     tag: "3.0.0.0"
@@ -446,7 +473,7 @@ openTerminal:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
-    tag: "latest"  # No versioned releases; Renovate tracks via digest
+    tag: "0.1.2"
   service:
     type: ClusterIP
     port: 8000
@@ -503,7 +530,7 @@ mcpo:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/mcpo
-    tag: "main"  # No versioned releases; Renovate tracks via digest
+    tag: "0.2.0"
   service:
     type: ClusterIP
     port: 8000
@@ -553,9 +580,15 @@ mcpo:
 pipelines:
   enabled: true
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
   image:
     repository: ghcr.io/open-webui/pipelines
-    tag: "main"  # No versioned releases; Renovate tracks via digest
+    tag: "0.1.2"
   service:
     type: ClusterIP
     port: 9099

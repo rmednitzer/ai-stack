@@ -1,5 +1,6 @@
 {{/*
-Helm test: verify core services are reachable after install/upgrade.
+Helm test: verify core services are reachable and healthy after install/upgrade.
+Performs both TCP connectivity and HTTP health endpoint checks.
 Usage: helm test <release-name>
 */}}
 ---
@@ -29,38 +30,63 @@ spec:
         - |
           PASS=0
           FAIL=0
-          check() {
+          check_tcp() {
             if nc -z -w 5 "$1" "$2" 2>/dev/null; then
-              echo "PASS: $3 ($1:$2)"
+              echo "PASS [tcp]: $3 ($1:$2)"
               PASS=$((PASS+1))
             else
-              echo "FAIL: $3 ($1:$2)"
+              echo "FAIL [tcp]: $3 ($1:$2)"
+              FAIL=$((FAIL+1))
+            fi
+          }
+          check_http() {
+            STATUS=$(wget -qO /dev/null -S --timeout=10 "http://$1:$2$3" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}')
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
+              echo "PASS [http $STATUS]: $4 (http://$1:$2$3)"
+              PASS=$((PASS+1))
+            else
+              echo "FAIL [http $STATUS]: $4 (http://$1:$2$3)"
               FAIL=$((FAIL+1))
             fi
           }
           {{- if .Values.openwebui.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}" "{{ .Values.openwebui.service.port }}" "Open WebUI"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}" "{{ .Values.openwebui.service.port }}" "Open WebUI"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}" "{{ .Values.openwebui.service.port }}" "/health" "Open WebUI health"
           {{- end }}
           {{- if .Values.ollama.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}" "{{ .Values.ollama.service.port }}" "Ollama"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}" "{{ .Values.ollama.service.port }}" "Ollama"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}" "{{ .Values.ollama.service.port }}" "/" "Ollama health"
           {{- end }}
           {{- if .Values.qdrant.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}" "{{ .Values.qdrant.service.httpPort }}" "Qdrant"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}" "{{ .Values.qdrant.service.httpPort }}" "Qdrant"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}" "{{ .Values.qdrant.service.httpPort }}" "/healthz" "Qdrant health"
           {{- end }}
           {{- if .Values.tika.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}" "{{ .Values.tika.service.port }}" "Tika"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}" "{{ .Values.tika.service.port }}" "Tika"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}" "{{ .Values.tika.service.port }}" "/tika" "Tika health"
           {{- end }}
           {{- if .Values.searxng.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "SearXNG"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "SearXNG"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "/healthz" "SearXNG health"
           {{- end }}
           {{- if .Values.pipelines.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "Pipelines"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "Pipelines"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "/health" "Pipelines health"
           {{- end }}
           {{- if .Values.valkey.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
           {{- end }}
           {{- if .Values.workbench.enabled }}
-          check "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "Workbench"
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "Workbench"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "/api" "Workbench health"
+          {{- end }}
+          {{- if .Values.openTerminal.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}" "{{ .Values.openTerminal.service.port }}" "Open Terminal"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}" "{{ .Values.openTerminal.service.port }}" "/health" "Open Terminal health"
+          {{- end }}
+          {{- if .Values.mcpo.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}" "{{ .Values.mcpo.service.port }}" "MCPO"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}" "{{ .Values.mcpo.service.port }}" "/" "MCPO health"
           {{- end }}
           echo "---"
           echo "Results: ${PASS} passed, ${FAIL} failed"

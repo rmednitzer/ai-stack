@@ -45,6 +45,8 @@ spec:
         app.kubernetes.io/part-of: ai-stack
       annotations:
         checksum/config: {{ .Values.searxng.settings | toYaml | sha256sum }}
+        assurance.platform/security-exception: "searxng-requires-root"
+        assurance.platform/security-exception-reason: "Upstream SearXNG image requires root and SETUID/SETGID for privilege drop at startup"
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}

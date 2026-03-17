@@ -16,18 +16,30 @@ global:
   networkPolicy:
     enabled: true
 
+  serviceMonitor:
+    enabled: true
+
   podAnnotations:
     assurance.platform/chart: "ai-stack"
     assurance.platform/profile: "prod"
     assurance.platform/control-refs: "CTL-0009"
 
-# -- All images pinned to digest in prod (replace with actual digests)
-# Example: ghcr.io/open-webui/open-webui@sha256:abc123...
+  # -- Enable backup CronJobs for stateful data
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"
+    storageSize: 100Gi
 
 openwebui:
   replicaCount: 2
   image:
     tag: "v0.8.10"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
   ingress:
     enabled: true
     className: "envoy"
@@ -38,6 +50,9 @@ openwebui:
       gateway.envoyproxy.io/timeout: "300s"
       gateway.envoyproxy.io/request-body-max-size: "50m"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      # Rate limiting — 60 requests per minute per client IP
+      gateway.envoyproxy.io/rate-limit-local: "60"
+      gateway.envoyproxy.io/rate-limit-burst: "20"
     hosts:
       - host: ai.example.com
         paths:
@@ -87,6 +102,11 @@ qdrant:
     size: 100Gi
 
 tika:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
   resources:
     requests:
       cpu: 250m
@@ -98,7 +118,7 @@ tika:
 searxng:
   settings:
     server:
-      secret_key: ""  # FIXME: generate with: openssl rand -hex 32
+      secret_key: ""  # Auto-generated from Secret; override with external secret manager
       limiter: true
       image_proxy: false
 
@@ -118,6 +138,11 @@ openTerminal:
   enabled: false  # Disable in prod by default; enable per-request
 
 pipelines:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
   resources:
     requests:
       cpu: 500m
