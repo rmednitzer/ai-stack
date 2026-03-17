@@ -29,6 +29,8 @@ global:
 
   # -- Namespace where the ingress controller runs (used in NetworkPolicy ingress rules)
   ingressNamespace: "envoy-gateway-system"
+  # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for scrape ingress)
+  monitoringNamespace: "monitoring"
 
   # -- Pod Security: enforce restricted baseline (PSA)
   # Applied as labels on namespace externally; chart sets securityContext to comply
