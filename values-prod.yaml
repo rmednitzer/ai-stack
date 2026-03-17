@@ -152,3 +152,30 @@ pipelines:
       memory: 8Gi
   persistence:
     size: 20Gi
+
+langgraph:
+  enabled: false  # Opt-in; enable when agentic workloads are needed
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+postgres:
+  enabled: false  # Enable together with langgraph
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  persistence:
+    size: 20Gi

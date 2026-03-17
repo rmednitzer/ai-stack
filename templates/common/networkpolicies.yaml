@@ -106,6 +106,8 @@ spec:
           port: 8888
         - protocol: TCP
           port: 8000
+        - protocol: TCP
+          port: 5432
 {{- end }}
 
 # =============================================================================
@@ -241,6 +243,15 @@ spec:
         - protocol: TCP
           port: 8000
     {{- end }}
+    {{- if .Values.langgraph.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
+      ports:
+        - protocol: TCP
+          port: 8000
+    {{- end }}
 {{- end }}
 
 # =============================================================================
@@ -272,6 +283,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: ollama-backup
@@ -314,6 +328,9 @@ spec:
               app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
+              app.kubernetes.io/name: langgraph
+        - podSelector:
+            matchLabels:
               app.kubernetes.io/name: otel-collector
         - podSelector:
             matchLabels:
@@ -353,6 +370,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
       ports:
         - protocol: TCP
           port: 9998
@@ -387,6 +407,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
       ports:
         - protocol: TCP
           port: 8080
@@ -433,6 +456,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
       ports:
         - protocol: TCP
           port: 9099
@@ -572,6 +598,16 @@ spec:
         - protocol: TCP
           port: 8080
     {{- end }}
+    # LangGraph (agentic workflows from notebooks)
+    {{- if .Values.langgraph.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
+      ports:
+        - protocol: TCP
+          port: 8000
+    {{- end }}
     # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
     - ports:
         - protocol: TCP
@@ -651,6 +687,143 @@ spec:
           port: 443
         - protocol: TCP
           port: 80
+{{- end }}
+
+# =============================================================================
+# LangGraph — agentic runtime; needs PostgreSQL, Ollama, Qdrant, and internet
+# =============================================================================
+{{- if .Values.langgraph.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-langgraph
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "langgraph") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept from Open WebUI and Workbench
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Accept from ingress controller (if ingress enabled)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # PostgreSQL (checkpoint persistence)
+    {{- if .Values.postgres.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
+    # Ollama (LLM inference)
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    # Qdrant (vector retrieval)
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    {{- end }}
+    # Tika (document extraction)
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    # SearXNG (web search tools)
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: 8080
+    {{- end }}
+    # Pipelines
+    {{- if .Values.pipelines.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: 9099
+    {{- end }}
+    # Internet (agentic tool calls, external APIs)
+    - ports:
+        - protocol: TCP
+          port: 443
+{{- end }}
+
+# =============================================================================
+# PostgreSQL — accepts from LangGraph only
+# =============================================================================
+{{- if .Values.postgres.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-postgres
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- if .Values.langgraph.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 5432
 {{- end }}
 
 # =============================================================================

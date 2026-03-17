@@ -4,7 +4,7 @@ Gated behind <component>.autoscaling.enabled to avoid resource conflicts
 with static replicaCount in lab environments.
 */}}
 
-{{- $components := dict "openwebui" .Values.openwebui "tika" .Values.tika "pipelines" .Values.pipelines }}
+{{- $components := dict "openwebui" .Values.openwebui "tika" .Values.tika "pipelines" .Values.pipelines "langgraph" .Values.langgraph }}
 {{- range $component, $spec := $components }}
 {{- if and $spec.enabled (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}
 ---

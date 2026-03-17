@@ -33,6 +33,12 @@ COMPONENTS:
 {{- if .Values.valkey.enabled }}
   ✓ Valkey            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}
 {{- end }}
+{{- if .Values.langgraph.enabled }}
+  ✓ LangGraph         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}:{{ .Values.langgraph.service.port }}
+{{- end }}
+{{- if .Values.postgres.enabled }}
+  ✓ PostgreSQL        {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}:{{ .Values.postgres.service.port }}
+{{- end }}
 {{- if .Values.global.otel.enabled }}
   ✓ OTel Collector    {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}:4317/4318
 {{- end }}
