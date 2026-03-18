@@ -170,6 +170,75 @@ jobs:
           path: syft-sbom-output/
           retention-days: 90
 
+  cve-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
+            | sh -s -- -b /usr/local/bin v0.91.0  # renovate: depName=anchore/grype
+          grype version
+
+      - name: Extract image references from values.yaml
+        run: |
+          python3 -c "
+          import yaml
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          for key, section in vals.items():
+              if isinstance(section, dict) and 'image' in section:
+                  img = section['image']
+                  repo = img.get('repository', '')
+                  tag = img.get('tag', 'latest')
+                  if repo:
+                      print(f'{repo}:{tag}')
+          " | tee /tmp/images.txt
+
+      - name: Scan images for CVEs with Grype
+        run: |
+          set -euo pipefail
+          mkdir -p grype-reports
+          CRITICAL=0
+          TOTAL=0
+          while IFS= read -r IMAGE; do
+            TOTAL=$((TOTAL + 1))
+            SAFE_NAME=$(echo "$IMAGE" | tr '/:' '__')
+            echo "::group::Scanning ${IMAGE}"
+            if grype "registry:${IMAGE}" \
+                --output json \
+                --file "grype-reports/${SAFE_NAME}.json" \
+                --fail-on critical 2>&1; then
+              echo "OK ${IMAGE}: no critical CVEs"
+            else
+              EXIT_CODE=$?
+              if [ "$EXIT_CODE" -eq 1 ]; then
+                CRITICAL=$((CRITICAL + 1))
+                echo "::error::Critical CVE(s) found in ${IMAGE}"
+              else
+                echo "::warning::Grype scan issue for ${IMAGE} (exit code ${EXIT_CODE})"
+              fi
+            fi
+            echo "::endgroup::"
+          done < /tmp/images.txt
+
+          echo ""
+          echo "=== CVE Scan Summary: ${TOTAL} images scanned ==="
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::${CRITICAL} image(s) have critical CVEs — review grype-reports artifacts"
+            exit 1
+          fi
+
+      - name: Upload Grype reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grype-cve-reports
+          path: grype-reports/
+          retention-days: 90
+
   kubeconform:
     runs-on: ubuntu-latest
     steps:
