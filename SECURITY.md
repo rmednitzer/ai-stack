@@ -80,7 +80,7 @@ The ai-stack implements the following security controls by default:
 - **Service account isolation:** Per-component, `automountServiceAccountToken: false`
 - **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
 - **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, CVE scanning (Grype),
-  Renovate with digest pinning
+  Dependabot for GitHub Actions; container images tracked manually
 - **PII redaction:** OTel Collector strips email, SSN, and credit card patterns
 - **Telemetry opt-out:** `DO_NOT_TRACK=true`, `ANONYMIZED_TELEMETRY=false`
 

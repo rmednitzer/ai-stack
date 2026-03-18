@@ -43,30 +43,30 @@ The ai-stack processes the following categories of personal data:
 | **Art. 5(1)(c)** | Data minimisation | Partial | OTel PII redaction (email, SSN, CC patterns); but no data retention limits on conversations or embeddings |
 | **Art. 5(1)(e)** | Storage limitation | Gap | No automated data retention or purge mechanisms |
 | **Art. 13** | Information to data subjects | Gap | No privacy notice template or consent mechanism in chart |
-| **Art. 15** | Right of access | Gap | No data export feature documented |
+| **Art. 15** | Right of access | Addressed | DSAR procedures in [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) |
 | **Art. 17** | Right to erasure | Gap | No automated deletion workflow; manual Qdrant/PostgreSQL purge required |
 | **Art. 22** | Automated decision-making | Attention | If AI outputs are used for decisions with legal/significant effects, Art. 22 safeguards required |
 | **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference, optional Authelia OIDC/MFA for enterprise SSO |
 | **Art. 28** | Processor agreements | Gap | External API providers (OpenAI, Anthropic, etc.) require DPAs when enabled |
-| **Art. 30** | Records of processing | Gap | No ROPA template provided |
+| **Art. 30** | Records of processing | Addressed | ROPA template in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) |
 | **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control (built-in + optional Authelia OIDC/MFA), network isolation, read-only filesystem, PII redaction |
-| **Art. 33/34** | Breach notification | Gap | No incident response runbook or breach notification workflow |
-| **Art. 35** | DPIA | Gap | No DPIA template; required when processing personal data at scale via AI, profiling, or systematic monitoring |
+| **Art. 33/34** | Breach notification | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
+| **Art. 35** | DPIA | Addressed | DPIA template in [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) |
 | **Art. 44-49** | International transfers | Attention | External APIs may transfer data to non-EU jurisdictions; no adequacy assessment documented |
 
 #### Gaps Requiring Action
 
 1. **Data Retention Policy (Art. 5(1)(e))** — No automated TTL or purge mechanism for conversations, embeddings, or uploaded documents. Deployers must manually manage data lifecycle.
 
-2. **Data Subject Rights (Art. 15-20)** — No built-in export, portability, or automated erasure workflows. Deployers need operational procedures for handling DSARs.
+2. **Data Subject Rights (Art. 15-20)** — Addressed: DSAR procedures documented in [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md). Deployers must implement operational workflows based on these procedures.
 
-3. **DPIA (Art. 35)** — A Data Protection Impact Assessment is mandatory before deployment, given: (a) new technology (AI), (b) systematic processing at scale, (c) automated evaluation of personal aspects. No DPIA template is provided.
+3. **DPIA (Art. 35)** — Addressed: DPIA template provided in [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md). Deployers must complete it before production deployment.
 
-4. **Records of Processing Activities (Art. 30)** — No ROPA template. Required for any controller/processor.
+4. **Records of Processing Activities (Art. 30)** — Addressed: ROPA template provided in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md).
 
 5. **Processor Agreements (Art. 28)** — When `externalAPIs.enabled=true`, data is sent to third-party providers. DPA requirements must be documented.
 
-6. **Breach Notification (Art. 33/34)** — No incident response playbook for personal data breaches.
+6. **Breach Notification (Art. 33/34)** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md).
 
 ---
 
@@ -88,18 +88,18 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 | AI Act Article | Requirement | Status | Evidence |
 |---------------|-------------|--------|----------|
-| **Art. 50(1)** | Inform users they interact with AI | Partial | Open WebUI shows AI responses, but no explicit "you are interacting with an AI system" disclosure mandated by the chart |
+| **Art. 50(1)** | Inform users they interact with AI | Addressed | Configurable `WEBUI_BANNER_TEXT` in values.yaml with default AI disclosure text |
 | **Art. 50(2)** | Machine-readable marking of AI-generated content | Gap | No watermarking or C2PA metadata applied to AI outputs |
 | **Art. 50(4)** | Deep fake disclosure | N/A | Not applicable unless generating synthetic media for public dissemination |
 | **Art. 13** | Transparency for deployers (high-risk) | Conditional | Tier labels and boundary annotations provide governance metadata; full compliance depends on use case |
 | **Art. 26** | Deployer obligations (high-risk) | Conditional | Monitoring via OTel, human oversight via Open WebUI; completeness depends on use case |
 | **Art. 27** | Fundamental rights impact assessment | Gap | No FRIA template provided; required if high-risk classification applies |
 | **Art. 53** | GPAI provider obligations | Attention | If deploying third-party GPAI models, downstream documentation must be obtained from providers |
-| **Art. 73** | Serious incident reporting | Gap | No incident reporting procedure for AI-specific incidents |
+| **Art. 73** | Serious incident reporting | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific incidents |
 
 #### Gaps Requiring Action
 
-1. **Art. 50(1) Transparency Disclosure** — The chart should provide a configurable disclosure banner/notice that informs users they are interacting with an AI system. This is a mandatory obligation applicable **now** (not phased).
+1. **Art. 50(1) Transparency Disclosure** — Addressed: Configurable `WEBUI_BANNER_TEXT` in values.yaml provides an AI disclosure banner by default.
 
 2. **Art. 50(2) Content Marking** — AI-generated text, images, audio, and video must be marked in a machine-readable format. No C2PA, watermarking, or metadata injection is implemented. Deployers must address this at the application layer.
 
@@ -107,7 +107,7 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 4. **Fundamental Rights Impact Assessment (Art. 27)** — If the platform is used for any Annex III high-risk purpose (e.g., HR screening, credit assessment, legal analysis), a FRIA is mandatory before deployment.
 
-5. **Incident Reporting (Art. 73)** — No procedure for reporting serious AI incidents to national authorities (15-day deadline from awareness).
+5. **Incident Reporting (Art. 73)** — Addressed: Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific serious incident reporting.
 
 ---
 
@@ -122,19 +122,19 @@ NIS2 applicability depends on whether the deploying organization falls within An
 | NIS2 Art. 21(2) | Requirement | Status | Evidence |
 |-----------------|-------------|--------|----------|
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
-| **(b)** Incident handling | Partial | OTel observability for detection; no incident response playbook |
+| **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
 | **(c)** Business continuity & DR | Good | Backup CronJobs (Qdrant, Ollama), PDB, HA in prod profile |
-| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Renovate digest pinning, license compliance matrix |
+| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Dependabot, license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
 | **(f)** Effectiveness assessment | Partial | Helm test hooks, health probes; no penetration testing or security audit process |
 | **(g)** Cyber hygiene & training | Gap | No documentation on operator security training requirements |
 | **(h)** Cryptography & encryption | Partial | TLS in prod profile; no at-rest encryption enforced for PVCs |
 | **(i)** Access control & asset management | Strong | Per-component ServiceAccounts, RBAC, `automountServiceAccountToken: false` |
-| **(j)** MFA/continuous auth | Partial | Open WebUI has auth; MFA support depends on upstream Open WebUI capabilities |
+| **(j)** MFA/continuous auth | Strong | Open WebUI built-in auth; optional Authelia OIDC/MFA for enterprise SSO (`authelia.defaultPolicy: two_factor`) |
 
 #### Gaps Requiring Action
 
-1. **Incident Response Procedure (Art. 21(2)(b))** — An incident handling playbook should be provided as operator documentation, including: detection (OTel alerts), triage, containment, eradication, notification (24h early warning, 72h full notification to CSIRT).
+1. **Incident Response Procedure (Art. 21(2)(b))** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covering detection, triage, containment, eradication, and notification workflows.
 
 2. **Encryption at Rest (Art. 21(2)(h))** — PVCs containing personal data (Open WebUI, Qdrant, PostgreSQL) should document encryption-at-rest requirements. This is typically handled at the StorageClass level (e.g., LUKS, AWS EBS encryption), but should be called out.
 
@@ -157,16 +157,16 @@ The CRA applies to "products with digital elements" placed on the EU market. Whe
 | CRA Requirement | Status | Evidence |
 |----------------|--------|----------|
 | SBOM (Part II, Annex I) | Strong | CycloneDX 1.6 SBOM, Syft deep SBOMs in CI, validated against schema |
-| Vulnerability handling | Partial | Renovate for dependency updates; no CVE monitoring or coordinated vulnerability disclosure process |
+| Vulnerability handling | Strong | Dependabot for GitHub Actions updates; Grype CVE scanning in CI; CVD policy in SECURITY.md |
 | Cybersecurity risk assessment | Partial | Tier classification, boundary annotations; no formal risk assessment document |
 | Security updates for support period | N/A | Depends on distribution model |
 | CE marking / Declaration of Conformity | N/A | Only if commercially distributed |
 
 #### Gaps Requiring Action
 
-1. **Coordinated Vulnerability Disclosure Policy (Art. 13(8))** — If commercially distributed, a CVD policy with single point of contact is required. Even for FOSS, this is best practice.
+1. **Coordinated Vulnerability Disclosure Policy (Art. 13(8))** — Addressed: CVD policy documented in [SECURITY.md](SECURITY.md).
 
-2. **CVE Monitoring** — No automated CVE scanning of container images in CI. Syft generates SBOMs but no vulnerability scanner (e.g., Grype, Trivy) is integrated.
+2. **CVE Monitoring** — Addressed: Grype scans all container images in CI (`cve-scan` job) and fails on critical vulnerabilities.
 
 3. **SBOM Format** — CRA Art. 13(24) anticipates implementing acts specifying SBOM format. Current CycloneDX 1.6 is well-positioned but should be monitored for mandated format changes.
 
@@ -210,10 +210,10 @@ If the platform is accessible via web browser (Open WebUI), ePrivacy provisions 
 
 | Regulation | Current Posture | Priority Gaps |
 |------------|----------------|---------------|
-| **GDPR** | Partial | Data retention, DPIA, DSARs, ROPA, breach notification, international transfers |
-| **AI Act** | Partial | Art. 50 transparency disclosure, content marking, GPAI documentation, incident reporting |
-| **NIS2** | Good | Incident response playbook, encryption at rest documentation, effectiveness assessment |
-| **CRA** | Good | CVD policy, CVE scanning, formal risk assessment (if commercially distributed) |
+| **GDPR** | Good | Data retention, international transfers |
+| **AI Act** | Good | Content marking (Art. 50(2)), GPAI documentation |
+| **NIS2** | Strong | Encryption at rest documentation, effectiveness assessment |
+| **CRA** | Strong | Formal risk assessment (if commercially distributed) |
 | **ePrivacy** | Attention | Cookie consent mechanism verification |
 
 ---
@@ -224,19 +224,19 @@ If the platform is accessible via web browser (Open WebUI), ePrivacy provisions 
 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
-| 1 | **Create DPIA template** covering AI-based processing of personal data | GDPR Art. 35, AI Act Art. 27 | Medium |
-| 2 | **Add AI transparency disclosure** — configurable banner in Open WebUI informing users of AI interaction | AI Act Art. 50(1) | Low |
+| 1 | ~~**Create DPIA template**~~ | GDPR Art. 35, AI Act Art. 27 | Done — [DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) |
+| 2 | ~~**Add AI transparency disclosure**~~ | AI Act Art. 50(1) | Done — `WEBUI_BANNER_TEXT` in values.yaml |
 | 3 | **Document data retention policy** and provide guidance for automated purge of conversations, embeddings, uploaded docs | GDPR Art. 5(1)(e) | Medium |
-| 4 | **Create incident response playbook** covering both data breach (GDPR Art. 33/34) and cybersecurity incident (NIS2 Art. 23) notification workflows | GDPR + NIS2 | Medium |
+| 4 | ~~**Create incident response playbook**~~ | GDPR + NIS2 | Done — [INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
 
 ### High (address within first quarter of operation)
 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
-| 5 | **Document DSAR procedures** (access, erasure, portability) with operator runbooks | GDPR Art. 15-20 | Medium |
-| 6 | **Provide ROPA template** with pre-filled processing activities for the stack | GDPR Art. 30 | Low |
+| 5 | ~~**Document DSAR procedures**~~ | GDPR Art. 15-20 | Done — [DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) |
+| 6 | ~~**Provide ROPA template**~~ | GDPR Art. 30 | Done — [ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) |
 | 7 | **Add DPA guidance** for external API providers with checklist of required contractual clauses | GDPR Art. 28, Art. 44-49 | Low |
-| 8 | **Integrate CVE scanning** (Grype or Trivy) into CI pipeline alongside existing Syft SBOM generation | CRA Art. 13 | Low |
+| 8 | ~~**Integrate CVE scanning**~~ | CRA Art. 13 | Done — Grype `cve-scan` job in CI |
 | 9 | **Document encryption-at-rest requirements** for PVCs in operator guidance | NIS2 Art. 21(2)(h) | Low |
 
 ### Medium (address within first year)
@@ -244,7 +244,7 @@ If the platform is accessible via web browser (Open WebUI), ePrivacy provisions 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
 | 10 | **Implement AI content marking** (C2PA metadata or watermarking) for AI-generated outputs | AI Act Art. 50(2) | High |
-| 11 | **Create coordinated vulnerability disclosure policy** | CRA Art. 13(8) | Low |
+| 11 | ~~**Create coordinated vulnerability disclosure policy**~~ | CRA Art. 13(8) | Done — [SECURITY.md](SECURITY.md) |
 | 12 | **Document GPAI downstream obligations** — guidance for deployers using external model providers | AI Act Art. 53 | Low |
 | 13 | **Add security audit/pentest cadence** to operator documentation | NIS2 Art. 21(2)(f) | Low |
 | 14 | **Document operator training requirements** for platform security | NIS2 Art. 21(2)(g) | Low |

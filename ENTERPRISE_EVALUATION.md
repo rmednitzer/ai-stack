@@ -51,7 +51,7 @@ alignment with governance, security, observability, and operational requirements
 
 - **Helm 3.12+** with dual profiles (lab/prod) — clean separation of concerns
 - **ArgoCD** integration with manual sync for change-control compliance
-- **Renovate** dependency management with digest pinning enabled
+- **Dependabot** for GitHub Actions dependency management; container image versions managed manually
 - **Pod Disruption Budgets** for stateful components (Ollama, Qdrant)
 - **Topology spread constraints** in prod profile for HA
 - **HPA autoscaling** for stateless components (Open WebUI, Tika, Pipelines)
@@ -66,7 +66,7 @@ alignment with governance, security, observability, and operational requirements
   (Recreate for stateful, RollingUpdate for stateless)
 - Internal-only services (ClusterIP) with ingress controller integration
 - Opt-in components (Workbench, Open Terminal, MCPO) reduce default attack surface
-- All images pinned to versioned tags; Renovate automates digest pinning
+- All images pinned to versioned tags
 - CycloneDX 1.6 SBOM ([sbom.cdx.json](sbom.cdx.json)) with full license and dependency graph
 - License compliance matrix ([LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md)) with copyleft analysis
 - SBOM validation in CI (schema + component count cross-check)
@@ -95,7 +95,7 @@ alignment with governance, security, observability, and operational requirements
 
 | Area | Status | Recommendation |
 |------|--------|----------------|
-| Image digests | Renovate now pins digests automatically | Review Renovate PRs to ensure digests are applied |
+| Image digests | Container image versions pinned in values.yaml | Review Dependabot PRs for GitHub Actions; manually track container image updates |
 | Velero integration | Not included | Pair backup CronJobs with Velero for full cluster DR |
 | External secret manager | Supported but optional | Use ESO or Vault CSI for production secret rotation |
 | WAF | Not included | Deploy upstream WAF (ModSecurity, Coraza) for deep packet inspection |
@@ -111,7 +111,7 @@ alignment with governance, security, observability, and operational requirements
 | Observability | Production-grade |
 | High Availability | Good (HPA for stateless; stateful needs operator for full HA) |
 | Disaster Recovery | Addressed (snapshot + model backup CronJobs) |
-| Supply Chain Security | Excellent (versioned tags + Renovate digest pinning + CycloneDX SBOM + license compliance) |
+| Supply Chain Security | Excellent (versioned tags + Dependabot + CycloneDX SBOM + license compliance) |
 | Scalability | Good (HPA autoscaling for stateless components) |
 | Operational Maturity | Strong |
 
