@@ -10,6 +10,7 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
    - [Lab environment](#11-lab-environment)
    - [Production environment](#12-production-environment)
    - [Air-gapped / offline install](#13-air-gapped--offline-install)
+   - [Air-gapped install with Zarf](#14-air-gapped-install-with-zarf)
 2. [Day-1 Setup](#2-day-1-setup)
    - [Pull your first models](#21-pull-your-first-models)
    - [Access Open WebUI](#22-access-open-webui)
@@ -189,6 +190,91 @@ global:
 ```
 
 4. **Pre-download Ollama models** and load them into the PVC, since `ollama pull` requires internet access. See [Section 3](#3-working-with-models).
+
+### 1.4 Air-gapped Install with Zarf
+
+[Zarf](https://zarf.dev/) automates air-gapped deployments by packaging the Helm chart, all container images, and configuration into a single signed, declarative tarball. This eliminates the manual image mirroring described in [Section 1.3](#13-air-gapped--offline-install).
+
+The repository includes a `zarf.yaml` package definition with the core stack as a required component and optional components (Workbench, LangGraph, MCPO, OTel Collector) that can be selected at deploy time.
+
+**Prerequisites:**
+
+- [Zarf CLI](https://docs.zarf.dev/getting-started/) installed on the build machine (internet-connected)
+- Zarf initialized on the target cluster (`zarf init`)
+- Kubernetes 1.27+ on the target cluster
+
+**Step 1 — Build the package (internet-connected machine):**
+
+```bash
+cd ai-stack/
+zarf package create --confirm
+```
+
+This produces a file like `zarf-package-ai-stack-amd64-1.0.0.tar.zst` (~15-25 GB depending on selected components). Zarf automatically pulls all images listed in `zarf.yaml` and bundles them alongside the Helm chart.
+
+**Step 2 — Transfer the package:**
+
+Copy the `.tar.zst` file to the air-gapped environment via USB, S3 bucket, or any out-of-band transfer method.
+
+**Step 3 — Initialize Zarf on the target cluster (one-time):**
+
+If Zarf has not been initialized on the target cluster yet:
+
+```bash
+zarf init --confirm
+```
+
+This deploys an in-cluster registry and injector that Zarf uses to serve images.
+
+**Step 4 — Deploy:**
+
+```bash
+# Deploy with defaults (core stack only)
+zarf package deploy zarf-package-ai-stack-amd64-1.0.0.tar.zst --confirm
+
+# Deploy with optional components
+zarf package deploy zarf-package-ai-stack-amd64-1.0.0.tar.zst \
+  --components="ai-stack,langgraph,mcpo" --confirm
+```
+
+Zarf pushes the images to the in-cluster registry and runs `helm install` with the image references rewritten to point at the local registry.
+
+**Step 5 — Load Ollama models:**
+
+Zarf handles images, but Ollama models must still be loaded manually in an air-gapped cluster. On the internet-connected machine:
+
+```bash
+# Pull the model locally
+ollama pull llama3.2
+ollama pull nomic-embed-text
+
+# Export to a tarball
+# Models are stored under ~/.ollama/models/
+tar czf ollama-models.tar.gz -C ~/.ollama models/
+```
+
+On the air-gapped cluster:
+
+```bash
+# Copy the models into the Ollama PVC
+kubectl cp ollama-models.tar.gz ai-stack/ai-stack-ollama-0:/tmp/
+kubectl exec -n ai-stack ai-stack-ollama-0 -- \
+  tar xzf /tmp/ollama-models.tar.gz -C /root/.ollama/
+kubectl exec -n ai-stack ai-stack-ollama-0 -- rm /tmp/ollama-models.tar.gz
+
+# Restart Ollama to pick up the models
+kubectl rollout restart -n ai-stack deploy/ai-stack-ollama
+```
+
+**Upgrading:**
+
+Build a new package with the updated chart/images and redeploy:
+
+```bash
+zarf package deploy zarf-package-ai-stack-amd64-<new-version>.tar.zst --confirm
+```
+
+Zarf performs a `helm upgrade` under the hood.
 
 ---
 
