@@ -480,7 +480,7 @@ Pre-built ArgoCD Application manifests are provided in `argocd/`:
 
 ## Dependency Management
 
-Image versions are managed by [Renovate](https://docs.renovatebot.com/) with digest pinning enabled. Configuration is in `renovate.json5`.
+GitHub Actions versions are managed by [Dependabot](https://docs.github.com/en/code-security/dependabot). Container image versions in `values.yaml` are managed manually. Configuration is in `.github/dependabot.yml`.
 
 ## Verification
 
