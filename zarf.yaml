@@ -38,19 +38,19 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.8.10
       # Ollama
-      - ollama/ollama:0.17.7
+      - ollama/ollama:0.18.1
       # Qdrant
-      - qdrant/qdrant:v1.13.2
+      - qdrant/qdrant:v1.17.1
       # Apache Tika
-      - apache/tika:3.0.0.0
+      - apache/tika:3.2.3.0
       # SearXNG
-      - searxng/searxng:2026.3.10-8b95b2058
+      - searxng/searxng:2026.3.16-4c4ed4b19
       # Open Terminal
-      - ghcr.io/open-webui/open-terminal:0.1.2
+      - ghcr.io/open-webui/open-terminal:0.11.20
       # Pipelines
       - ghcr.io/open-webui/pipelines:0.1.2
       # Valkey
-      - valkey/valkey:8.0
+      - valkey/valkey:8.1
       # Ingestion worker
       - python:3.12-slim
 
@@ -95,7 +95,7 @@ components:
             path: postgres.enabled
             default: "true"
     images:
-      - docker.io/langchain/langgraph-api:0.2
+      - docker.io/langchain/langgraph-server:0.7-py3.12
       - docker.io/library/postgres:16-alpine
 
   # ---------------------------------------------------------------------------
@@ -136,4 +136,4 @@ components:
             path: global.otel.enabled
             default: "true"
     images:
-      - otel/opentelemetry-collector-contrib:0.116.0
+      - otel/opentelemetry-collector-contrib:0.147.0

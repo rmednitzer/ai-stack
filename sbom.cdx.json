@@ -5,7 +5,7 @@
   "serialNumber": "urn:uuid:cc5b9da3-be5e-4bf8-a708-8844e4ffd972",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-17T00:00:00Z",
+    "timestamp": "2026-03-18T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -94,9 +94,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.17.7",
+      "version": "0.18.1",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.17.7",
+      "purl": "pkg:docker/ollama/ollama@0.18.1",
       "licenses": [
         {
           "license": {
@@ -129,9 +129,9 @@
       "type": "container",
       "bom-ref": "qdrant",
       "name": "qdrant",
-      "version": "v1.13.2",
+      "version": "v1.17.1",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.13.2",
+      "purl": "pkg:docker/qdrant/qdrant@v1.17.1",
       "licenses": [
         {
           "license": {
@@ -199,9 +199,9 @@
       "type": "container",
       "bom-ref": "tika",
       "name": "tika",
-      "version": "3.0.0.0",
+      "version": "3.2.3.0",
       "description": "Document content extraction for RAG pipeline",
-      "purl": "pkg:docker/apache/tika@3.0.0.0",
+      "purl": "pkg:docker/apache/tika@3.2.3.0",
       "licenses": [
         {
           "license": {
@@ -234,9 +234,9 @@
       "type": "container",
       "bom-ref": "searxng",
       "name": "searxng",
-      "version": "2026.3.10-8b95b2058",
+      "version": "2026.3.16-4c4ed4b19",
       "description": "Privacy-respecting metasearch engine for web RAG",
-      "purl": "pkg:docker/searxng/searxng@2026.3.10-8b95b2058",
+      "purl": "pkg:docker/searxng/searxng@2026.3.16-4c4ed4b19",
       "licenses": [
         {
           "license": {
@@ -273,9 +273,9 @@
       "type": "container",
       "bom-ref": "valkey",
       "name": "valkey",
-      "version": "8.0",
+      "version": "8.1",
       "description": "In-memory session cache and rate-limiting backend",
-      "purl": "pkg:docker/valkey/valkey@8.0",
+      "purl": "pkg:docker/valkey/valkey@8.1",
       "licenses": [
         {
           "license": {
@@ -308,9 +308,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.116.0",
+      "version": "0.147.0",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.116.0",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.147.0",
       "licenses": [
         {
           "license": {
@@ -342,10 +342,10 @@
     {
       "type": "container",
       "bom-ref": "langgraph-api",
-      "name": "langgraph-api",
-      "version": "0.2",
+      "name": "langgraph-server",
+      "version": "0.7-py3.12",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-api@0.2?repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.7-py3.12?repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -453,9 +453,9 @@
       "type": "container",
       "bom-ref": "open-terminal",
       "name": "open-terminal",
-      "version": "0.1.2",
+      "version": "0.11.20",
       "description": "Sandboxed terminal with REST API for AI agent code execution",
-      "purl": "pkg:docker/open-webui/open-terminal@0.1.2?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-terminal@0.11.20?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -523,9 +523,9 @@
       "type": "container",
       "bom-ref": "authelia",
       "name": "authelia",
-      "version": "4.38",
+      "version": "4.39",
       "description": "OIDC identity provider for SSO, MFA, and federated authentication",
-      "purl": "pkg:docker/authelia/authelia@4.38?repository_url=ghcr.io",
+      "purl": "pkg:docker/authelia/authelia@4.39?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {

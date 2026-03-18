@@ -20,19 +20,19 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Component | Image | Version | License (SPDX) | Type | Default | Copyleft |
 |-----------|-------|---------|----------------|------|---------|----------|
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.8.10 | MIT | Permissive | Enabled | No |
-| Ollama | `ollama/ollama` | 0.17.7 | MIT | Permissive | Enabled | No |
-| Qdrant | `qdrant/qdrant` | v1.13.2 | Apache-2.0 | Permissive | Enabled | No |
+| Ollama | `ollama/ollama` | 0.18.1 | MIT | Permissive | Enabled | No |
+| Qdrant | `qdrant/qdrant` | v1.17.1 | Apache-2.0 | Permissive | Enabled | No |
 | Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 | MIT | Permissive | Enabled | No |
-| Tika | `apache/tika` | 3.0.0.0 | Apache-2.0 | Permissive | Enabled | No |
-| SearXNG | `searxng/searxng` | 2026.3.10 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
-| Valkey | `valkey/valkey` | 8.0 | BSD-3-Clause | Permissive | Enabled | No |
-| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.116.0 | Apache-2.0 | Permissive | Conditional | No |
-| LangGraph API | `docker.io/langchain/langgraph-api` | 0.2 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
+| Tika | `apache/tika` | 3.2.3.0 | Apache-2.0 | Permissive | Enabled | No |
+| SearXNG | `searxng/searxng` | 2026.3.16 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
+| Valkey | `valkey/valkey` | 8.1 | BSD-3-Clause | Permissive | Enabled | No |
+| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.147.0 | Apache-2.0 | Permissive | Conditional | No |
+| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.7-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 16-alpine | PostgreSQL | Permissive | Opt-in | No |
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 | BSD-3-Clause | Permissive | Opt-in | No |
-| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.1.2 | MIT | Permissive | Opt-in | No |
+| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.20 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 | MIT | Permissive | Opt-in | No |
-| Authelia | `ghcr.io/authelia/authelia` | 4.38 | Apache-2.0 | Permissive | Opt-in | No |
+| Authelia | `ghcr.io/authelia/authelia` | 4.39 | Apache-2.0 | Permissive | Opt-in | No |
 | Ingestion Worker | `docker.io/library/python` | 3.12-slim | PSF-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0

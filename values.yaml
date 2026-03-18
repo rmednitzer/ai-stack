@@ -161,7 +161,7 @@ authelia:
   enabled: false  # Opt-in; when true, Open WebUI OAUTH_* env vars are auto-wired
   image:
     repository: ghcr.io/authelia/authelia
-    tag: "4.38"
+    tag: "4.39"
   service:
     type: ClusterIP
     port: 9091
@@ -349,7 +349,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.17.7"
+    tag: "0.18.1"
   service:
     type: ClusterIP
     port: 11434
@@ -404,7 +404,7 @@ qdrant:
   apiKey: ""
   image:
     repository: qdrant/qdrant
-    tag: "v1.13.2"
+    tag: "v1.17.1"
   service:
     type: ClusterIP
     httpPort: 6333
@@ -455,7 +455,7 @@ tika:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: apache/tika
-    tag: "3.0.0.0"
+    tag: "3.2.3.0"
   service:
     type: ClusterIP
     port: 9998
@@ -491,7 +491,7 @@ searxng:
   secretKey: ""
   image:
     repository: searxng/searxng
-    tag: "2026.3.10-8b95b2058"
+    tag: "2026.3.16-4c4ed4b19"
   service:
     type: ClusterIP
     port: 8080
@@ -631,7 +631,7 @@ openTerminal:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
-    tag: "0.1.2"
+    tag: "0.11.20"
   service:
     type: ClusterIP
     port: 8000
@@ -742,7 +742,7 @@ mcpo:
 # Requires PostgreSQL for checkpoint persistence (enable postgres below).
 # Connects to Ollama for LLM inference and Qdrant for vector retrieval.
 #
-# Image: langchain/langgraph-api — the official self-hosted runtime.
+# Image: langchain/langgraph-server — the official self-hosted runtime.
 # Deploy custom graphs by building an image with `langgraph build` or
 # by mounting graph code into the /deps/graphs volume.
 # =============================================================================
@@ -757,8 +757,8 @@ langgraph:
     targetMemoryUtilizationPercentage: 80
   image:
     # -- Override with a custom image built via `langgraph build`
-    repository: docker.io/langchain/langgraph-api
-    tag: "0.2"
+    repository: docker.io/langchain/langgraph-server
+    tag: "0.7-py3.12"
   service:
     type: ClusterIP
     port: 8000
@@ -1034,7 +1034,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "8.0"
+    tag: "8.1"
   service:
     type: ClusterIP
     port: 6379
@@ -1154,7 +1154,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.116.0"
+    tag: "0.147.0"
   logLevel: info
   memoryLimitMiB: 400
   spikeMemoryLimitMiB: 100
