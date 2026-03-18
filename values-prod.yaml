@@ -94,7 +94,7 @@ openwebui:
 ollama:
   replicaCount: 1
   image:
-    tag: "0.17.7"
+    tag: "0.18.1"
   gpu:
     enabled: true
     count: 1
