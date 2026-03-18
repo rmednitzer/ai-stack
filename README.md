@@ -178,7 +178,7 @@ mcpo:
 openwebui:
   ingress:
     enabled: true
-    className: "nginx"
+    className: "contour"
     hosts:
       - host: ai.example.com
         paths:
@@ -235,7 +235,7 @@ authelia:
     issuerUrl: "https://auth.example.local"
   ingress:
     enabled: true
-    className: "nginx"
+    className: "contour"
     hosts:
       - host: auth.example.local
         paths:

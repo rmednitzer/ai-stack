@@ -278,7 +278,7 @@ metadata:
   {{- end }}
 spec:
   {{- if .ingress.className }}
-  ingressClassName: {{ .ingress.className }}
+  ingressClassName: {{ .ingress.className | quote }}
   {{- end }}
   {{- if .ingress.tls }}
   tls:
