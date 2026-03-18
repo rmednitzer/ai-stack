@@ -10,6 +10,8 @@ description: >-
   persistence via PostgreSQL.
   Includes async document ingestion worker using Valkey Streams for
   non-blocking Tika→Ollama→Qdrant RAG pipeline processing.
+  Includes optional Authelia OIDC identity provider for SSO, MFA,
+  and federated authentication (Apache 2.0 licensed).
   Designed for deployment into governance-as-code environments with
   PSA restricted baseline, NetworkPolicy default-deny, and OTel
   instrumentation hooks.
@@ -39,6 +41,9 @@ keywords:
   - ingestion-worker
   - agentic
   - postgres
+  - authelia
+  - oidc
+  - sso
 annotations:
   # platform-assurance tier classification
   assurance.platform/tier: "T1"

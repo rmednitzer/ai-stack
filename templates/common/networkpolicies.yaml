@@ -252,6 +252,15 @@ spec:
         - protocol: TCP
           port: 8000
     {{- end }}
+    {{- if .Values.authelia.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+      ports:
+        - protocol: TCP
+          port: 9091
+    {{- end }}
     {{- if .Values.externalAPIs.enabled }}
     # External inference API providers (OpenAI, Azure, Anthropic, Gemini, etc.)
     - ports:
@@ -860,6 +869,11 @@ spec:
             matchLabels:
               app.kubernetes.io/name: ingestion-worker
         {{- end }}
+        {{- if and .Values.authelia.enabled (eq .Values.authelia.storage "postgres") }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+        {{- end }}
       ports:
         - protocol: TCP
           port: 5432
@@ -898,9 +912,82 @@ spec:
             matchLabels:
               app.kubernetes.io/name: ingestion-worker
         {{- end }}
+        {{- if $.Values.authelia.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+        {{- end }}
       ports:
         - protocol: TCP
           port: 6379
+{{- end }}
+
+# =============================================================================
+# Authelia — OIDC provider; accepts from Open WebUI + ingress, needs Valkey
+# =============================================================================
+{{- if .Values.authelia.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-authelia
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Open WebUI backend-channel (token exchange, userinfo)
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+      ports:
+        - protocol: TCP
+          port: 9091
+    # Browser redirects via ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
+      ports:
+        - protocol: TCP
+          port: 9091
+  egress:
+    # Valkey (session storage)
+    {{- if .Values.valkey.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: valkey
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+    # PostgreSQL (if storage=postgres)
+    {{- if and .Values.postgres.enabled (eq .Values.authelia.storage "postgres") }}
+    {{- if eq .Values.postgres.mode "external" }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.postgres.external.port | default 5432 }}
+    {{- else }}
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- if eq .Values.postgres.mode "cnpg" }}
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+              {{- else }}
+              app.kubernetes.io/name: postgres
+              {{- end }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
+    {{- end }}
 {{- end }}
 
 # =============================================================================

@@ -326,6 +326,31 @@ Usage: {{ include "ai-stack.qdrantApiKeyEnv" . | nindent N }}
 {{- end }}
 
 {{/*
+Authelia OIDC environment variables for Open WebUI.
+Injects OAUTH_* env vars when authelia.enabled=true.
+Usage: {{ include "ai-stack.autheliaOauthEnv" . | nindent N }}
+*/}}
+{{- define "ai-stack.autheliaOauthEnv" -}}
+{{- if .Values.authelia.enabled }}
+- name: OAUTH_PROVIDER_NAME
+  value: "Authelia"
+- name: OAUTH_CLIENT_ID
+  value: {{ .Values.authelia.oidc.clientId | quote }}
+- name: OAUTH_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}-secret
+      key: oidc-client-secret
+- name: OPENID_PROVIDER_URL
+  value: {{ .Values.authelia.oidc.issuerUrl | quote }}
+- name: OAUTH_SCOPES
+  value: {{ join " " .Values.authelia.oidc.scopes | quote }}
+- name: ENABLE_OAUTH_SIGNUP
+  value: "true"
+{{- end }}
+{{- end }}
+
+{{/*
 Ingress resource template (shared by openwebui, workbench, langgraph, etc.).
 Usage: {{ include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
 */}}
