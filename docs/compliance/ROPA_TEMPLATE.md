@@ -100,19 +100,6 @@
 | **Retention period** | *[per provider data retention policy]* |
 | **Technical & organisational measures** | HTTPS, API key in Secret, rate limiting, DPA with provider |
 
-### PA-07: Agentic Workflows *(conditional — only when langgraph.enabled=true)*
-
-| Field | Value |
-|-------|-------|
-| **Purpose** | Multi-step AI agent task execution with persistent state |
-| **Legal basis** | *[specify]* |
-| **Categories of data subjects** | Platform users, subjects of agent-processed data |
-| **Categories of personal data** | Agent state, tool call inputs/outputs, conversation checkpoints |
-| **Recipients** | Internal: authenticated users |
-| **Transfers to third countries** | None (PostgreSQL is local) |
-| **Retention period** | *[specify — checkpoint retention in PostgreSQL]* |
-| **Technical & organisational measures** | PostgreSQL TLS (prod), per-user scope, audit via OTel |
-
 ---
 
 ## Processor Records (Art. 30(2))

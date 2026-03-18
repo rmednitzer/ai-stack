@@ -44,7 +44,7 @@ The ai-stack processes the following categories of personal data:
 | **Art. 5(1)(e)** | Storage limitation | Gap | No automated data retention or purge mechanisms |
 | **Art. 13** | Information to data subjects | Gap | No privacy notice template or consent mechanism in chart |
 | **Art. 15** | Right of access | Addressed | DSAR procedures in [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) |
-| **Art. 17** | Right to erasure | Gap | No automated deletion workflow; manual Qdrant/PostgreSQL purge required |
+| **Art. 17** | Right to erasure | Gap | No automated deletion workflow; manual Qdrant purge required |
 | **Art. 22** | Automated decision-making | Attention | If AI outputs are used for decisions with legal/significant effects, Art. 22 safeguards required |
 | **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference, optional Authelia OIDC/MFA for enterprise SSO |
 | **Art. 28** | Processor agreements | Gap | External API providers (OpenAI, Anthropic, etc.) require DPAs when enabled |
@@ -80,7 +80,6 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 |-----------|----------------------|-------|-------------|----------|
 | Ollama (local LLM inference) | **Limited risk** (Art. 50) | AI system interacting with natural persons | Transparency: users must know they interact with AI | In force |
 | Open WebUI (chat interface) | **Deployer** (Art. 26) | Deploys AI system to end users | Transparency, monitoring, logging | In force |
-| LangGraph (agentic runtime) | **Limited risk** (Art. 50) | Autonomous AI agent actions | Transparency about AI-generated content | In force |
 | Ollama + external models | **GPAI considerations** (Art. 53) | If integrating general-purpose AI models | Documentation, downstream information | 2025-08-02 |
 | Any Annex III use case | **High-risk** (Art. 6) | If used for HR, credit, law enforcement, etc. | Full conformity assessment | 2026-08-02 |
 
@@ -123,7 +122,7 @@ NIS2 applicability depends on whether the deploying organization falls within An
 |-----------------|-------------|--------|----------|
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
 | **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
-| **(c)** Business continuity & DR | Good | Backup CronJobs (Qdrant, Ollama), PDB, HA in prod profile |
+| **(c)** Business continuity & DR | Good | Veeam K10 backup policies, PDB, HA in prod profile |
 | **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Dependabot, license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
 | **(f)** Effectiveness assessment | Partial | Helm test hooks, health probes; no penetration testing or security audit process |
@@ -136,7 +135,7 @@ NIS2 applicability depends on whether the deploying organization falls within An
 
 1. **Incident Response Procedure (Art. 21(2)(b))** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covering detection, triage, containment, eradication, and notification workflows.
 
-2. **Encryption at Rest (Art. 21(2)(h))** — PVCs containing personal data (Open WebUI, Qdrant, PostgreSQL) should document encryption-at-rest requirements. This is typically handled at the StorageClass level (e.g., LUKS, AWS EBS encryption), but should be called out.
+2. **Encryption at Rest (Art. 21(2)(h))** — PVCs containing personal data (Open WebUI, Qdrant) should document encryption-at-rest requirements. This is typically handled at the StorageClass level (e.g., LUKS, vSphere CSI encryption), but should be called out.
 
 3. **Security Effectiveness Assessment (Art. 21(2)(f))** — Regular security audit/pentest cadence should be documented in operator guidance.
 

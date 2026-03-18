@@ -1,13 +1,13 @@
 # =============================================================================
-# values-prod.yaml — Production overlay for EU-regulated deployment
+# values-prod.yaml — Production overlay for VMware Tanzu + Contour + Veeam K10
 # Usage: helm install ai-stack . -f values.yaml -f values-prod.yaml
 # =============================================================================
 
 global:
   profile: prod
   imagePullPolicy: Always
-  # -- Pin your storage class
-  storageClass: "zfs-production"
+  # -- Pin your storage class (Tanzu default or vSphere CSI)
+  storageClass: "tanzu-default-storage"
 
   otel:
     enabled: true
@@ -24,11 +24,10 @@ global:
     assurance.platform/profile: "prod"
     assurance.platform/control-refs: "CTL-0009"
 
-  # -- Enable backup CronJobs for stateful data
+  # -- Veeam K10 backup — managed externally via K10 policies
   backup:
     enabled: true
-    schedule: "0 2 * * *"
-    storageSize: 100Gi
+    frequency: "@daily"
 
 # -- External inference API providers (opt-in)
 # Uncomment and configure to add cloud-hosted LLM providers alongside Ollama.
@@ -61,17 +60,15 @@ openwebui:
     targetMemoryUtilizationPercentage: 80
   ingress:
     enabled: true
-    className: "envoy"
+    className: "contour"
     annotations:
-      # Envoy Gateway — TLS and routing
-      gateway.envoyproxy.io/tls-terminate: "true"
-      # Websocket support for streaming responses
-      gateway.envoyproxy.io/timeout: "300s"
-      gateway.envoyproxy.io/request-body-max-size: "50m"
+      # Contour / Envoy — TLS and routing
+      projectcontour.io/websocket-routes: "/"
+      projectcontour.io/response-timeout: "300s"
+      projectcontour.io/max-request-body-size: "50m"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      # Rate limiting — 60 requests per minute per client IP
-      gateway.envoyproxy.io/rate-limit-local: "60"
-      gateway.envoyproxy.io/rate-limit-burst: "20"
+      # Rate limiting — configure via Contour HTTPProxy RateLimitPolicy
+      projectcontour.io/rate-limit-local: "60"
     hosts:
       - host: ai.example.com
         paths:
@@ -95,9 +92,6 @@ ollama:
   replicaCount: 1
   image:
     tag: "0.18.1"
-  gpu:
-    enabled: true
-    count: 1
   resources:
     requests:
       cpu: "2"
@@ -141,9 +135,6 @@ searxng:
       limiter: true
       image_proxy: false
 
-workbench:
-  enabled: false  # Disable in prod by default; enable per-request with GPU scheduling
-
 valkey:
   resources:
     requests:
@@ -171,75 +162,3 @@ pipelines:
       memory: 8Gi
   persistence:
     size: 20Gi
-
-ingestionWorker:
-  enabled: false  # Opt-in; enable when async document ingestion is needed
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 70
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 2Gi
-
-langgraph:
-  enabled: false  # Opt-in; enable when agentic workloads are needed
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: "4"
-      memory: 8Gi
-
-postgres:
-  enabled: false  # Enable together with langgraph
-  # -- Production: use CloudNativePG for HA, automated failover, and backups.
-  #    Requires: CloudNativePG operator v1.25+ installed in the cluster.
-  #    Install: helm install cnpg cloudnative-pg/cloudnative-pg
-  mode: cnpg
-  tls:
-    mode: require
-  cnpg:
-    instances: 3
-    storage:
-      size: 50Gi
-    resources:
-      requests:
-        cpu: 500m
-        memory: 1Gi
-      limits:
-        cpu: "4"
-        memory: 4Gi
-    postgresql:
-      parameters:
-        shared_buffers: "1GB"
-        effective_cache_size: "3GB"
-        max_connections: "200"
-        wal_level: "replica"
-        max_wal_senders: "10"
-        max_replication_slots: "10"
-    backup:
-      enabled: false  # Enable when S3-compatible storage is configured
-      retentionPolicy: "30d"
-      schedule: "0 0 2 * * *"
-    pooler:
-      enabled: true
-      instances: 2
-      type: rw
-      pgbouncer:
-        poolMode: transaction
-        defaultPoolSize: "25"
-        maxClientConn: "200"
-    monitoring:
-      enabled: true

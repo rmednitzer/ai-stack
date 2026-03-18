@@ -1,6 +1,6 @@
 # ArgoCD Application — ai-stack (lab environment)
 # Deploy with: kubectl apply -f argocd/application-lab.yaml
-# Requires: ArgoCD installed + repo credentials configured
+# Requires: ArgoCD v3.3.2+ installed + repo credentials configured
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -55,4 +55,9 @@ spec:
       kind: Secret
       jsonPointers:
         - /data
+    # K10 Policy CRD — ignore status updates from Kasten controller
+    - group: config.kio.kasten.io
+      kind: Policy
+      jsonPointers:
+        - /status
   revisionHistoryLimit: 5

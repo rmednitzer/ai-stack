@@ -1,6 +1,6 @@
 # ArgoCD Application — ai-stack (production environment)
 # Deploy with: kubectl apply -f argocd/application-prod.yaml
-# Requires: ArgoCD installed + repo credentials configured
+# Requires: ArgoCD v3.3.2+ installed + repo credentials configured
 #
 # Production uses manual sync to enforce change-control gates.
 # Renovate PRs update image tags on main → ArgoCD detects OutOfSync →
@@ -61,4 +61,9 @@ spec:
       kind: Secret
       jsonPointers:
         - /data
+    # K10 Policy CRD — ignore status updates from Kasten controller
+    - group: config.kio.kasten.io
+      kind: Policy
+      jsonPointers:
+        - /status
   revisionHistoryLimit: 10

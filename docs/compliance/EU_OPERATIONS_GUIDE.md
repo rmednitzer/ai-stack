@@ -20,7 +20,6 @@ retention policies appropriate to their use case.
 | Vector embeddings | Matches source document retention | Qdrant | Collection point deletion with time filter |
 | Uploaded documents | 12 months (or per policy) | Open WebUI | File management API |
 | Cross-conversation memories | Until user deletes | Open WebUI | User self-service or admin purge |
-| LangGraph checkpoints | 90 days (or per policy) | PostgreSQL | `DELETE WHERE created_at < NOW() - INTERVAL '90 days'` |
 | Telemetry/logs | 30 days (logs), 90 days (metrics) | OTel pipeline | Configure exporter TTL |
 | Backup snapshots | 30 days | Backup PVC | Configure `global.backup` retention |
 
@@ -39,10 +38,6 @@ kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
     -H "Content-Type: application/json" \
     -d "{\"filter\": {\"must\": [{\"key\": \"created_at\", \"range\": {\"lt\": \"$CUTOFF\"}}]}}"
 
-# Purge old LangGraph checkpoints (if enabled)
-kubectl exec -n ai-stack deploy/ai-stack-postgres -- \
-  psql -U langgraph -d langgraph -c \
-    "DELETE FROM checkpoints WHERE created_at < NOW() - INTERVAL '12 months';"
 ```
 
 ### 1.3 Helm Configuration
@@ -125,10 +120,7 @@ depends on the underlying storage infrastructure.
 | `ai-stack-openwebui` | Yes (conversations, user data) | Yes |
 | `ai-stack-qdrant` | Yes (vector embeddings from documents) | Yes |
 | `ai-stack-ollama` | No (model weights only) | Recommended |
-| `ai-stack-postgres` | Yes (if LangGraph enabled — agent state) | Yes |
 | `ai-stack-pipelines` | Possibly (pipeline code) | Recommended |
-| `ai-stack-workbench` | Possibly (notebooks, datasets) | Yes |
-| `ai-stack-backup` | Yes (contains copies of above) | Yes |
 
 ### 3.2 Implementation Options
 

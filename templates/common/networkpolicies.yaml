@@ -243,15 +243,6 @@ spec:
         - protocol: TCP
           port: 8000
     {{- end }}
-    {{- if .Values.langgraph.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
     {{- if .Values.authelia.enabled }}
     - to:
         - podSelector:
@@ -295,20 +286,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-        {{- if $.Values.ingestionWorker.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingestion-worker
-        {{- end }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama-backup
       ports:
         - protocol: TCP
           port: 11434
@@ -345,21 +322,7 @@ spec:
               app.kubernetes.io/name: pipelines
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-        {{- if $.Values.ingestionWorker.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingestion-worker
-        {{- end }}
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: otel-collector
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant-backup
       ports:
         - protocol: TCP
           port: 6333
@@ -392,17 +355,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-        {{- if $.Values.ingestionWorker.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingestion-worker
-        {{- end }}
       ports:
         - protocol: TCP
           port: 9998
@@ -434,12 +386,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
       ports:
         - protocol: TCP
           port: 8080
@@ -483,12 +429,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
       ports:
         - protocol: TCP
           port: 9099
@@ -544,109 +484,6 @@ spec:
           port: 443
 {{- end }}
 
-# =============================================================================
-# Workbench — widest egress in stack; full access to all AI services + internet
-# =============================================================================
-{{- if .Values.workbench.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-workbench
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
-      ports:
-        - protocol: TCP
-          port: 8888
-    - from:
-        - podSelector: {}
-      ports:
-        - protocol: TCP
-          port: 8888
-  egress:
-    # Ollama (inference + embeddings)
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    # Qdrant (vector operations)
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-        - protocol: TCP
-          port: 6334
-    {{- end }}
-    # Pipelines
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    # Tika (document extraction from notebooks)
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    # SearXNG (web search from notebooks)
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    # LangGraph (agentic workflows from notebooks)
-    {{- if .Values.langgraph.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
-    # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
-    - ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 22   # git+ssh
-{{- end }}
 
 # =============================================================================
 # Open Terminal — sandboxed execution; accepts from Open WebUI, needs internet
@@ -719,165 +556,6 @@ spec:
           port: 80
 {{- end }}
 
-# =============================================================================
-# LangGraph — agentic runtime; needs PostgreSQL, Ollama, Qdrant, and internet
-# =============================================================================
-{{- if .Values.langgraph.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-langgraph
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "langgraph") | nindent 6 }}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    # Accept from Open WebUI and Workbench
-    - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 8000
-    # Accept from ingress controller (if ingress enabled)
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
-      ports:
-        - protocol: TCP
-          port: 8000
-  egress:
-    # PostgreSQL (checkpoint persistence)
-    {{- if .Values.postgres.enabled }}
-    {{- if eq .Values.postgres.mode "external" }}
-    # External PostgreSQL — egress to user-specified host
-    - ports:
-        - protocol: TCP
-          port: {{ .Values.postgres.external.port | default 5432 }}
-    {{- else }}
-    - to:
-        - podSelector:
-            matchLabels:
-              {{- if eq .Values.postgres.mode "cnpg" }}
-              cnpg.io/cluster: {{ .Release.Name }}-postgres
-              {{- else }}
-              app.kubernetes.io/name: postgres
-              {{- end }}
-      ports:
-        - protocol: TCP
-          port: 5432
-    {{- end }}
-    {{- end }}
-    # Ollama (LLM inference)
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    # Qdrant (vector retrieval)
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
-    # Tika (document extraction)
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    # SearXNG (web search tools)
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    # Pipelines
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    # Internet (agentic tool calls, external APIs)
-    - ports:
-        - protocol: TCP
-          port: 443
-{{- end }}
-
-# =============================================================================
-# PostgreSQL — accepts from LangGraph only (standalone mode)
-# CNPG mode: operator manages its own NetworkPolicies.
-# External mode: no in-cluster PostgreSQL pods to protect.
-# =============================================================================
-{{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-postgres
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 6 }}
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        {{- if .Values.langgraph.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-        {{- end }}
-        {{- if .Values.ingestionWorker.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingestion-worker
-        {{- end }}
-        {{- if and .Values.authelia.enabled (eq .Values.authelia.storage "postgres") }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: authelia
-        {{- end }}
-      ports:
-        - protocol: TCP
-          port: 5432
-{{- end }}
 
 # =============================================================================
 # Valkey
@@ -907,11 +585,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
-        {{- if $.Values.ingestionWorker.enabled }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingestion-worker
-        {{- end }}
         {{- if $.Values.authelia.enabled }}
         - podSelector:
             matchLabels:
@@ -968,152 +641,6 @@ spec:
         - protocol: TCP
           port: 6379
     {{- end }}
-    # PostgreSQL (if storage=postgres)
-    {{- if and .Values.postgres.enabled (eq .Values.authelia.storage "postgres") }}
-    {{- if eq .Values.postgres.mode "external" }}
-    - ports:
-        - protocol: TCP
-          port: {{ .Values.postgres.external.port | default 5432 }}
-    {{- else }}
-    - to:
-        - podSelector:
-            matchLabels:
-              {{- if eq .Values.postgres.mode "cnpg" }}
-              cnpg.io/cluster: {{ .Release.Name }}-postgres
-              {{- else }}
-              app.kubernetes.io/name: postgres
-              {{- end }}
-      ports:
-        - protocol: TCP
-          port: 5432
-    {{- end }}
-    {{- end }}
 {{- end }}
 
-# =============================================================================
-# Ingestion Worker — async document processing; egress to Valkey, Tika, Ollama, Qdrant
-# =============================================================================
-{{- if .Values.ingestionWorker.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-ingestion-worker
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 6 }}
-  policyTypes:
-    - Egress
-  egress:
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
-    {{- if .Values.postgres.enabled }}
-    {{- if eq .Values.postgres.mode "external" }}
-    - ports:
-        - protocol: TCP
-          port: {{ .Values.postgres.external.port | default 5432 }}
-    {{- else }}
-    - to:
-        - podSelector:
-            matchLabels:
-              {{- if eq .Values.postgres.mode "cnpg" }}
-              cnpg.io/cluster: {{ .Release.Name }}-postgres
-              {{- else }}
-              app.kubernetes.io/name: postgres
-              {{- end }}
-      ports:
-        - protocol: TCP
-          port: 5432
-    {{- end }}
-    {{- end }}
-{{- end }}
-
-# =============================================================================
-# Backup CronJob pods — egress to Qdrant and Ollama APIs
-# =============================================================================
-{{- if .Values.global.backup.enabled }}
-{{- if .Values.qdrant.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-qdrant-backup
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: qdrant-backup
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-{{- end }}
-{{- if .Values.ollama.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-ollama-backup
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: ollama-backup
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-{{- end }}
-{{- end }}
 {{- end }}

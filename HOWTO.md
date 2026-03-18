@@ -10,7 +10,6 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
    - [Lab environment](#11-lab-environment)
    - [Production environment](#12-production-environment)
    - [Air-gapped / offline install](#13-air-gapped--offline-install)
-   - [Air-gapped install with Zarf](#14-air-gapped-install-with-zarf)
 2. [Day-1 Setup](#2-day-1-setup)
    - [Pull your first models](#21-pull-your-first-models)
    - [Access Open WebUI](#22-access-open-webui)
@@ -26,84 +25,66 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
    - [Configure the embedding model](#42-configure-the-embedding-model)
    - [Tune chunking and retrieval](#43-tune-chunking-and-retrieval)
    - [Enable web search](#44-enable-web-search)
-5. [Async Document Ingestion](#5-async-document-ingestion)
-   - [Enable the ingestion worker](#51-enable-the-ingestion-worker)
-   - [Enqueue documents programmatically](#52-enqueue-documents-programmatically)
-   - [Monitor ingestion status](#53-monitor-ingestion-status)
-6. [External LLM Providers](#6-external-llm-providers)
-   - [Add OpenAI](#61-add-openai)
-   - [Add Azure OpenAI](#62-add-azure-openai)
-   - [Add Anthropic (Claude)](#63-add-anthropic-claude)
-   - [Use an external secret manager](#64-use-an-external-secret-manager)
-7. [GPU Acceleration](#7-gpu-acceleration)
-   - [Enable GPU for Ollama](#71-enable-gpu-for-ollama)
-   - [Enable the GPU Workbench](#72-enable-the-gpu-workbench)
-   - [Verify GPU access](#73-verify-gpu-access)
-8. [Agentic Workloads (LangGraph)](#8-agentic-workloads-langgraph)
-   - [Enable LangGraph with PostgreSQL](#81-enable-langgraph-with-postgresql)
-   - [Deploy a custom graph](#82-deploy-a-custom-graph)
-   - [Test the LangGraph API](#83-test-the-langgraph-api)
-9. [MCP Tool Integration (MCPO)](#9-mcp-tool-integration-mcpo)
-   - [Enable MCPO](#91-enable-mcpo)
-   - [Configure MCP servers](#92-configure-mcp-servers)
-10. [PostgreSQL Modes](#10-postgresql-modes)
-    - [Standalone (lab)](#101-standalone-lab)
-    - [CloudNativePG (production HA)](#102-cloudnativepg-production-ha)
-    - [External managed database](#103-external-managed-database)
-11. [Ingress and TLS](#11-ingress-and-tls)
-    - [Expose Open WebUI with NGINX](#111-expose-open-webui-with-nginx)
-    - [Expose Open WebUI with Envoy Gateway](#112-expose-open-webui-with-envoy-gateway)
-    - [Automated TLS with cert-manager](#113-automated-tls-with-cert-manager)
-12. [Authentication with Authelia (SSO / OIDC)](#12-authentication-with-authelia-sso--oidc)
-    - [Enable Authelia](#121-enable-authelia)
-    - [Create users](#122-create-users)
-    - [Enable MFA (two-factor)](#123-enable-mfa-two-factor)
-    - [Use PostgreSQL as storage backend](#124-use-postgresql-as-storage-backend)
-    - [Expose Authelia via ingress](#125-expose-authelia-via-ingress)
-    - [Verify OIDC integration](#126-verify-oidc-integration)
-13. [Networking and Security](#13-networking-and-security)
-    - [Network policies](#131-network-policies)
-    - [Pod security](#132-pod-security)
-    - [Secret management](#133-secret-management)
-    - [Rotate secrets](#134-rotate-secrets)
-14. [Observability](#14-observability)
-    - [Enable OpenTelemetry](#141-enable-opentelemetry)
-    - [Enable Prometheus ServiceMonitors](#142-enable-prometheus-servicemonitors)
-    - [PII redaction](#143-pii-redaction)
-15. [Backup and Restore](#15-backup-and-restore)
-    - [Enable automated backups](#151-enable-automated-backups)
-    - [Manual Qdrant snapshot](#152-manual-qdrant-snapshot)
-    - [Restore from backup](#153-restore-from-backup)
-16. [Scaling](#16-scaling)
-    - [Horizontal Pod Autoscaling](#161-horizontal-pod-autoscaling)
-    - [Manual scaling](#162-manual-scaling)
-    - [Resource tuning](#163-resource-tuning)
-17. [Upgrading](#17-upgrading)
-    - [Upgrade the chart](#171-upgrade-the-chart)
-    - [Upgrade individual component images](#172-upgrade-individual-component-images)
-    - [Upgrade with zero downtime](#173-upgrade-with-zero-downtime)
-18. [GitOps with ArgoCD](#18-gitops-with-argocd)
-    - [Deploy the lab application](#181-deploy-the-lab-application)
-    - [Deploy the production application](#182-deploy-the-production-application)
-    - [Customizing the application manifests](#183-customizing-the-application-manifests)
-    - [Ignore differences](#184-ignore-differences)
-    - [Disaster recovery](#185-disaster-recovery)
-19. [EU Compliance](#19-eu-compliance)
-    - [AI transparency disclosure](#191-ai-transparency-disclosure)
-    - [Data retention](#192-data-retention)
-    - [External API provider governance](#193-external-api-provider-governance)
-    - [Encryption at rest](#194-encryption-at-rest)
-    - [Compliance documentation](#195-compliance-documentation)
-20. [Troubleshooting](#20-troubleshooting)
-    - [Pods stuck in Pending](#201-pods-stuck-in-pending)
-    - [Ollama out of memory](#202-ollama-out-of-memory)
-    - [Open WebUI cannot reach Ollama](#203-open-webui-cannot-reach-ollama)
-    - [NetworkPolicy blocking traffic](#204-networkpolicy-blocking-traffic)
-    - [PVC stuck in Pending](#205-pvc-stuck-in-pending)
-    - [Secrets not generated](#206-secrets-not-generated)
-    - [Helm test failures](#207-helm-test-failures)
-    - [GPU not detected](#208-gpu-not-detected)
-21. [Uninstall](#21-uninstall)
+5. [External LLM Providers](#5-external-llm-providers)
+   - [Add OpenAI](#51-add-openai)
+   - [Add Azure OpenAI](#52-add-azure-openai)
+   - [Add Anthropic (Claude)](#53-add-anthropic-claude)
+   - [Use an external secret manager](#54-use-an-external-secret-manager)
+6. [MCP Tool Integration (MCPO)](#6-mcp-tool-integration-mcpo)
+   - [Enable MCPO](#61-enable-mcpo)
+   - [Configure MCP servers](#62-configure-mcp-servers)
+7. [Ingress and TLS](#7-ingress-and-tls)
+   - [Expose Open WebUI with NGINX](#71-expose-open-webui-with-nginx)
+   - [Expose Open WebUI with Contour](#72-expose-open-webui-with-contour)
+   - [Automated TLS with cert-manager](#73-automated-tls-with-cert-manager)
+8. [Authentication with Authelia (SSO / OIDC)](#8-authentication-with-authelia-sso--oidc)
+   - [Enable Authelia](#81-enable-authelia)
+   - [Create users](#82-create-users)
+   - [Enable MFA (two-factor)](#83-enable-mfa-two-factor)
+   - [Expose Authelia via ingress](#84-expose-authelia-via-ingress)
+   - [Verify OIDC integration](#85-verify-oidc-integration)
+9. [Networking and Security](#9-networking-and-security)
+   - [Network policies](#91-network-policies)
+   - [Pod security](#92-pod-security)
+   - [Secret management](#93-secret-management)
+   - [Rotate secrets](#94-rotate-secrets)
+10. [Observability](#10-observability)
+    - [Enable OpenTelemetry](#101-enable-opentelemetry)
+    - [Enable Prometheus ServiceMonitors](#102-enable-prometheus-servicemonitors)
+    - [PII redaction](#103-pii-redaction)
+11. [Backup and Restore](#11-backup-and-restore)
+    - [Enable Veeam K10 backups](#111-enable-veeam-k10-backups)
+    - [Manage backup policies](#112-manage-backup-policies)
+    - [Restore from backup](#113-restore-from-backup)
+12. [Scaling](#12-scaling)
+    - [Horizontal Pod Autoscaling](#121-horizontal-pod-autoscaling)
+    - [Manual scaling](#122-manual-scaling)
+    - [Resource tuning](#123-resource-tuning)
+13. [Upgrading](#13-upgrading)
+    - [Upgrade the chart](#131-upgrade-the-chart)
+    - [Upgrade individual component images](#132-upgrade-individual-component-images)
+    - [Upgrade with zero downtime](#133-upgrade-with-zero-downtime)
+14. [GitOps with ArgoCD](#14-gitops-with-argocd)
+    - [Deploy the lab application](#141-deploy-the-lab-application)
+    - [Deploy the production application](#142-deploy-the-production-application)
+    - [Customizing the application manifests](#143-customizing-the-application-manifests)
+    - [Ignore differences](#144-ignore-differences)
+    - [Disaster recovery](#145-disaster-recovery)
+15. [EU Compliance](#15-eu-compliance)
+    - [AI transparency disclosure](#151-ai-transparency-disclosure)
+    - [Data retention](#152-data-retention)
+    - [External API provider governance](#153-external-api-provider-governance)
+    - [Encryption at rest](#154-encryption-at-rest)
+    - [Compliance documentation](#155-compliance-documentation)
+16. [Troubleshooting](#16-troubleshooting)
+    - [Pods stuck in Pending](#161-pods-stuck-in-pending)
+    - [Ollama out of memory](#162-ollama-out-of-memory)
+    - [Open WebUI cannot reach Ollama](#163-open-webui-cannot-reach-ollama)
+    - [NetworkPolicy blocking traffic](#164-networkpolicy-blocking-traffic)
+    - [PVC stuck in Pending](#165-pvc-stuck-in-pending)
+    - [Secrets not generated](#166-secrets-not-generated)
+    - [Helm test failures](#167-helm-test-failures)
+17. [Uninstall](#17-uninstall)
 
 ---
 
@@ -115,7 +96,7 @@ Lab mode deploys a single-replica stack with relaxed resource limits, suitable f
 
 **Prerequisites:**
 
-- Kubernetes 1.27+ cluster (minikube, kind, k3s, or managed)
+- Kubernetes 1.30+ (VMware Tanzu v1.30.10 recommended)
 - Helm 3.12+
 - At least 8 GB RAM available in the cluster
 - A default StorageClass (or use `emptyDir` for ephemeral testing)
@@ -127,23 +108,16 @@ Lab mode deploys a single-replica stack with relaxed resource limits, suitable f
 helm install ai-stack . -n ai-stack --create-namespace
 ```
 
-**Lab with GPU:**
-
-```bash
-helm install ai-stack . -n ai-stack --create-namespace \
-  --set ollama.gpu.enabled=true
-```
-
 ### 1.2 Production Environment
 
 Production mode enables HA replicas, autoscaling, TLS ingress, backups, and observability.
 
 **Additional prerequisites:**
 
-- NVIDIA GPU Operator (for Ollama GPU acceleration)
+- VMware Tanzu v1.30.10 (or compatible Kubernetes 1.30+ distribution)
 - Prometheus Operator CRDs (for ServiceMonitor resources)
 - cert-manager (for automated TLS provisioning)
-- An ingress controller (Envoy Gateway or NGINX)
+- An ingress controller (Contour or NGINX)
 
 **Install:**
 
@@ -204,91 +178,6 @@ global:
 
 4. **Pre-download Ollama models** and load them into the PVC, since `ollama pull` requires internet access. See [Section 3](#3-working-with-models).
 
-### 1.4 Air-gapped Install with Zarf
-
-[Zarf](https://zarf.dev/) automates air-gapped deployments by packaging the Helm chart, all container images, and configuration into a single signed, declarative tarball. This eliminates the manual image mirroring described in [Section 1.3](#13-air-gapped--offline-install).
-
-The repository includes a `zarf.yaml` package definition with the core stack as a required component and optional components (Workbench, LangGraph, MCPO, OTel Collector) that can be selected at deploy time.
-
-**Prerequisites:**
-
-- [Zarf CLI](https://docs.zarf.dev/getting-started/) installed on the build machine (internet-connected)
-- Zarf initialized on the target cluster (`zarf init`)
-- Kubernetes 1.27+ on the target cluster
-
-**Step 1 — Build the package (internet-connected machine):**
-
-```bash
-cd ai-stack/
-zarf package create --confirm
-```
-
-This produces a file like `zarf-package-ai-stack-amd64-1.0.0.tar.zst` (~15-25 GB depending on selected components). Zarf automatically pulls all images listed in `zarf.yaml` and bundles them alongside the Helm chart.
-
-**Step 2 — Transfer the package:**
-
-Copy the `.tar.zst` file to the air-gapped environment via USB, S3 bucket, or any out-of-band transfer method.
-
-**Step 3 — Initialize Zarf on the target cluster (one-time):**
-
-If Zarf has not been initialized on the target cluster yet:
-
-```bash
-zarf init --confirm
-```
-
-This deploys an in-cluster registry and injector that Zarf uses to serve images.
-
-**Step 4 — Deploy:**
-
-```bash
-# Deploy with defaults (core stack only)
-zarf package deploy zarf-package-ai-stack-amd64-1.0.0.tar.zst --confirm
-
-# Deploy with optional components
-zarf package deploy zarf-package-ai-stack-amd64-1.0.0.tar.zst \
-  --components="ai-stack,langgraph,mcpo" --confirm
-```
-
-Zarf pushes the images to the in-cluster registry and runs `helm install` with the image references rewritten to point at the local registry.
-
-**Step 5 — Load Ollama models:**
-
-Zarf handles images, but Ollama models must still be loaded manually in an air-gapped cluster. On the internet-connected machine:
-
-```bash
-# Pull the model locally
-ollama pull llama3.2
-ollama pull nomic-embed-text
-
-# Export to a tarball
-# Models are stored under ~/.ollama/models/
-tar czf ollama-models.tar.gz -C ~/.ollama models/
-```
-
-On the air-gapped cluster:
-
-```bash
-# Copy the models into the Ollama PVC
-kubectl cp ollama-models.tar.gz ai-stack/ai-stack-ollama-0:/tmp/
-kubectl exec -n ai-stack ai-stack-ollama-0 -- \
-  tar xzf /tmp/ollama-models.tar.gz -C /root/.ollama/
-kubectl exec -n ai-stack ai-stack-ollama-0 -- rm /tmp/ollama-models.tar.gz
-
-# Restart Ollama to pick up the models
-kubectl rollout restart -n ai-stack deploy/ai-stack-ollama
-```
-
-**Upgrading:**
-
-Build a new package with the updated chart/images and redeploy:
-
-```bash
-zarf package deploy zarf-package-ai-stack-amd64-<new-version>.tar.zst --confirm
-```
-
-Zarf performs a `helm upgrade` under the hood.
-
 ---
 
 ## 2. Day-1 Setup
@@ -305,7 +194,7 @@ kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull llama3.2
 kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull nomic-embed-text
 ```
 
-For larger models (requires more RAM/VRAM):
+For larger models (requires more RAM):
 
 ```bash
 kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull qwen3:14b
@@ -461,74 +350,11 @@ To use web search in a conversation, type a question and enable the "Web Search"
 
 ---
 
-## 5. Async Document Ingestion
-
-For bulk document processing or integration with external systems, use the async ingestion worker instead of the UI upload.
-
-### 5.1 Enable the Ingestion Worker
-
-```yaml
-ingestionWorker:
-  enabled: true
-valkey:
-  persistence:
-    enabled: true  # Persist task queue across restarts
-```
-
-```bash
-helm upgrade ai-stack . -n ai-stack
-```
-
-### 5.2 Enqueue Documents Programmatically
-
-Connect to Valkey and submit tasks via `XADD`:
-
-```bash
-# Port-forward to Valkey
-kubectl port-forward -n ai-stack svc/ai-stack-valkey 6379:6379
-
-# Submit an ingestion task
-redis-cli -p 6379 XADD ingestion:documents '*' \
-  task_id "doc-001" \
-  file_url "https://example.com/report.pdf" \
-  filename "report.pdf"
-```
-
-Or from within the cluster (e.g., from a script or application):
-
-```python
-import redis
-
-r = redis.Redis(host='ai-stack-valkey', port=6379)
-r.xadd('ingestion:documents', {
-    'task_id': 'doc-001',
-    'file_url': 'https://example.com/report.pdf',
-    'filename': 'report.pdf'
-})
-```
-
-### 5.3 Monitor Ingestion Status
-
-```bash
-# Check status of a specific task
-redis-cli -p 6379 HGETALL ingestion:status:doc-001
-
-# List recent messages in the stream
-redis-cli -p 6379 XRANGE ingestion:documents - + COUNT 10
-
-# Check consumer group lag
-redis-cli -p 6379 XINFO GROUPS ingestion:documents
-```
-
-Status values: `queued` → `processing` → `completed` | `failed`
-
----
-
-## 6. External LLM Providers
+## 5. External LLM Providers
 
 Add cloud-hosted models alongside local Ollama inference. Users see all models in the Open WebUI model picker.
 
-### 6.1 Add OpenAI
+### 5.1 Add OpenAI
 
 ```yaml
 externalAPIs:
@@ -539,7 +365,7 @@ externalAPIs:
       apiKey: "sk-..."
 ```
 
-### 6.2 Add Azure OpenAI
+### 5.2 Add Azure OpenAI
 
 ```yaml
 externalAPIs:
@@ -550,7 +376,7 @@ externalAPIs:
       apiKey: "<your-azure-key>"
 ```
 
-### 6.3 Add Anthropic (Claude)
+### 5.3 Add Anthropic (Claude)
 
 ```yaml
 externalAPIs:
@@ -563,7 +389,7 @@ externalAPIs:
 
 **Note:** Anthropic API integration requires Open WebUI v0.6+ with the Anthropic API translation layer, or a Pipelines function for protocol translation.
 
-### 6.4 Use an External Secret Manager
+### 5.4 Use an External Secret Manager
 
 For production, never store API keys in values files. Use existing Kubernetes Secrets (created by ESO, Vault, or manually):
 
@@ -580,138 +406,18 @@ externalAPIs:
 
 ---
 
-## 7. GPU Acceleration
-
-### 7.1 Enable GPU for Ollama
-
-**Prerequisites:** NVIDIA GPU Operator must be installed in the cluster.
-
-```yaml
-ollama:
-  gpu:
-    enabled: true
-    count: 1                      # Number of GPUs to allocate
-    resourceName: nvidia.com/gpu  # Resource name from GPU operator
-```
-
-```bash
-helm upgrade ai-stack . -n ai-stack
-```
-
-### 7.2 Enable the GPU Workbench
-
-The Workbench provides a JupyterLab environment with CUDA and PyTorch for ML experimentation:
-
-```yaml
-workbench:
-  enabled: true
-  gpu:
-    enabled: true
-    count: 1
-```
-
-Access the Workbench:
-
-```bash
-# Get the auto-generated token
-kubectl get secret -n ai-stack ai-stack-workbench-secret \
-  -o jsonpath='{.data.token}' | base64 -d
-
-# Port-forward
-kubectl port-forward -n ai-stack svc/ai-stack-workbench 8888:8888
-# Open http://localhost:8888 and enter the token
-```
-
-### 7.3 Verify GPU Access
-
-```bash
-# Check Ollama GPU detection
-kubectl exec -n ai-stack deploy/ai-stack-ollama -- nvidia-smi
-
-# Check Workbench GPU access
-kubectl exec -n ai-stack deploy/ai-stack-workbench -- python3 -c \
-  "import torch; print(f'CUDA available: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}')"
-```
-
----
-
-## 8. Agentic Workloads (LangGraph)
-
-LangGraph enables stateful, multi-step agentic workflows with tool calling and checkpoint persistence.
-
-### 8.1 Enable LangGraph with PostgreSQL
-
-LangGraph requires PostgreSQL for checkpoint storage:
-
-```yaml
-langgraph:
-  enabled: true
-postgres:
-  enabled: true
-  mode: standalone  # Use 'cnpg' for production HA
-```
-
-```bash
-helm upgrade ai-stack . -n ai-stack
-```
-
-### 8.2 Deploy a Custom Graph
-
-**Option A: Custom image (recommended)**
-
-1. Create your graph code following the [LangGraph documentation](https://langchain-ai.github.io/langgraph/)
-2. Build the image:
-
-```bash
-langgraph build -t my-registry/my-graphs:latest
-docker push my-registry/my-graphs:latest
-```
-
-3. Override the image in values:
-
-```yaml
-langgraph:
-  image:
-    repository: my-registry/my-graphs
-    tag: "latest"
-```
-
-**Option B: Volume mount**
-
-Place graph code in the `/deps/graphs` persistent volume:
-
-```bash
-kubectl cp my-graph.py ai-stack/ai-stack-langgraph-<pod>:/deps/graphs/
-```
-
-### 8.3 Test the LangGraph API
-
-```bash
-# Port-forward
-kubectl port-forward -n ai-stack svc/ai-stack-langgraph 8000:8000
-
-# Health check
-curl http://localhost:8000/ok
-
-# List available assistants
-curl http://localhost:8000/assistants \
-  -H "x-api-key: $(kubectl get secret -n ai-stack ai-stack-langgraph-secret -o jsonpath='{.data.api-key}' | base64 -d)"
-```
-
----
-
-## 9. MCP Tool Integration (MCPO)
+## 6. MCP Tool Integration (MCPO)
 
 MCPO bridges Model Context Protocol (MCP) servers to OpenAPI endpoints that Open WebUI can consume as tools.
 
-### 9.1 Enable MCPO
+### 6.1 Enable MCPO
 
 ```yaml
 mcpo:
   enabled: true
 ```
 
-### 9.2 Configure MCP Servers
+### 6.2 Configure MCP Servers
 
 Add MCP server definitions in your values:
 
@@ -737,78 +443,9 @@ After deploying, configure Open WebUI to use the MCPO endpoint as an OpenAPI too
 
 ---
 
-## 10. PostgreSQL Modes
+## 7. Ingress and TLS
 
-### 10.1 Standalone (Lab)
-
-Single-instance PostgreSQL — no HA, suitable for development:
-
-```yaml
-postgres:
-  enabled: true
-  mode: standalone
-```
-
-### 10.2 CloudNativePG (Production HA)
-
-**Prerequisites:** Install the CloudNativePG operator (v1.25+):
-
-```bash
-helm repo add cnpg https://cloudnative-pg.github.io/charts
-helm install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
-```
-
-Then configure:
-
-```yaml
-postgres:
-  enabled: true
-  mode: cnpg
-  tls:
-    mode: require
-  cnpg:
-    instances: 3          # 1 primary + 2 replicas
-    storage:
-      size: 50Gi
-    pooler:
-      enabled: true       # PgBouncer connection pooling
-    monitoring:
-      enabled: true       # Prometheus metrics
-```
-
-CNPG provides:
-
-- Streaming replication with automated failover
-- Rolling updates without downtime
-- Automated TLS certificate provisioning
-- PgBouncer connection pooling
-- Prometheus metrics endpoint
-
-### 10.3 External Managed Database
-
-Use your own PostgreSQL (RDS, Cloud SQL, Supabase, etc.):
-
-```yaml
-postgres:
-  enabled: true
-  mode: external
-  database: "langgraph"
-  user: "langgraph"
-  tls:
-    mode: require
-  external:
-    host: "my-rds.abc123.us-east-1.rds.amazonaws.com"
-    port: 5432
-    existingSecret:
-      name: "rds-password"
-      key: "password"
-```
-
----
-
-## 11. Ingress and TLS
-
-### 11.1 Expose Open WebUI with NGINX
+### 7.1 Expose Open WebUI with NGINX
 
 ```yaml
 openwebui:
@@ -829,19 +466,18 @@ openwebui:
           - ai.example.com
 ```
 
-### 11.2 Expose Open WebUI with Envoy Gateway
+### 7.2 Expose Open WebUI with Contour
 
 ```yaml
 openwebui:
   ingress:
     enabled: true
-    className: "envoy"
+    className: "contour"
     annotations:
-      gateway.envoyproxy.io/tls-terminate: "true"
-      gateway.envoyproxy.io/timeout: "300s"
-      gateway.envoyproxy.io/request-body-max-size: "50m"
-      gateway.envoyproxy.io/rate-limit-local: "60"
-      gateway.envoyproxy.io/rate-limit-burst: "20"
+      projectcontour.io/websocket-routes: "/"
+      projectcontour.io/response-timeout: "300s"
+      projectcontour.io/max-request-body-size: "50m"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
       - host: ai.example.com
         paths:
@@ -853,7 +489,7 @@ openwebui:
           - ai.example.com
 ```
 
-### 11.3 Automated TLS with cert-manager
+### 7.3 Automated TLS with cert-manager
 
 Add the cert-manager annotation to your ingress:
 
@@ -868,11 +504,11 @@ This automatically provisions and renews TLS certificates from Let's Encrypt.
 
 ---
 
-## 12. Authentication with Authelia (SSO / OIDC)
+## 8. Authentication with Authelia (SSO / OIDC)
 
 Authelia is an optional OIDC identity provider that replaces Open WebUI's built-in authentication with SSO and optional MFA. When enabled, Open WebUI is automatically configured as an OIDC client.
 
-### 12.1 Enable Authelia
+### 8.1 Enable Authelia
 
 ```yaml
 authelia:
@@ -885,7 +521,7 @@ authelia:
 
 The chart auto-generates secrets for JWT, session, storage encryption, and the OIDC client secret. Open WebUI's `OAUTH_*` environment variables are injected automatically.
 
-### 12.2 Create users
+### 8.2 Create users
 
 Authelia uses a file-based authentication backend by default. Generate a password hash and mount a custom `users_database.yml`:
 
@@ -909,7 +545,7 @@ users:
 
 Mount it by overriding the ConfigMap or using a Helm post-renderer.
 
-### 12.3 Enable MFA (two-factor)
+### 8.3 Enable MFA (two-factor)
 
 ```yaml
 authelia:
@@ -919,21 +555,7 @@ authelia:
 
 Users will be prompted to register a TOTP device on their first login.
 
-### 12.4 Use PostgreSQL as storage backend
-
-For production, switch from SQLite to PostgreSQL:
-
-```yaml
-authelia:
-  enabled: true
-  storage: "postgres"
-postgres:
-  enabled: true
-```
-
-Authelia creates its tables in a dedicated `authelia` schema within the shared PostgreSQL database.
-
-### 12.5 Expose Authelia via ingress
+### 8.4 Expose Authelia via ingress
 
 Authelia must be reachable by user browsers for OIDC redirects:
 
@@ -953,7 +575,7 @@ authelia:
           - auth.example.com
 ```
 
-### 12.6 Verify OIDC integration
+### 8.5 Verify OIDC integration
 
 After deploying, verify the OIDC discovery endpoint and login flow:
 
@@ -970,9 +592,9 @@ Open WebUI should redirect to Authelia's login page when accessed.
 
 ---
 
-## 13. Networking and Security
+## 9. Networking and Security
 
-### 13.1 Network Policies
+### 9.1 Network Policies
 
 The chart deploys **default-deny** NetworkPolicies with per-component allowlists. This means:
 
@@ -995,11 +617,11 @@ global:
     enabled: false
 ```
 
-### 13.2 Pod Security
+### 9.2 Pod Security
 
 All pods run with PSA restricted baseline:
 
-- `runAsNonRoot: true` (except Ollama — GPU exception)
+- `runAsNonRoot: true`
 - `readOnlyRootFilesystem: true` (where supported)
 - `allowPrivilegeEscalation: false`
 - `capabilities: drop: [ALL]`
@@ -1013,7 +635,7 @@ kubectl label namespace ai-stack \
   pod-security.kubernetes.io/warn=restricted
 ```
 
-### 13.3 Secret Management
+### 9.3 Secret Management
 
 Secrets are auto-generated on first install with 64-byte random keys and annotated with `helm.sh/resource-policy: keep` to survive upgrades.
 
@@ -1047,7 +669,7 @@ externalAPIs:
         key: "api-key"
 ```
 
-### 13.4 Rotate Secrets
+### 9.4 Rotate Secrets
 
 1. Generate new secret values
 2. Update the Kubernetes Secret directly:
@@ -1068,9 +690,9 @@ kubectl rollout restart -n ai-stack deploy/ai-stack-openwebui
 
 ---
 
-## 14. Observability
+## 10. Observability
 
-### 14.1 Enable OpenTelemetry
+### 10.1 Enable OpenTelemetry
 
 ```yaml
 global:
@@ -1087,7 +709,7 @@ This deploys an OTel Collector and injects `OTEL_*` environment variables into a
 - GenAI semantic convention processing
 - PII redaction (GDPR compliance)
 
-### 14.2 Enable Prometheus ServiceMonitors
+### 10.2 Enable Prometheus ServiceMonitors
 
 **Prerequisite:** Prometheus Operator CRDs must be installed.
 
@@ -1099,7 +721,7 @@ global:
       release: prometheus  # Match your Prometheus operator selector
 ```
 
-### 14.3 PII Redaction
+### 10.3 PII Redaction
 
 The OTel Collector automatically redacts:
 
@@ -1124,55 +746,69 @@ otelCollector:
 
 ---
 
-## 15. Backup and Restore
+## 11. Backup and Restore
 
-### 15.1 Enable Automated Backups
+The chart integrates with [Veeam K10](https://www.veeam.com/kubernetes-backup.html) for application-aware backup and restore of all stateful components.
+
+### 11.1 Enable Veeam K10 Backups
+
+When `global.backup.enabled=true`, the chart creates a K10 Policy custom resource that defines the backup schedule and retention for all ai-stack PVCs and application data:
 
 ```yaml
 global:
   backup:
     enabled: true
     schedule: "0 2 * * *"    # Daily at 02:00 UTC
-    storageSize: 100Gi       # Backup PVC size
+    retention:
+      daily: 7
+      weekly: 4
+      monthly: 12
 ```
 
-This creates CronJobs for:
+**Prerequisites:**
 
-- **Qdrant:** Snapshot-based backup with configurable retention (default: 7 snapshots)
-- **Ollama:** Model manifest and blob backup (default: 3 backups retained)
+- Veeam K10 installed in the cluster (namespace `kasten-io`)
+- A K10 Location Profile configured for your backup target (S3, NFS, etc.)
 
-### 15.2 Manual Qdrant Snapshot
+### 11.2 Manage Backup Policies
 
-Trigger a manual Qdrant snapshot:
+Backup policies can be managed via the K10 dashboard or directly as Policy CRDs:
 
 ```bash
-# Create a snapshot of all collections
-kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
-  curl -s -X POST http://localhost:6333/snapshots \
-    -H "api-key: $(kubectl get secret -n ai-stack ai-stack-qdrant-secret -o jsonpath='{.data.api-key}' | base64 -d)"
+# View the auto-created policy
+kubectl get policies.config.kio.kasten.io -n kasten-io
 
-# List snapshots
-kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
-  curl -s http://localhost:6333/snapshots \
-    -H "api-key: $(kubectl get secret -n ai-stack ai-stack-qdrant-secret -o jsonpath='{.data.api-key}' | base64 -d)"
+# Access the K10 dashboard
+kubectl port-forward -n kasten-io svc/gateway 8080:8000
+# Open http://localhost:8080/k10/
 ```
 
-### 15.3 Restore from Backup
+From the K10 dashboard you can:
 
-**Qdrant:**
+- Monitor backup status and history
+- Trigger on-demand backups
+- Adjust retention policies
+- Configure export to external storage
 
-1. Stop the Qdrant deployment: `kubectl scale -n ai-stack deploy/ai-stack-qdrant --replicas=0`
-2. Copy the snapshot to the Qdrant PVC
-3. Restart Qdrant: `kubectl scale -n ai-stack deploy/ai-stack-qdrant --replicas=1`
-4. Use the Qdrant REST API to recover from the snapshot
+### 11.3 Restore from Backup
 
-**Full cluster recovery:** Pair the chart's CronJob backups with [Velero](https://velero.io/) for complete cluster-level disaster recovery.
+Use the K10 dashboard or CLI to restore from a backup restore point:
+
+```bash
+# List available restore points
+kubectl get restorepoints.apps.kio.kasten.io -n kasten-io
+
+# Trigger a restore via the K10 dashboard (recommended)
+# Or create a RestoreAction CRD for automated recovery
+```
+
+For full cluster disaster recovery, K10 supports cross-cluster restore when combined with an exported Location Profile.
 
 ---
 
-## 16. Scaling
+## 12. Scaling
 
-### 16.1 Horizontal Pod Autoscaling
+### 12.1 Horizontal Pod Autoscaling
 
 HPA is available for stateless components. Enable in your values:
 
@@ -1204,21 +840,18 @@ Verify HPA status:
 kubectl get hpa -n ai-stack
 ```
 
-### 16.2 Manual Scaling
+### 12.2 Manual Scaling
 
 For components without HPA:
 
 ```bash
 # Scale Tika for heavy document processing
 kubectl scale -n ai-stack deploy/ai-stack-tika --replicas=3
-
-# Scale ingestion workers for bulk ingestion
-kubectl scale -n ai-stack deploy/ai-stack-ingestion-worker --replicas=4
 ```
 
 **Note:** Stateful components (Ollama, Qdrant) use ReadWriteOnce PVCs and cannot be scaled beyond 1 replica without operator support (e.g., Qdrant distributed mode) or shared storage.
 
-### 16.3 Resource Tuning
+### 12.3 Resource Tuning
 
 Adjust resource requests and limits per component. Example for a high-traffic production deployment:
 
@@ -1246,9 +879,9 @@ ollama:
 
 ---
 
-## 17. Upgrading
+## 13. Upgrading
 
-### 17.1 Upgrade the Chart
+### 13.1 Upgrade the Chart
 
 ```bash
 # Review what will change
@@ -1263,7 +896,7 @@ helm upgrade ai-stack . -n ai-stack -f values.yaml -f values-prod.yaml
 
 Secrets annotated with `helm.sh/resource-policy: keep` survive upgrades. PVCs are also retained.
 
-### 17.2 Upgrade Individual Component Images
+### 13.2 Upgrade Individual Component Images
 
 To update a single component without changing the chart:
 
@@ -1274,7 +907,7 @@ helm upgrade ai-stack . -n ai-stack \
 
 Or update the tag in your values file and run `helm upgrade`.
 
-### 17.3 Upgrade with Zero Downtime
+### 13.3 Upgrade with Zero Downtime
 
 For stateless components with multiple replicas, rolling updates happen automatically. Ensure:
 
@@ -1289,16 +922,16 @@ kubectl rollout status -n ai-stack deploy/ai-stack-openwebui
 
 ---
 
-## 18. GitOps with ArgoCD
+## 14. GitOps with ArgoCD
 
 Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Application manifests under `argocd/`.
 
 **Prerequisites:**
 
-- ArgoCD installed in the cluster (namespace `argocd`)
+- ArgoCD v3.3.2+ installed in the cluster (namespace `argocd`)
 - Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
 
-### 18.1 Deploy the Lab Application
+### 14.1 Deploy the Lab Application
 
 The lab application enables **automated sync** with self-healing and pruning — changes pushed to `main` are applied automatically.
 
@@ -1325,7 +958,7 @@ argocd app get ai-stack-lab
 kubectl get application ai-stack-lab -n argocd -o jsonpath='{.status.sync.status}'
 ```
 
-### 18.2 Deploy the Production Application
+### 14.2 Deploy the Production Application
 
 The production application uses **manual sync** for change-control compliance. ArgoCD detects when the repo is out-of-sync, but an operator must explicitly trigger the sync.
 
@@ -1363,7 +996,7 @@ notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
 notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
 ```
 
-### 18.3 Customizing the Application Manifests
+### 14.3 Customizing the Application Manifests
 
 **Change the target branch or repo:**
 
@@ -1386,8 +1019,6 @@ spec:
       parameters:
         - name: openwebui.ingress.hosts[0].host
           value: ai.my-cluster.example.com
-        - name: ollama.gpu.enabled
-          value: "true"
 ```
 
 **Use a dedicated AppProject** (recommended for production):
@@ -1406,7 +1037,7 @@ argocd proj create ai-stack \
   --allow-cluster-resource /Namespace
 ```
 
-### 18.4 Ignore Differences
+### 14.4 Ignore Differences
 
 Both manifests ignore diffs on:
 
@@ -1423,7 +1054,7 @@ ignoreDifferences:
       - /data/custom-key
 ```
 
-### 18.5 Disaster Recovery
+### 14.5 Disaster Recovery
 
 Both applications set `revisionHistoryLimit` (5 for lab, 10 for production) so you can roll back to a previous sync:
 
@@ -1439,13 +1070,13 @@ The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resou
 
 ---
 
-## 19. EU Compliance
+## 15. EU Compliance
 
 This section covers EU regulatory compliance tasks. For the full compliance
 framework analysis, see [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md). For
 detailed templates and procedures, see [docs/compliance/](docs/compliance/).
 
-### 19.1 AI Transparency Disclosure
+### 15.1 AI Transparency Disclosure
 
 AI Act Art. 50(1) requires informing users when they interact with an AI
 system. The chart includes a configurable banner:
@@ -1460,14 +1091,14 @@ openwebui:
 
 Customise the text for your deployment. Set `WEBUI_BANNER_TEXT: ""` to disable.
 
-### 19.2 Data Retention
+### 15.2 Data Retention
 
 GDPR Art. 5(1)(e) requires storage limitation. Define and enforce retention
 periods for all personal data categories. See
 [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1
 for recommended retention periods and automated purge scripts.
 
-### 19.3 External API Provider Governance
+### 15.3 External API Provider Governance
 
 When enabling external LLM providers (`externalAPIs.enabled=true`), complete
 the pre-enablement checklist in
@@ -1479,7 +1110,7 @@ including:
 - ROPA update (PA-06 in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md))
 - Privacy notice update
 
-### 19.4 Encryption at Rest
+### 15.4 Encryption at Rest
 
 NIS2 Art. 21(2)(h) requires cryptography policies. Ensure PVCs containing
 personal data use an encrypted StorageClass. See
@@ -1488,10 +1119,10 @@ personal data use an encrypted StorageClass. See
 ```yaml
 # Use an encrypted storage class
 global:
-  storageClass: "gp3-encrypted"  # or "zfs-encrypted", etc.
+  storageClass: "tanzu-default-storage"
 ```
 
-### 19.5 Compliance Documentation
+### 15.5 Compliance Documentation
 
 Complete the following before production deployment:
 
@@ -1507,9 +1138,9 @@ Complete the following before production deployment:
 
 ---
 
-## 20. Troubleshooting
+## 16. Troubleshooting
 
-### 20.1 Pods Stuck in Pending
+### 16.1 Pods Stuck in Pending
 
 ```bash
 kubectl describe pod -n ai-stack <pod-name>
@@ -1519,9 +1150,8 @@ Common causes:
 
 - **Insufficient resources:** Increase node capacity or reduce resource requests
 - **No matching node selector/tolerations:** Check `global.nodeSelector` and `global.tolerations`
-- **GPU requested but unavailable:** Ensure the NVIDIA GPU Operator is installed and GPUs are free
 
-### 20.2 Ollama Out of Memory
+### 16.2 Ollama Out of Memory
 
 Ollama may OOM when loading large models. Solutions:
 
@@ -1544,7 +1174,7 @@ ollama:
     OLLAMA_KEEP_ALIVE: "1m"
 ```
 
-### 20.3 Open WebUI Cannot Reach Ollama
+### 16.3 Open WebUI Cannot Reach Ollama
 
 1. Check Ollama is running: `kubectl get pods -n ai-stack -l app.kubernetes.io/component=ollama`
 2. Check the service exists: `kubectl get svc -n ai-stack -l app.kubernetes.io/component=ollama`
@@ -1561,7 +1191,7 @@ kubectl exec -n ai-stack deploy/ai-stack-openwebui -- \
 kubectl describe networkpolicy -n ai-stack | grep -A 5 ollama
 ```
 
-### 20.4 NetworkPolicy Blocking Traffic
+### 16.4 NetworkPolicy Blocking Traffic
 
 Symptom: Components cannot communicate even though services exist.
 
@@ -1579,7 +1209,7 @@ helm upgrade ai-stack . -n ai-stack --set global.networkPolicy.enabled=false
 
 3. If traffic works with policies disabled, check the specific component's policy rules in `templates/common/networkpolicies.yaml`.
 
-### 20.5 PVC Stuck in Pending
+### 16.5 PVC Stuck in Pending
 
 ```bash
 kubectl describe pvc -n ai-stack <pvc-name>
@@ -1591,7 +1221,7 @@ Common causes:
 - **Insufficient storage capacity:** Check available storage in the cluster
 - **Access mode mismatch:** Ensure the StorageClass supports `ReadWriteOnce`
 
-### 20.6 Secrets Not Generated
+### 16.6 Secrets Not Generated
 
 Secrets are only generated on `helm install`, not on `helm upgrade`. If secrets are missing:
 
@@ -1607,7 +1237,7 @@ helm install ai-stack . -n ai-stack
 
 **Important:** PVCs with `helm.sh/resource-policy: keep` are not deleted on uninstall.
 
-### 20.7 Helm Test Failures
+### 16.7 Helm Test Failures
 
 ```bash
 # Run tests with verbose output
@@ -1619,28 +1249,9 @@ kubectl logs -n ai-stack ai-stack-connection-test
 
 Tests verify TCP and HTTP connectivity to all enabled services.
 
-### 20.8 GPU Not Detected
-
-```bash
-# Check NVIDIA device plugin is running
-kubectl get pods -n gpu-operator
-
-# Check node GPU resources
-kubectl describe node <node-name> | grep nvidia
-
-# Check Ollama logs for GPU detection
-kubectl logs -n ai-stack deploy/ai-stack-ollama | grep -i gpu
-```
-
-Ensure:
-
-- NVIDIA GPU Operator is installed and healthy
-- Node has `nvidia.com/gpu` resources advertised
-- The pod's `resources.limits` includes `nvidia.com/gpu: 1`
-
 ---
 
-## 21. Uninstall
+## 17. Uninstall
 
 ```bash
 # Remove the Helm release (PVCs are retained)

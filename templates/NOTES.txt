@@ -10,7 +10,7 @@ COMPONENTS:
   ✓ Open WebUI        {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}:{{ .Values.openwebui.service.port }}
 {{- end }}
 {{- if .Values.ollama.enabled }}
-  ✓ Ollama            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:{{ .Values.ollama.service.port }}  GPU={{ .Values.ollama.gpu.enabled }}
+  ✓ Ollama            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:{{ .Values.ollama.service.port }}  (CPU-only)
 {{- end }}
 {{- if .Values.qdrant.enabled }}
   ✓ Qdrant            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:{{ .Values.qdrant.service.httpPort }}
@@ -24,20 +24,11 @@ COMPONENTS:
 {{- if .Values.pipelines.enabled }}
   ✓ Pipelines         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:{{ .Values.pipelines.service.port }}
 {{- end }}
-{{- if .Values.workbench.enabled }}
-  ✓ Workbench         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}:{{ .Values.workbench.service.port }}  GPU={{ .Values.workbench.gpu.enabled }}
-{{- end }}
 {{- if .Values.openTerminal.enabled }}
   ✓ Open Terminal    {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}:{{ .Values.openTerminal.service.port }}
 {{- end }}
 {{- if .Values.valkey.enabled }}
   ✓ Valkey            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}
-{{- end }}
-{{- if .Values.langgraph.enabled }}
-  ✓ LangGraph         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}:{{ .Values.langgraph.service.port }}
-{{- end }}
-{{- if .Values.postgres.enabled }}
-  ✓ PostgreSQL        {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}:{{ .Values.postgres.service.port }}
 {{- end }}
 {{- if .Values.authelia.enabled }}
   ✓ Authelia          {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}:{{ .Values.authelia.service.port }}  OIDC issuer={{ .Values.authelia.oidc.issuerUrl }}
@@ -52,7 +43,8 @@ GOVERNANCE:
   ServiceMonitors:  {{ if .Values.global.serviceMonitor.enabled }}ENABLED{{ else }}DISABLED{{ end }}
   ServiceAccounts:  per-component (automountServiceAccountToken: false)
   PDBs:             ollama, qdrant{{ if gt (int .Values.openwebui.replicaCount) 1 }}, openwebui{{ end }}
-  Secrets:          auto-generated (qdrant API key, searxng key, workbench token, open-terminal API key{{ if .Values.authelia.enabled }}, authelia OIDC/JWT/session secrets{{ end }})
+  Secrets:          auto-generated (qdrant API key, searxng key, open-terminal API key{{ if .Values.authelia.enabled }}, authelia OIDC/JWT/session secrets{{ end }})
+  Backup:           {{ if .Values.global.backup.enabled }}Veeam K10 (external policy){{ else }}DISABLED{{ end }}
 
 VERIFY:
   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/part-of=ai-stack
