@@ -2,7 +2,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
-Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -10,14 +10,18 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 
 ```mermaid
 graph TD
+  Ingress --> Authelia["Authelia (T0, opt-in OIDC)"]
   Ingress --> OpenWebUI["Open WebUI (T1)"]
   Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
+
+  Authelia --> Valkey["Valkey (T2)"]
+  Authelia -.->|OIDC| OpenWebUI
 
   OpenWebUI --> Ollama["Ollama (T1)"]
   OpenWebUI --> Qdrant["Qdrant (T1)"]
   OpenWebUI --> Tika["Tika (T2)"]
   OpenWebUI --> SearXNG["SearXNG (T2)"]
-  OpenWebUI --> Valkey["Valkey (T2)"]
+  OpenWebUI --> Valkey
   OpenWebUI --> Pipelines["Pipelines (T1)"]
 
   Workbench --> Ollama
@@ -46,6 +50,7 @@ graph TD
   OTel["OTel Collector (T0)"]
 
   style OTel stroke-dasharray: 5 5
+  style Authelia stroke-dasharray: 5 5
   style OpenTerminal stroke-dasharray: 5 5
   style MCPO stroke-dasharray: 5 5
   style LangGraph stroke-dasharray: 5 5
@@ -60,7 +65,7 @@ Tiering follows the platform-assurance stack-bom classification:
 
 | Tier | Meaning | Components |
 |------|---------|------------|
-| T0 | Safety / Integrity | OTel Collector |
+| T0 | Safety / Integrity | OTel Collector, Authelia |
 | T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench, LangGraph |
 | T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
 
@@ -79,7 +84,9 @@ Tiering follows the platform-assurance stack-bom classification:
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 |
 | LangGraph | `langchain/langgraph-api` | 0.2 |
 | PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 16 |
+| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 |
 | Ingestion Worker | `python` | 3.12-slim |
+| Authelia | `ghcr.io/authelia/authelia` | 4.38 |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.116.0 |
 
 ## Prerequisites
@@ -177,6 +184,8 @@ postgres:
   enabled: false    # PostgreSQL for LangGraph checkpoints (opt-in)
 ingestionWorker:
   enabled: false    # Async document ingestion worker (opt-in)
+authelia:
+  enabled: false    # OIDC identity provider for SSO/MFA (opt-in)
 ```
 
 ### Secrets
@@ -190,6 +199,7 @@ The chart auto-generates secrets on first install for:
 - **MCPO API key** (`mcpo-secret`)
 - **LangGraph API key** (`langgraph-secret`)
 - **PostgreSQL password** (`postgres-secret`)
+- **Authelia secrets** (`authelia-secret`) — JWT secret, session secret, storage encryption key, OIDC client secret
 
 Secrets are annotated with `helm.sh/resource-policy: keep` so they survive `helm upgrade`. To use an external secret manager (e.g., ESO or Vault), set the corresponding value:
 
@@ -345,6 +355,44 @@ XADD ingestion:documents * task_id <id> file_url <url> filename <name>
 ```
 
 Track status via `HGETALL ingestion:status:<task_id>`.
+
+### Authelia (SSO / OIDC)
+
+Enable Authelia as an OpenID Connect identity provider for Open WebUI. When enabled, Open WebUI is automatically configured as an OIDC client (`OAUTH_*` environment variables are injected). Authelia uses Valkey for session storage (when available) and supports SQLite (lab) or PostgreSQL (prod) as its storage backend.
+
+```yaml
+authelia:
+  enabled: true
+  domain: "example.local"
+  defaultPolicy: "one_factor"  # or "two_factor" for MFA
+  oidc:
+    clientId: "openwebui"
+    issuerUrl: "https://auth.example.local"
+  ingress:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - host: auth.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: auth-tls
+        hosts:
+          - auth.example.local
+```
+
+For production with PostgreSQL storage:
+
+```yaml
+authelia:
+  enabled: true
+  storage: "postgres"  # Uses the shared postgres component
+postgres:
+  enabled: true
+```
+
+Users are managed via a file-based backend (`users_database.yml`). Override by mounting a custom ConfigMap or configure LDAP. Generate password hashes with `authelia crypto hash generate argon2`.
 
 ### OpenTelemetry
 

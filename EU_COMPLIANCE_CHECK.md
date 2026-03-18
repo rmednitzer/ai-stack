@@ -46,10 +46,10 @@ The ai-stack processes the following categories of personal data:
 | **Art. 15** | Right of access | Gap | No data export feature documented |
 | **Art. 17** | Right to erasure | Gap | No automated deletion workflow; manual Qdrant/PostgreSQL purge required |
 | **Art. 22** | Automated decision-making | Attention | If AI outputs are used for decisions with legal/significant effects, Art. 22 safeguards required |
-| **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference |
+| **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference, optional Authelia OIDC/MFA for enterprise SSO |
 | **Art. 28** | Processor agreements | Gap | External API providers (OpenAI, Anthropic, etc.) require DPAs when enabled |
 | **Art. 30** | Records of processing | Gap | No ROPA template provided |
-| **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control, network isolation, read-only filesystem, PII redaction |
+| **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control (built-in + optional Authelia OIDC/MFA), network isolation, read-only filesystem, PII redaction |
 | **Art. 33/34** | Breach notification | Gap | No incident response runbook or breach notification workflow |
 | **Art. 35** | DPIA | Gap | No DPIA template; required when processing personal data at scale via AI, profiling, or systematic monitoring |
 | **Art. 44-49** | International transfers | Attention | External APIs may transfer data to non-EU jurisdictions; no adequacy assessment documented |
