@@ -1,0 +1,36 @@
+# Dependabot configuration for ai-stack Helm chart
+# Replaces renovate.json5 — keeps GitHub Actions up to date.
+#
+# NOTE: Dependabot does not support Helm values.yaml image tracking or
+# custom regex version extraction (kubeconform, syft, grype, etc.).
+# Container image updates in values.yaml must be managed manually or
+# via a dedicated workflow (e.g. Renovate's helm-values manager had
+# this capability). Consider a scheduled GitHub Actions workflow with
+# tools like Skopeo or Renovate's standalone Docker image for image
+# version bumps if automation is needed.
+
+version: 2
+
+registries: {}
+
+updates:
+  # --- GitHub Actions ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Europe/Vienna"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "rmednitzer"
+    groups:
+      # Group all minor/patch action updates into a single PR
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    # Keep major updates as individual PRs for careful review
+    open-pull-requests-limit: 5
