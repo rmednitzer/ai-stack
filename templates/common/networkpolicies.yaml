@@ -855,6 +855,11 @@ spec:
             matchLabels:
               app.kubernetes.io/name: langgraph
         {{- end }}
+        {{- if .Values.ingestionWorker.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingestion-worker
+        {{- end }}
       ports:
         - protocol: TCP
           port: 5432
@@ -951,6 +956,25 @@ spec:
       ports:
         - protocol: TCP
           port: 6333
+    {{- end }}
+    {{- if .Values.postgres.enabled }}
+    {{- if eq .Values.postgres.mode "external" }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.postgres.external.port | default 5432 }}
+    {{- else }}
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- if eq .Values.postgres.mode "cnpg" }}
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+              {{- else }}
+              app.kubernetes.io/name: postgres
+              {{- end }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
     {{- end }}
 {{- end }}
 
