@@ -742,7 +742,7 @@ mcpo:
 # Requires PostgreSQL for checkpoint persistence (enable postgres below).
 # Connects to Ollama for LLM inference and Qdrant for vector retrieval.
 #
-# Image: langchain/langgraph-api — the official self-hosted runtime.
+# Image: langchain/langgraph-server — the official self-hosted runtime.
 # Deploy custom graphs by building an image with `langgraph build` or
 # by mounting graph code into the /deps/graphs volume.
 # =============================================================================
@@ -757,8 +757,8 @@ langgraph:
     targetMemoryUtilizationPercentage: 80
   image:
     # -- Override with a custom image built via `langgraph build`
-    repository: docker.io/langchain/langgraph-api
-    tag: "0.2"
+    repository: docker.io/langchain/langgraph-server
+    tag: "0.7-py3.12"
   service:
     type: ClusterIP
     port: 8000

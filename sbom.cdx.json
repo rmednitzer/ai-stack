@@ -342,10 +342,10 @@
     {
       "type": "container",
       "bom-ref": "langgraph-api",
-      "name": "langgraph-api",
-      "version": "0.2",
+      "name": "langgraph-server",
+      "version": "0.7-py3.12",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-api@0.2?repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.7-py3.12?repository_url=docker.io",
       "licenses": [
         {
           "license": {
