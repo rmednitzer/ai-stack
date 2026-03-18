@@ -219,6 +219,66 @@ Usage in env:
 {{- end }}
 
 {{/*
+=============================================================================
+External API helpers.
+Build the OPENAI_API_BASE_URLS and OPENAI_API_KEYS strings for Open WebUI
+by combining internal service endpoints with external API providers.
+=============================================================================
+*/}}
+
+{{/*
+Construct OPENAI_API_BASE_URLS: internal endpoints + external provider URLs.
+Internal endpoints (Pipelines, Ollama) come first, followed by each
+externalAPIs.providers[].baseUrl.
+*/}}
+{{- define "ai-stack.openaiBaseUrls" -}}
+{{- $urls := list -}}
+{{- if .Values.pipelines.enabled -}}
+  {{- $urls = append $urls (printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines")) (.Values.pipelines.service.port | toString)) -}}
+{{- end -}}
+{{- if .Values.ollama.enabled -}}
+  {{- $urls = append $urls (printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) (.Values.ollama.service.port | toString)) -}}
+{{- end -}}
+{{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers -}}
+  {{- range .Values.externalAPIs.providers -}}
+    {{- $urls = append $urls .baseUrl -}}
+  {{- end -}}
+{{- end -}}
+{{- join ";" $urls -}}
+{{- end }}
+
+{{/*
+Construct OPENAI_API_KEYS: placeholder keys for internal endpoints + secret
+references for external providers.
+Internal endpoints use "0" (Open WebUI convention for no-auth endpoints).
+External provider keys use Kubernetes variable substitution: $(_EXTAPI_KEY_<index>)
+which are injected as env vars from Secrets.
+*/}}
+{{- define "ai-stack.openaiApiKeys" -}}
+{{- $keys := list -}}
+{{- if .Values.pipelines.enabled -}}
+  {{- $keys = append $keys "0" -}}
+{{- end -}}
+{{- if .Values.ollama.enabled -}}
+  {{- $keys = append $keys "0" -}}
+{{- end -}}
+{{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers -}}
+  {{- range $i, $p := .Values.externalAPIs.providers -}}
+    {{- $keys = append $keys (printf "$(_EXTAPI_KEY_%d)" $i) -}}
+  {{- end -}}
+{{- end -}}
+{{- join ";" $keys -}}
+{{- end }}
+
+{{/*
+External API secret name for a provider.
+Usage: {{ include "ai-stack.extapiSecretName" (dict "Release" .Release "Chart" .Chart "provider" $provider) }}
+*/}}
+{{- define "ai-stack.extapiSecretName" -}}
+{{- printf "%s-extapi-%s-secret" .Release.Name .provider.name | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{/*
 Init container: wait for a TCP service to become reachable.
 Uses busybox nc; no external dependencies.
 */}}
