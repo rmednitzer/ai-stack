@@ -1036,6 +1036,11 @@ ingestionWorker:
     INGESTION_MAX_RETRIES: "3"
     # -- Qdrant collection name for ingested documents
     QDRANT_COLLECTION: "documents"
+    # -- Valkey pub/sub channel for corpus state change notifications
+    # LangGraph agents and other consumers can subscribe to receive events
+    # when a collection transitions state (e.g. becomes 'ready' or 'stale').
+    # Requires postgres.enabled=true for the state machine to activate.
+    CORPUS_PUBSUB_CHANNEL: "corpus:state"
     # -- Log level
     LOG_LEVEL: "INFO"
   resources:

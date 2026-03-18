@@ -14,6 +14,13 @@ data:
 
     Flow: Valkey Stream → Tika extract → chunk → Ollama embed → Qdrant upsert
     Status tracking via Valkey hash keys (ingestion:status:<task_id>).
+
+    Corpus lifecycle state machine (requires PostgreSQL):
+      empty → ingesting → ready ↔ stale → re_indexing → ready
+      Any active state → failed; failed → ingesting | re_indexing (retry)
+    State stored in PostgreSQL; transitions auditable via corpus_transitions table.
+    Valkey pub/sub channel 'corpus:state' notifies consumers (e.g. LangGraph agents)
+    when a collection becomes ready or changes state.
     """
 
     import hashlib
@@ -55,6 +62,9 @@ data:
     MAX_RETRIES = int(os.environ.get("INGESTION_MAX_RETRIES", "3"))
     HEALTH_FILE = "/tmp/healthy"
 
+    POSTGRES_URI = os.environ.get("POSTGRES_URI", "")
+    CORPUS_PUBSUB_CHANNEL = os.environ.get("CORPUS_PUBSUB_CHANNEL", "corpus:state")
+
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -88,6 +98,285 @@ data:
     qdrant_headers: dict[str, str] = {}
     if QDRANT_API_KEY:
         qdrant_headers["api-key"] = QDRANT_API_KEY
+
+    # =========================================================================
+    # Corpus lifecycle state machine
+    # =========================================================================
+
+    # Valid transitions: {current_state: {target_state, ...}}
+    CORPUS_TRANSITIONS: dict[str, set[str]] = {
+        "empty":       {"ingesting"},
+        "ingesting":   {"ready", "failed"},
+        "ready":       {"ingesting", "stale"},
+        "stale":       {"re_indexing", "ingesting"},
+        "re_indexing":  {"ready", "failed"},
+        "failed":      {"ingesting", "re_indexing"},
+    }
+
+    _SCHEMA_SQL = """
+    CREATE TABLE IF NOT EXISTS corpus_state (
+        collection     TEXT PRIMARY KEY,
+        state          TEXT NOT NULL DEFAULT 'empty',
+        document_count INTEGER NOT NULL DEFAULT 0,
+        pending_count  INTEGER NOT NULL DEFAULT 0,
+        failed_count   INTEGER NOT NULL DEFAULT 0,
+        embedding_model TEXT,
+        chunk_size     INTEGER,
+        chunk_overlap  INTEGER,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS corpus_transitions (
+        id          SERIAL PRIMARY KEY,
+        collection  TEXT NOT NULL,
+        from_state  TEXT NOT NULL,
+        to_state    TEXT NOT NULL,
+        reason      TEXT,
+        task_id     TEXT,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_corpus_transitions_collection
+        ON corpus_transitions (collection, created_at DESC);
+    """
+
+
+    class CorpusStateMachine:
+        """PostgreSQL-backed corpus lifecycle state machine.
+
+        Tracks per-collection state with auditable transitions.
+        Publishes state changes to Valkey pub/sub for downstream consumers.
+        Degrades gracefully: if PostgreSQL is unavailable, the document
+        ingestion pipeline continues without corpus-level tracking.
+        """
+
+        def __init__(self, postgres_uri: str, vk_client: valkey.Valkey, channel: str) -> None:
+            self._pg = None
+            self._vk = vk_client
+            self._channel = channel
+
+            if not postgres_uri:
+                log.info("Corpus state machine disabled (no POSTGRES_URI)")
+                return
+
+            try:
+                import psycopg
+                self._pg = psycopg.connect(postgres_uri, autocommit=True)
+                self._pg.execute(_SCHEMA_SQL)
+                log.info("Corpus state machine initialised (PostgreSQL)")
+            except Exception as exc:
+                log.warning("Corpus state machine unavailable: %s", exc)
+                self._pg = None
+
+        @property
+        def enabled(self) -> bool:
+            return self._pg is not None
+
+        def _ensure_collection(self, collection: str) -> str:
+            """Return current state, creating the row if needed."""
+            row = self._pg.execute(
+                "SELECT state FROM corpus_state WHERE collection = %s",
+                (collection,),
+            ).fetchone()
+            if row:
+                return row[0]
+            self._pg.execute(
+                """INSERT INTO corpus_state (collection, state, embedding_model, chunk_size, chunk_overlap)
+                   VALUES (%s, 'empty', %s, %s, %s)
+                   ON CONFLICT (collection) DO NOTHING""",
+                (collection, EMBEDDING_MODEL, CHUNK_SIZE, CHUNK_OVERLAP),
+            )
+            return "empty"
+
+        def transition(
+            self,
+            collection: str,
+            to_state: str,
+            reason: str = "",
+            task_id: str = "",
+        ) -> bool:
+            """Attempt a state transition. Returns True on success."""
+            if not self.enabled:
+                return False
+
+            try:
+                current = self._ensure_collection(collection)
+
+                valid_targets = CORPUS_TRANSITIONS.get(current, set())
+                if to_state not in valid_targets:
+                    log.warning(
+                        "Corpus %s: invalid transition %s → %s (allowed: %s)",
+                        collection, current, to_state, valid_targets,
+                    )
+                    return False
+
+                self._pg.execute(
+                    """UPDATE corpus_state
+                       SET state = %s, updated_at = now()
+                       WHERE collection = %s AND state = %s""",
+                    (to_state, collection, current),
+                )
+                self._pg.execute(
+                    """INSERT INTO corpus_transitions
+                       (collection, from_state, to_state, reason, task_id)
+                       VALUES (%s, %s, %s, %s, %s)""",
+                    (collection, current, to_state, reason, task_id),
+                )
+
+                # Publish to Valkey for downstream consumers
+                event = json.dumps({
+                    "collection": collection,
+                    "from": current,
+                    "to": to_state,
+                    "reason": reason,
+                    "task_id": task_id,
+                    "timestamp": time.time(),
+                })
+                try:
+                    self._vk.publish(self._channel, event)
+                except Exception:
+                    log.debug("Pub/sub publish failed (non-critical)")
+
+                log.info("Corpus %s: %s → %s (%s)", collection, current, to_state, reason)
+                return True
+
+            except Exception as exc:
+                log.warning("Corpus state transition failed: %s", exc)
+                return False
+
+        def get_state(self, collection: str) -> dict[str, Any] | None:
+            """Return current corpus state as a dict, or None if disabled."""
+            if not self.enabled:
+                return None
+            try:
+                row = self._pg.execute(
+                    """SELECT collection, state, document_count, pending_count,
+                              failed_count, embedding_model, chunk_size,
+                              chunk_overlap, created_at, updated_at
+                       FROM corpus_state WHERE collection = %s""",
+                    (collection,),
+                ).fetchone()
+                if not row:
+                    return None
+                cols = [
+                    "collection", "state", "document_count", "pending_count",
+                    "failed_count", "embedding_model", "chunk_size",
+                    "chunk_overlap", "created_at", "updated_at",
+                ]
+                return dict(zip(cols, row))
+            except Exception as exc:
+                log.warning("Failed to read corpus state: %s", exc)
+                return None
+
+        def increment_pending(self, collection: str) -> None:
+            """Increment pending document count."""
+            if not self.enabled:
+                return
+            try:
+                self._ensure_collection(collection)
+                self._pg.execute(
+                    """UPDATE corpus_state
+                       SET pending_count = pending_count + 1, updated_at = now()
+                       WHERE collection = %s""",
+                    (collection,),
+                )
+            except Exception as exc:
+                log.debug("increment_pending failed: %s", exc)
+
+        def complete_document(self, collection: str, chunk_count: int) -> None:
+            """Record a successfully ingested document."""
+            if not self.enabled:
+                return
+            try:
+                self._pg.execute(
+                    """UPDATE corpus_state
+                       SET document_count = document_count + 1,
+                           pending_count = GREATEST(pending_count - 1, 0),
+                           updated_at = now()
+                       WHERE collection = %s""",
+                    (collection,),
+                )
+            except Exception as exc:
+                log.debug("complete_document failed: %s", exc)
+
+        def fail_document(self, collection: str) -> None:
+            """Record a failed document ingestion."""
+            if not self.enabled:
+                return
+            try:
+                self._pg.execute(
+                    """UPDATE corpus_state
+                       SET failed_count = failed_count + 1,
+                           pending_count = GREATEST(pending_count - 1, 0),
+                           updated_at = now()
+                       WHERE collection = %s""",
+                    (collection,),
+                )
+            except Exception as exc:
+                log.debug("fail_document failed: %s", exc)
+
+        def check_ready(self, collection: str) -> bool:
+            """Transition to 'ready' if no documents are pending."""
+            if not self.enabled:
+                return False
+            try:
+                row = self._pg.execute(
+                    "SELECT state, pending_count FROM corpus_state WHERE collection = %s",
+                    (collection,),
+                ).fetchone()
+                if row and row[0] == "ingesting" and row[1] == 0:
+                    return self.transition(
+                        collection, "ready", reason="all pending documents processed"
+                    )
+                return False
+            except Exception:
+                return False
+
+        def detect_config_drift(self, collection: str) -> bool:
+            """Check if embedding config has changed since last indexing.
+
+            Returns True and transitions to 'stale' if drift is detected.
+            """
+            if not self.enabled:
+                return False
+            try:
+                row = self._pg.execute(
+                    """SELECT state, embedding_model, chunk_size, chunk_overlap
+                       FROM corpus_state WHERE collection = %s""",
+                    (collection,),
+                ).fetchone()
+                if not row or row[0] != "ready":
+                    return False
+
+                stored_model, stored_chunk, stored_overlap = row[1], row[2], row[3]
+                if (stored_model != EMBEDDING_MODEL
+                        or stored_chunk != CHUNK_SIZE
+                        or stored_overlap != CHUNK_OVERLAP):
+                    self.transition(
+                        collection,
+                        "stale",
+                        reason=(
+                            f"config drift: model={stored_model}→{EMBEDDING_MODEL}, "
+                            f"chunk={stored_chunk}→{CHUNK_SIZE}, "
+                            f"overlap={stored_overlap}→{CHUNK_OVERLAP}"
+                        ),
+                    )
+                    return True
+                return False
+            except Exception:
+                return False
+
+        def close(self) -> None:
+            if self._pg:
+                try:
+                    self._pg.close()
+                except Exception:
+                    pass
+
+
+    # Initialise the state machine (gracefully degrades if no PG)
+    corpus = CorpusStateMachine(POSTGRES_URI, vk, CORPUS_PUBSUB_CHANNEL)
 
     # ---------------------------------------------------------------------------
     # Status helpers
@@ -189,11 +478,24 @@ data:
         log.info("Processing task %s: %s", task_id, filename)
         set_status(task_id, "processing", filename=filename)
 
+        # Corpus SM: detect config drift before processing
+        corpus.detect_config_drift(collection)
+
+        # Corpus SM: ensure collection is in 'ingesting' state
+        state = corpus.get_state(collection)
+        if state and state["state"] in ("empty", "ready", "stale", "failed"):
+            corpus.transition(
+                collection, "ingesting",
+                reason=f"new document: {filename}", task_id=task_id,
+            )
+        corpus.increment_pending(collection)
+
         # Stage 1: Extract
         set_status(task_id, "extracting", filename=filename)
         text = extract_text(file_url)
         if not text.strip():
             set_status(task_id, "failed", error="Empty text after extraction", filename=filename)
+            corpus.fail_document(collection)
             log.warning("Task %s: empty extraction for %s", task_id, filename)
             return
 
@@ -211,6 +513,8 @@ data:
         upsert_vectors(task_id, chunks, embeddings, metadata)
 
         set_status(task_id, "done", filename=filename, chunk_count=len(chunks))
+        corpus.complete_document(collection, len(chunks))
+        corpus.check_ready(collection)
         log.info("Task %s: completed (%d chunks)", task_id, len(chunks))
 
 
@@ -252,7 +556,9 @@ data:
         ensure_consumer_group()
         Path(HEALTH_FILE).touch()
         log.info(
-            "Worker %s started (group=%s, stream=%s)", CONSUMER_NAME, CONSUMER_GROUP, STREAM_NAME
+            "Worker %s started (group=%s, stream=%s, corpus_sm=%s)",
+            CONSUMER_NAME, CONSUMER_GROUP, STREAM_NAME,
+            "enabled" if corpus.enabled else "disabled",
         )
 
         while not _shutdown:
@@ -279,6 +585,7 @@ data:
             for stream_name, entries in messages:
                 for msg_id, fields in entries:
                     task_id = fields.get("task_id", msg_id)
+                    collection = fields.get("collection", COLLECTION_NAME)
                     retries = 0
                     while retries <= MAX_RETRIES:
                         try:
@@ -295,6 +602,8 @@ data:
                                     exc,
                                 )
                                 set_status(task_id, "failed", error=str(exc))
+                                corpus.fail_document(collection)
+                                corpus.check_ready(collection)
                                 vk.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
                             else:
                                 log.warning(
@@ -310,6 +619,7 @@ data:
             Path(HEALTH_FILE).touch()
 
         # Clean shutdown
+        corpus.close()
         try:
             Path(HEALTH_FILE).unlink()
         except FileNotFoundError:
@@ -322,6 +632,7 @@ data:
   requirements.txt: |
     valkey>=6.0.0
     httpx>=0.27.0
+    psycopg[binary]>=3.1.0
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -366,6 +677,9 @@ spec:
         {{- end }}
         {{- if .Values.ollama.enabled }}
         {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.postgres.enabled }}
+        {{- include "ai-stack.waitFor" (dict "name" "postgres" "host" (include "ai-stack.postgresHost" .) "port" (include "ai-stack.postgresPort" .)) | nindent 8 }}
         {{- end }}
         {{- if .Values.valkey.enabled }}
         - name: init-valkey-stream
@@ -443,6 +757,15 @@ spec:
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
+            {{- if .Values.postgres.enabled }}
+            - name: _PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.postgresSecretName" . }}
+                  key: {{ include "ai-stack.postgresSecretKey" . }}
+            - name: POSTGRES_URI
+              value: {{ include "ai-stack.postgresURI" . | quote }}
+            {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "ingestion-worker") | nindent 12 }}
           startupProbe:
             exec:
