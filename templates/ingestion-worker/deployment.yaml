@@ -431,15 +431,7 @@ spec:
           image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 1000) | nindent 12 }}
           command: ['python', '/scripts/worker.py']
           env:
             - name: PYTHONPATH
@@ -450,13 +442,7 @@ spec:
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
-            {{- if .Values.qdrant.enabled }}
-            - name: QDRANT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
-                  key: api-key
-            {{- end }}
+            {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "ingestion-worker") | nindent 12 }}
           startupProbe:
             exec:
@@ -495,12 +481,5 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 50Mi
-      {{- with .Values.global.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.global.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 {{- end }}

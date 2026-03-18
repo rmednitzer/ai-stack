@@ -279,6 +279,102 @@ Usage: {{ include "ai-stack.extapiSecretName" (dict "Release" .Release "Chart" .
 {{- end }}
 
 {{/*
+Standard restricted container security context for non-root containers.
+Usage: {{ include "ai-stack.restrictedSecurityContext" . | nindent N }}
+Override readOnlyRootFilesystem or runAsUser by passing a dict:
+  {{ include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 999) }}
+*/}}
+{{- define "ai-stack.restrictedSecurityContext" -}}
+allowPrivilegeEscalation: false
+readOnlyRootFilesystem: {{ .readOnlyRootFilesystem | default false }}
+runAsNonRoot: true
+runAsUser: {{ .runAsUser | default 1000 }}
+capabilities:
+  drop:
+    - ALL
+seccompProfile:
+  type: RuntimeDefault
+{{- end }}
+
+{{/*
+Node scheduling: nodeSelector + tolerations from global values.
+Usage: {{ include "ai-stack.nodeScheduling" . | nindent N }}
+*/}}
+{{- define "ai-stack.nodeScheduling" -}}
+{{- with .Values.global.nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.global.tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+Qdrant API key environment variable from secret.
+Usage: {{ include "ai-stack.qdrantApiKeyEnv" . | nindent N }}
+*/}}
+{{- define "ai-stack.qdrantApiKeyEnv" -}}
+{{- if .Values.qdrant.enabled }}
+- name: QDRANT_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+      key: api-key
+{{- end }}
+{{- end }}
+
+{{/*
+Ingress resource template (shared by openwebui, workbench, langgraph, etc.).
+Usage: {{ include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
+*/}}
+{{- define "ai-stack.ingress" -}}
+{{- if .ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .root.Release "Chart" .root.Chart "component" .component) }}
+  labels:
+    {{- include "ai-stack.labels" .root | nindent 4 }}
+  {{- with .ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .ingress.className }}
+  ingressClassName: {{ .ingress.className }}
+  {{- end }}
+  {{- if .ingress.tls }}
+  tls:
+    {{- range .ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "ai-stack.componentName" (dict "Release" $.root.Release "Chart" $.root.Chart "component" $.component) }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Init container: wait for a TCP service to become reachable.
 Uses busybox nc; no external dependencies.
 */}}

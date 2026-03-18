@@ -39,15 +39,7 @@ spec:
           image: "{{ .Values.mcpo.image.repository }}:{{ .Values.mcpo.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
           ports:
             - name: http
               containerPort: 8000
@@ -101,14 +93,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 500Mi
-      {{- with .Values.global.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.global.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 ---
 apiVersion: v1
 kind: Service
