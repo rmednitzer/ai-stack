@@ -813,7 +813,12 @@ valkey:
 #   HGETALL ingestion:status:<task_id>
 # =============================================================================
 ingestionWorker:
-  enabled: false  # Opt-in; requires valkey + tika + ollama + qdrant
+  # Opt-in; requires valkey + tika + ollama + qdrant.
+  # When enabled, consider setting valkey.persistence.enabled=true so that
+  # Valkey Streams survive pod restarts. Without persistence, in-flight
+  # tasks are lost on Valkey restart (source documents remain intact and
+  # can be re-enqueued).
+  enabled: false
   replicaCount: 1
   autoscaling:
     enabled: false

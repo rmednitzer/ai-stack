@@ -367,6 +367,38 @@ spec:
         {{- if .Values.ollama.enabled }}
         {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
         {{- end }}
+        {{- if .Values.valkey.enabled }}
+        - name: init-valkey-stream
+          image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              STREAM="{{ index .Values.ingestionWorker.env "INGESTION_STREAM" | default "ingestion:documents" }}"
+              GROUP="{{ index .Values.ingestionWorker.env "INGESTION_CONSUMER_GROUP" | default "ingestion-workers" }}"
+              valkey-cli -h "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" \
+                -p {{ .Values.valkey.service.port }} \
+                XGROUP CREATE "$STREAM" "$GROUP" 0 MKSTREAM 2>/dev/null || true
+              echo "Stream '$STREAM' and consumer group '$GROUP' ready."
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+        {{- end }}
         - name: install-deps
           image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
