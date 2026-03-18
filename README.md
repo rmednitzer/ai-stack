@@ -2,9 +2,9 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
-Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/) (CPU-only), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
-Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
+Optimized for VMware Tanzu v1.30.10 with [Contour](https://projectcontour.io/) ingress, [ArgoCD](https://argo-cd.readthedocs.io/) v3.3.2, and [Veeam K10 (Kasten)](https://www.kasten.io/) backup. Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
 ## Architecture
 
@@ -12,7 +12,6 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 graph TD
   Ingress --> Authelia["Authelia (T0, opt-in OIDC)"]
   Ingress --> OpenWebUI["Open WebUI (T1)"]
-  Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
 
   Authelia --> Valkey["Valkey (T2)"]
   Authelia -.->|OIDC| OpenWebUI
@@ -24,28 +23,9 @@ graph TD
   OpenWebUI --> Valkey
   OpenWebUI --> Pipelines["Pipelines (T1)"]
 
-  Workbench --> Ollama
-  Workbench --> Qdrant
-  Workbench --> Pipelines
-  Workbench --> Tika
-  Workbench --> SearXNG
-
   OpenWebUI --> OpenTerminal["Open Terminal (T2, opt-in)"]
   OpenWebUI --> MCPO["MCPO (T2, opt-in)"]
-  OpenWebUI --> LangGraph["LangGraph (T1, opt-in)"]
   OpenWebUI --> ExternalAPIs["External APIs (T1, opt-in)"]
-
-  LangGraph --> Ollama
-  LangGraph --> Qdrant
-  LangGraph --> Tika
-  LangGraph --> SearXNG
-  LangGraph --> Pipelines
-  LangGraph --> Postgres["PostgreSQL (T2, opt-in)"]
-
-  IngestionWorker["Ingestion Worker (T2, opt-in)"] --> Valkey
-  IngestionWorker --> Tika
-  IngestionWorker --> Ollama
-  IngestionWorker --> Qdrant
 
   OTel["OTel Collector (T0)"]
 
@@ -53,10 +33,7 @@ graph TD
   style Authelia stroke-dasharray: 5 5
   style OpenTerminal stroke-dasharray: 5 5
   style MCPO stroke-dasharray: 5 5
-  style LangGraph stroke-dasharray: 5 5
-  style Postgres stroke-dasharray: 5 5
   style ExternalAPIs stroke-dasharray: 5 5
-  style IngestionWorker stroke-dasharray: 5 5
 ```
 
 ### Component Tiers
@@ -66,8 +43,8 @@ Tiering follows the platform-assurance stack-bom classification:
 | Tier | Meaning | Components |
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector, Authelia |
-| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench, LangGraph |
-| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
+| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines |
+| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO |
 
 ### Default Images
 
@@ -82,32 +59,24 @@ Tiering follows the platform-assurance stack-bom classification:
 | Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.20 |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 |
-| LangGraph | `langchain/langgraph-server` | 0.7-py3.12 |
-| PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 16 |
-| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 |
-| Ingestion Worker | `python` | 3.12-slim |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39 |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.147.0 |
 
 ## Prerequisites
 
-- Kubernetes 1.27+
+- Kubernetes 1.30+
 - Helm 3.12+
 - A StorageClass for PersistentVolumeClaims (or use `emptyDir` for lab)
-- (Optional) NVIDIA GPU Operator for Ollama / Workbench GPU acceleration
+- Contour ingress controller
+- (Optional) Veeam K10 (Kasten) for application-aware backup and disaster recovery
 - (Optional) Prometheus Operator CRDs for ServiceMonitor resources
 - (Optional) cert-manager for automated TLS certificate provisioning
-- (Optional) CloudNativePG operator v1.25+ for HA PostgreSQL (`postgres.mode: cnpg`)
 
 ## Quick Start
 
 ```bash
 # Install with lab defaults
 helm install ai-stack . -n ai-stack --create-namespace
-
-# Lab with GPU enabled for Ollama
-helm install ai-stack . -n ai-stack --create-namespace \
-  --set ollama.gpu.enabled=true
 
 # Production overlay
 helm install ai-stack . -n ai-stack --create-namespace \
@@ -135,7 +104,7 @@ The chart ships two value files:
 | File | Purpose |
 |------|---------|
 | `values.yaml` | Full reference with all defaults (lab profile) |
-| `values-prod.yaml` | Production overlay — HA, TLS ingress, GPU, stricter resources, OTel, backups |
+| `values-prod.yaml` | Production overlay — HA, TLS ingress, stricter resources, OTel, backups |
 
 ### Global Settings
 
@@ -150,8 +119,8 @@ The chart ships two value files:
 | `global.otel.enabled` | Deploy OTel Collector and inject env vars | `false` |
 | `global.otel.endpoint` | OTLP endpoint | `http://otel-collector....:4317` |
 | `global.serviceMonitor.enabled` | Create Prometheus ServiceMonitor CRDs | `false` |
-| `global.backup.enabled` | Deploy backup CronJobs for stateful data | `false` |
-| `global.backup.schedule` | Backup cron schedule | `0 2 * * *` |
+| `global.backup.enabled` | Create a Veeam K10 Policy CR for stateful data | `false` |
+| `global.backup.frequency` | K10 backup frequency | `@daily` |
 
 ### Component Toggles
 
@@ -172,18 +141,10 @@ pipelines:
   enabled: true     # Function pipelines (default: true)
 valkey:
   enabled: true     # Session cache (default: true)
-workbench:
-  enabled: false    # GPU ML workbench (opt-in)
 openTerminal:
   enabled: false    # Sandboxed terminal for AI agents (opt-in)
 mcpo:
   enabled: false    # MCP-to-OpenAPI proxy (opt-in)
-langgraph:
-  enabled: false    # LangGraph agentic runtime (opt-in)
-postgres:
-  enabled: false    # PostgreSQL for LangGraph checkpoints (opt-in)
-ingestionWorker:
-  enabled: false    # Async document ingestion worker (opt-in)
 authelia:
   enabled: false    # OIDC identity provider for SSO/MFA (opt-in)
 ```
@@ -194,11 +155,8 @@ The chart auto-generates secrets on first install for:
 
 - **Qdrant API key** (`qdrant-secret`)
 - **SearXNG secret key** (`searxng-secret`)
-- **Workbench token** (`workbench-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
-- **LangGraph API key** (`langgraph-secret`)
-- **PostgreSQL password** (`postgres-secret`)
 - **Authelia secrets** (`authelia-secret`) — JWT secret, session secret, storage encryption key, OIDC client secret
 
 Secrets are annotated with `helm.sh/resource-policy: keep` so they survive `helm upgrade`. To use an external secret manager (e.g., ESO or Vault), set the corresponding value:
@@ -212,27 +170,6 @@ openTerminal:
   apiKey: "your-external-key"
 mcpo:
   apiKey: "your-external-key"
-langgraph:
-  apiKey: "your-external-key"
-postgres:
-  password: "your-external-password"
-```
-
-### GPU Support
-
-```yaml
-ollama:
-  gpu:
-    enabled: true
-    count: 1
-    resourceName: nvidia.com/gpu
-
-workbench:
-  enabled: true
-  gpu:
-    enabled: true
-    count: 1
-    resourceName: nvidia.com/gpu
 ```
 
 ### Ingress
@@ -284,81 +221,9 @@ externalAPIs:
 
 When enabled, Open WebUI users can select external models from the model picker alongside locally-served Ollama models. HTTPS egress (port 443) is automatically added to the Open WebUI NetworkPolicy.
 
-### LangGraph (Agentic Workloads)
-
-Enable stateful agentic workflows with LangGraph Platform. Requires PostgreSQL for checkpoint persistence:
-
-```yaml
-langgraph:
-  enabled: true
-postgres:
-  enabled: true
-```
-
-LangGraph connects to Ollama for LLM inference, Qdrant for vector retrieval, Tika for document extraction, and SearXNG for web search. Deploy custom graphs by either:
-
-1. **Custom image** (recommended): Build with `langgraph build -t my-graphs` and override `langgraph.image.repository`/`tag`
-2. **Volume mount**: Place graph code in the `/deps/graphs` persistent volume
-
-### PostgreSQL Modes
-
-The chart supports three PostgreSQL provisioning modes:
-
-| Mode | Use case | HA | Managed by |
-|------|----------|----|------------|
-| `standalone` | Lab / dev — single-instance Deployment | No | Helm chart |
-| `cnpg` | Production — CloudNativePG operator cluster | Yes (3 instances, streaming replication, automated failover) | CNPG operator |
-| `external` | Bring-your-own managed PostgreSQL (RDS, Cloud SQL, etc.) | Depends on provider | External |
-
-```yaml
-# Production HA with CloudNativePG
-postgres:
-  enabled: true
-  mode: cnpg
-  tls:
-    mode: require
-  cnpg:
-    instances: 3
-    pooler:
-      enabled: true  # PgBouncer connection pooling
-
-# External managed database
-postgres:
-  enabled: true
-  mode: external
-  database: "langgraph"
-  user: "langgraph"
-  external:
-    host: "my-rds-instance.abc123.us-east-1.rds.amazonaws.com"
-    port: 5432
-    existingSecret:
-      name: "rds-password"
-      key: "password"
-```
-
-### Async Document Ingestion
-
-The ingestion worker consumes tasks from a Valkey Stream and orchestrates: Tika extract, chunk, Ollama embed, Qdrant upsert. Enables non-blocking document uploads with automatic retry and status tracking.
-
-```yaml
-ingestionWorker:
-  enabled: true
-valkey:
-  persistence:
-    enabled: true  # Recommended: persist Valkey Streams across restarts
-```
-
-Producers enqueue tasks via `XADD`:
-
-```
-XADD ingestion:documents * task_id <id> file_url <url> filename <name>
-```
-
-Track status via `HGETALL ingestion:status:<task_id>`.
-
 ### Authelia (SSO / OIDC)
 
-Enable Authelia as an OpenID Connect identity provider for Open WebUI. When enabled, Open WebUI is automatically configured as an OIDC client (`OAUTH_*` environment variables are injected). Authelia uses Valkey for session storage (when available) and supports SQLite (lab) or PostgreSQL (prod) as its storage backend.
+Enable Authelia as an OpenID Connect identity provider for Open WebUI. When enabled, Open WebUI is automatically configured as an OIDC client (`OAUTH_*` environment variables are injected). Authelia uses Valkey for session storage (when available) and SQLite as its storage backend.
 
 ```yaml
 authelia:
@@ -382,16 +247,6 @@ authelia:
           - auth.example.local
 ```
 
-For production with PostgreSQL storage:
-
-```yaml
-authelia:
-  enabled: true
-  storage: "postgres"  # Uses the shared postgres component
-postgres:
-  enabled: true
-```
-
 Users are managed via a file-based backend (`users_database.yml`). Override by mounting a custom ConfigMap or configure LDAP. Generate password hashes with `authelia crypto hash generate argon2`.
 
 ### OpenTelemetry
@@ -404,12 +259,7 @@ When `global.otel.enabled=true`, the chart:
 
 ### Backups
 
-When `global.backup.enabled=true`, the chart deploys CronJobs for:
-
-- **Qdrant** — snapshot-based backup with configurable retention (default: 7 snapshots)
-- **Ollama** — model manifest and blob backup (default: 3 backups retained)
-
-Backup data is stored in a dedicated PVC annotated with `helm.sh/resource-policy: keep`. For full cluster DR, pair with Velero.
+When `global.backup.enabled=true`, the chart creates a Veeam K10 (Kasten) Policy custom resource that provides application-aware backup and disaster recovery for all stateful components (Qdrant snapshots, Ollama model blobs, Valkey data). The Policy CR is configured with the schedule set by `global.backup.frequency` (default: `@daily`). K10 handles snapshot orchestration, retention, and optional off-cluster export — no in-chart CronJobs are required.
 
 ## Security
 
@@ -422,8 +272,8 @@ This chart is designed for regulated environments:
 - **Secret management**: Auto-generated 64-byte credentials with support for external secret stores
 - **PII redaction**: OTel Collector strips email addresses, SSNs, and credit card numbers from telemetry (GDPR Art 5(1)(c))
 - **Telemetry opt-out**: `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false` set by default
-- **Rate limiting**: Envoy Gateway rate-limit annotations in production profile
-- **Ollama root exception**: Upstream GPU access requirement; documented with `assurance.platform/security-exception` annotation
+- **Rate limiting**: Contour rate-limit annotations in production profile
+- **Ollama root exception**: Upstream model management requirement; documented with `assurance.platform/security-exception` annotation
 
 ## Governance and Compliance
 
@@ -452,7 +302,6 @@ The chart includes a machine-readable Software Bill of Materials and license com
 All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-Clause). Notable exceptions:
 
 - **SearXNG** (AGPL-3.0): Low risk when using the upstream container unmodified. See compliance doc for details.
-- **LangGraph API** (Elastic License 2.0): Opt-in only. Permits self-hosted use but prohibits offering as a managed service.
 
 The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness. Deep per-image SBOMs are generated via Syft and uploaded as CI artifacts.
 
@@ -525,7 +374,7 @@ helm install ai-stack . --dry-run --debug -n ai-stack
 ct lint --config ct.yaml --charts .
 ```
 
-See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, backup/restore, EU compliance, and troubleshooting.
+See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, scaling, backup/restore, EU compliance, and troubleshooting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
 

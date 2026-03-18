@@ -27,13 +27,9 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | SearXNG | `searxng/searxng` | 2026.3.16 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 8.1 | BSD-3-Clause | Permissive | Enabled | No |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.147.0 | Apache-2.0 | Permissive | Conditional | No |
-| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.7-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
-| PostgreSQL | `docker.io/library/postgres` | 16-alpine | PostgreSQL | Permissive | Opt-in | No |
-| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 | BSD-3-Clause | Permissive | Opt-in | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.20 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 | MIT | Permissive | Opt-in | No |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39 | Apache-2.0 | Permissive | Opt-in | No |
-| Ingestion Worker | `docker.io/library/python` | 3.12-slim | PSF-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0
 
@@ -44,11 +40,11 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 ### Permissive (no restrictions for enterprise use)
 
 The majority of the stack uses permissive licenses (MIT, Apache-2.0,
-BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
+BSD-3-Clause). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
 **Components:** Open WebUI, Ollama, Qdrant, Pipelines, Tika, Valkey,
-OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia
+OTel Collector, Open Terminal, MCPO, Authelia
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)
 
@@ -74,36 +70,18 @@ users who interact with the software over a network. Key considerations:
 modifications are required, maintain a public fork and link to it from your
 deployment documentation.
 
-### Source-Available — LangGraph API (Elastic License 2.0)
-
-**Risk level: Medium (review before enabling)**
-
-The Elastic License 2.0 permits self-hosted use but imposes restrictions:
-
-- **Permitted**: Internal self-hosted deployment, modification for internal use,
-  integration with other internal tools.
-- **Prohibited**: Offering LangGraph Platform as a managed service to third
-  parties (i.e., you cannot resell it as-a-service).
-- **Not OSI-approved**: ELv2 is not considered open-source by the Open Source
-  Initiative.
-
-**Recommendation:** Acceptable for internal enterprise use. If your business
-model involves offering AI orchestration as a service to external customers,
-consult legal counsel before enabling LangGraph. The component is opt-in
-(disabled by default) specifically to ensure conscious adoption.
-
 ---
 
 ## Enterprise Compliance Checklist
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 15 components catalogued |
+| All licenses identified | Done | 11 components catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |
 | Copyleft components identified | Done | SearXNG (AGPL-3.0) — low risk when unmodified |
-| Source-available components identified | Done | LangGraph API (ELv2) — opt-in only |
+| Source-available components identified | Done | None currently |
 | Attribution requirements met | Done | License file included; component licenses in SBOM |
 | Dependency update tracking | Done | Dependabot for GitHub Actions; container images tracked manually |
 | Deep SBOM generation | Done | Syft scans all images in CI (`syft-sbom` job) |

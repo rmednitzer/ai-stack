@@ -34,7 +34,6 @@ The ai-stack is an AI inference and tooling platform comprising:
 | Tika | Document extraction | Uploaded documents (transient) |
 | SearXNG | Web search for RAG | Search queries (transient) |
 | Pipelines | Function/tool calling | Varies by pipeline function |
-| LangGraph *(opt-in)* | Agentic workflows | Agent state, tool call history, checkpoints |
 | OTel Collector | Observability | Telemetry data (PII-redacted) |
 
 ### 2.2 Categories of Data Subjects
@@ -96,7 +95,6 @@ User → [Ingress/TLS] → Open WebUI → Ollama (local inference)
 | Uploaded documents | *[specify]* | Open WebUI file management |
 | Cross-conversation memories | *[specify]* | Open WebUI memory management |
 | Telemetry/logs | *[specify]* | OTel pipeline TTL / log rotation |
-| LangGraph checkpoints | *[specify]* | PostgreSQL retention policy |
 
 ---
 
@@ -187,7 +185,7 @@ Does the system produce decisions with legal or similarly significant effects?
 | Authentication required | Art. 32(1)(b) | `WEBUI_AUTH=true` |
 | Read-only root filesystem | Art. 32(1)(b) | Most components |
 | Secret auto-generation | Art. 32(1)(a) | 64-byte keys |
-| Backup and disaster recovery | Art. 32(1)(c) | CronJob backups |
+| Backup and disaster recovery | Art. 32(1)(c) | Veeam K10 backup policies |
 | Health monitoring | Art. 32(1)(d) | OTel + Prometheus |
 | AI transparency disclosure | AI Act Art. 50(1) | `WEBUI_BANNER_TEXT` |
 

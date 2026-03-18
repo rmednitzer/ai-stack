@@ -73,7 +73,6 @@ of their personal data.
 | Uploaded documents | Open WebUI file storage | Open WebUI → Documents → Download per document |
 | Vector embeddings | Qdrant | `curl http://qdrant:6333/collections/{collection}/points/scroll` with user metadata filter |
 | Cross-conversation memories | Open WebUI (Qdrant-backed) | Open WebUI Settings → Memories → view/export |
-| LangGraph checkpoints | PostgreSQL | `psql -c "SELECT * FROM checkpoints WHERE user_id = '...'"` |
 | Telemetry/logs | OTel pipeline | PII-redacted; may not contain identifiable data |
 
 ### Procedure
@@ -146,15 +145,7 @@ kubectl exec -n ai-stack deploy/ai-stack-openwebui -- \
 User self-service via Open WebUI Settings → Memories → Delete All, or admin
 deletion via API.
 
-**Step 5: Delete LangGraph checkpoints** (if enabled)
-
-```bash
-kubectl exec -n ai-stack deploy/ai-stack-postgres -- \
-  psql -U langgraph -d langgraph -c \
-    "DELETE FROM checkpoints WHERE metadata->>'user_id' = 'USER_ID';"
-```
-
-**Step 6: Delete user account**
+**Step 5: Delete user account**
 
 Via Open WebUI Admin Panel → Users → Delete user.
 
