@@ -129,9 +129,9 @@
       "type": "container",
       "bom-ref": "qdrant",
       "name": "qdrant",
-      "version": "v1.13.2",
+      "version": "v1.17.1",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.13.2",
+      "purl": "pkg:docker/qdrant/qdrant@v1.17.1",
       "licenses": [
         {
           "license": {

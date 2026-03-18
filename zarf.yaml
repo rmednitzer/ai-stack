@@ -40,7 +40,7 @@ components:
       # Ollama
       - ollama/ollama:0.18.1
       # Qdrant
-      - qdrant/qdrant:v1.13.2
+      - qdrant/qdrant:v1.17.1
       # Apache Tika
       - apache/tika:3.2.3.0
       # SearXNG
