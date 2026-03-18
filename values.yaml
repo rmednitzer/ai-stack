@@ -798,6 +798,77 @@ valkey:
       periodSeconds: 5
 
 # =============================================================================
+# Ingestion Worker — Async document ingestion via Valkey Streams
+# Tier: T2 (productivity) | Boundary: ingestion (async pipeline)
+#
+# Purpose: background worker that consumes document ingestion tasks from a
+# Valkey Stream and orchestrates: Tika extract → chunk → Ollama embed →
+# Qdrant upsert. Enables non-blocking document uploads with automatic retry,
+# status tracking, and parallel processing via consumer groups.
+#
+# Requires: valkey (stream broker), tika, ollama, qdrant.
+# Producers enqueue tasks via XADD:
+#   XADD ingestion:documents * task_id <id> file_url <url> filename <name>
+# Status tracking via:
+#   HGETALL ingestion:status:<task_id>
+# =============================================================================
+ingestionWorker:
+  # Opt-in; requires valkey + tika + ollama + qdrant.
+  # When enabled, consider setting valkey.persistence.enabled=true so that
+  # Valkey Streams survive pod restarts. Without persistence, in-flight
+  # tasks are lost on Valkey restart (source documents remain intact and
+  # can be re-enqueued).
+  enabled: false
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  image:
+    repository: python
+    tag: "3.12-slim"
+  env:
+    # -- Tika document extraction URL
+    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
+    # -- Ollama backend URL (for embeddings)
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    # -- Qdrant vector store URL
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
+    # -- Embedding model (must match the model used by Open WebUI RAG)
+    RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    # -- Chunk size in characters for document splitting
+    RAG_CHUNK_SIZE: "1500"
+    # -- Overlap between chunks
+    RAG_CHUNK_OVERLAP: "100"
+    # -- Valkey Stream name for ingestion tasks
+    INGESTION_STREAM: "ingestion:documents"
+    # -- Consumer group name
+    INGESTION_CONSUMER_GROUP: "ingestion-workers"
+    # -- Status key prefix in Valkey
+    INGESTION_STATUS_PREFIX: "ingestion:status:"
+    # -- TTL for status keys in seconds (24h)
+    INGESTION_STATUS_TTL: "86400"
+    # -- Number of messages to read per batch
+    INGESTION_BATCH_SIZE: "5"
+    # -- Block timeout in ms when waiting for new messages
+    INGESTION_BLOCK_MS: "5000"
+    # -- Max retries per task before marking as failed
+    INGESTION_MAX_RETRIES: "3"
+    # -- Qdrant collection name for ingested documents
+    QDRANT_COLLECTION: "documents"
+    # -- Log level
+    LOG_LEVEL: "INFO"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# =============================================================================
 # OTel Collector — observability pipeline for the AI stack
 # Tier: T0 (safety/integrity) | Boundary: observability
 # Deployed when global.otel.enabled=true

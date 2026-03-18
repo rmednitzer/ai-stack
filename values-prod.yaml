@@ -153,6 +153,21 @@ pipelines:
   persistence:
     size: 20Gi
 
+ingestionWorker:
+  enabled: false  # Opt-in; enable when async document ingestion is needed
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
 langgraph:
   enabled: false  # Opt-in; enable when agentic workloads are needed
   autoscaling:

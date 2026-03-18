@@ -1,0 +1,506 @@
+{{- if .Values.ingestionWorker.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}-script
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
+data:
+  worker.py: |
+    """
+    Async document ingestion worker using Valkey Streams.
+
+    Flow: Valkey Stream → Tika extract → chunk → Ollama embed → Qdrant upsert
+    Status tracking via Valkey hash keys (ingestion:status:<task_id>).
+    """
+
+    import hashlib
+    import json
+    import logging
+    import os
+    import signal
+    import sys
+    import time
+    from pathlib import Path
+    from typing import Any
+    from urllib.parse import urljoin
+
+    import httpx
+    import valkey
+
+    # ---------------------------------------------------------------------------
+    # Configuration from environment
+    # ---------------------------------------------------------------------------
+    VALKEY_URL = os.environ.get("VALKEY_URL", "redis://localhost:6379")
+    STREAM_NAME = os.environ.get("INGESTION_STREAM", "ingestion:documents")
+    CONSUMER_GROUP = os.environ.get("INGESTION_CONSUMER_GROUP", "ingestion-workers")
+    CONSUMER_NAME = os.environ.get("HOSTNAME", "worker-0")
+    STATUS_PREFIX = os.environ.get("INGESTION_STATUS_PREFIX", "ingestion:status:")
+    STATUS_TTL = int(os.environ.get("INGESTION_STATUS_TTL", "86400"))
+
+    TIKA_URL = os.environ["TIKA_SERVER_URL"]
+    OLLAMA_URL = os.environ["OLLAMA_BASE_URL"]
+    QDRANT_URL = os.environ["QDRANT_URI"]
+    QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
+    EMBEDDING_MODEL = os.environ.get("RAG_EMBEDDING_MODEL", "nomic-embed-text")
+    COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "documents")
+
+    CHUNK_SIZE = int(os.environ.get("RAG_CHUNK_SIZE", "1500"))
+    CHUNK_OVERLAP = int(os.environ.get("RAG_CHUNK_OVERLAP", "100"))
+
+    BATCH_SIZE = int(os.environ.get("INGESTION_BATCH_SIZE", "5"))
+    BLOCK_MS = int(os.environ.get("INGESTION_BLOCK_MS", "5000"))
+    MAX_RETRIES = int(os.environ.get("INGESTION_MAX_RETRIES", "3"))
+    HEALTH_FILE = "/tmp/healthy"
+
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    log = logging.getLogger("ingestion-worker")
+
+    # ---------------------------------------------------------------------------
+    # Graceful shutdown
+    # ---------------------------------------------------------------------------
+    _shutdown = False
+
+
+    def _handle_signal(sig: int, _: Any) -> None:
+        global _shutdown
+        log.info("Received signal %s, shutting down gracefully", sig)
+        _shutdown = True
+
+
+    signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGINT, _handle_signal)
+
+    # ---------------------------------------------------------------------------
+    # Valkey client
+    # ---------------------------------------------------------------------------
+    vk = valkey.from_url(VALKEY_URL, decode_responses=True)
+
+    # ---------------------------------------------------------------------------
+    # HTTP clients (connection pooling)
+    # ---------------------------------------------------------------------------
+    http = httpx.Client(timeout=120.0)
+    qdrant_headers: dict[str, str] = {}
+    if QDRANT_API_KEY:
+        qdrant_headers["api-key"] = QDRANT_API_KEY
+
+    # ---------------------------------------------------------------------------
+    # Status helpers
+    # ---------------------------------------------------------------------------
+
+
+    def set_status(task_id: str, status: str, **extra: Any) -> None:
+        key = f"{STATUS_PREFIX}{task_id}"
+        data = {"status": status, "updated_at": time.time(), **extra}
+        vk.hset(key, mapping={k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in data.items()})
+        vk.expire(key, STATUS_TTL)
+
+
+    # ---------------------------------------------------------------------------
+    # Pipeline stages
+    # ---------------------------------------------------------------------------
+
+
+    def extract_text(file_url: str) -> str:
+        """Send document to Tika and return extracted text."""
+        resp = http.put(
+            urljoin(TIKA_URL, "/tika"),
+            headers={"Accept": "text/plain"},
+            content=httpx.get(file_url).content if file_url.startswith("http") else Path(file_url).read_bytes(),
+            timeout=300.0,
+        )
+        resp.raise_for_status()
+        return resp.text
+
+
+    def chunk_text(text: str) -> list[str]:
+        """Split text into overlapping chunks."""
+        chunks: list[str] = []
+        start = 0
+        while start < len(text):
+            end = start + CHUNK_SIZE
+            chunks.append(text[start:end])
+            start += CHUNK_SIZE - CHUNK_OVERLAP
+        return [c.strip() for c in chunks if c.strip()]
+
+
+    def embed_chunks(chunks: list[str]) -> list[list[float]]:
+        """Generate embeddings via Ollama API."""
+        embeddings: list[list[float]] = []
+        for chunk in chunks:
+            resp = http.post(
+                urljoin(OLLAMA_URL, "/api/embed"),
+                json={"model": EMBEDDING_MODEL, "input": chunk},
+                timeout=120.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            embeddings.append(data["embeddings"][0])
+        return embeddings
+
+
+    def upsert_vectors(
+        task_id: str, chunks: list[str], embeddings: list[list[float]], metadata: dict[str, Any]
+    ) -> None:
+        """Upsert chunk vectors into Qdrant."""
+        points = []
+        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+            point_id = hashlib.sha256(f"{task_id}:{i}".encode()).hexdigest()[:32]
+            # Qdrant requires UUID or unsigned integer IDs; use a deterministic UUID-like hex
+            points.append(
+                {
+                    "id": point_id,
+                    "vector": embedding,
+                    "payload": {
+                        "text": chunk,
+                        "chunk_index": i,
+                        "task_id": task_id,
+                        "source": metadata.get("filename", ""),
+                        **{k: v for k, v in metadata.items() if k != "filename"},
+                    },
+                }
+            )
+
+        resp = http.put(
+            urljoin(QDRANT_URL, f"/collections/{COLLECTION_NAME}/points"),
+            json={"points": points},
+            headers=qdrant_headers,
+            timeout=120.0,
+        )
+        resp.raise_for_status()
+
+
+    # ---------------------------------------------------------------------------
+    # Process a single ingestion task
+    # ---------------------------------------------------------------------------
+
+
+    def process_task(task_id: str, fields: dict[str, str]) -> None:
+        file_url = fields.get("file_url", "")
+        filename = fields.get("filename", "unknown")
+        collection = fields.get("collection", COLLECTION_NAME)
+        metadata = {"filename": filename, "collection": collection}
+
+        log.info("Processing task %s: %s", task_id, filename)
+        set_status(task_id, "processing", filename=filename)
+
+        # Stage 1: Extract
+        set_status(task_id, "extracting", filename=filename)
+        text = extract_text(file_url)
+        if not text.strip():
+            set_status(task_id, "failed", error="Empty text after extraction", filename=filename)
+            log.warning("Task %s: empty extraction for %s", task_id, filename)
+            return
+
+        # Stage 2: Chunk
+        set_status(task_id, "chunking", filename=filename)
+        chunks = chunk_text(text)
+        log.info("Task %s: %d chunks from %s", task_id, len(chunks), filename)
+
+        # Stage 3: Embed
+        set_status(task_id, "embedding", filename=filename, chunk_count=len(chunks))
+        embeddings = embed_chunks(chunks)
+
+        # Stage 4: Upsert
+        set_status(task_id, "upserting", filename=filename, chunk_count=len(chunks))
+        upsert_vectors(task_id, chunks, embeddings, metadata)
+
+        set_status(task_id, "done", filename=filename, chunk_count=len(chunks))
+        log.info("Task %s: completed (%d chunks)", task_id, len(chunks))
+
+
+    # ---------------------------------------------------------------------------
+    # Consumer loop
+    # ---------------------------------------------------------------------------
+
+
+    def ensure_consumer_group() -> None:
+        try:
+            vk.xgroup_create(STREAM_NAME, CONSUMER_GROUP, id="0", mkstream=True)
+            log.info("Created consumer group %s on stream %s", CONSUMER_GROUP, STREAM_NAME)
+        except valkey.ResponseError as e:
+            if "BUSYGROUP" not in str(e):
+                raise
+            log.debug("Consumer group %s already exists", CONSUMER_GROUP)
+
+
+    def claim_pending() -> None:
+        """Claim messages that have been pending for too long (dead consumer)."""
+        min_idle_ms = 60_000  # 1 minute
+        try:
+            pending = vk.xpending_range(STREAM_NAME, CONSUMER_GROUP, min="-", max="+", count=BATCH_SIZE)
+            for entry in pending:
+                if entry["time_since_delivered"] > min_idle_ms:
+                    vk.xclaim(
+                        STREAM_NAME,
+                        CONSUMER_GROUP,
+                        CONSUMER_NAME,
+                        min_idle_time=min_idle_ms,
+                        message_ids=[entry["message_id"]],
+                    )
+                    log.info("Claimed stale message %s", entry["message_id"])
+        except Exception:
+            log.debug("No pending messages to claim")
+
+
+    def run() -> None:
+        ensure_consumer_group()
+        Path(HEALTH_FILE).touch()
+        log.info(
+            "Worker %s started (group=%s, stream=%s)", CONSUMER_NAME, CONSUMER_GROUP, STREAM_NAME
+        )
+
+        while not _shutdown:
+            # Periodically claim abandoned messages
+            claim_pending()
+
+            # Read new messages
+            try:
+                messages = vk.xreadgroup(
+                    groupname=CONSUMER_GROUP,
+                    consumername=CONSUMER_NAME,
+                    streams={STREAM_NAME: ">"},
+                    count=BATCH_SIZE,
+                    block=BLOCK_MS,
+                )
+            except valkey.ConnectionError:
+                log.warning("Valkey connection lost, retrying in 5s")
+                time.sleep(5)
+                continue
+
+            if not messages:
+                continue
+
+            for stream_name, entries in messages:
+                for msg_id, fields in entries:
+                    task_id = fields.get("task_id", msg_id)
+                    retries = 0
+                    while retries <= MAX_RETRIES:
+                        try:
+                            process_task(task_id, fields)
+                            vk.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
+                            break
+                        except Exception as exc:
+                            retries += 1
+                            if retries > MAX_RETRIES:
+                                log.error(
+                                    "Task %s failed after %d retries: %s",
+                                    task_id,
+                                    MAX_RETRIES,
+                                    exc,
+                                )
+                                set_status(task_id, "failed", error=str(exc))
+                                vk.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
+                            else:
+                                log.warning(
+                                    "Task %s retry %d/%d: %s",
+                                    task_id,
+                                    retries,
+                                    MAX_RETRIES,
+                                    exc,
+                                )
+                                time.sleep(2**retries)
+
+            # Update health marker
+            Path(HEALTH_FILE).touch()
+
+        # Clean shutdown
+        try:
+            Path(HEALTH_FILE).unlink()
+        except FileNotFoundError:
+            pass
+        log.info("Worker %s stopped", CONSUMER_NAME)
+
+
+    if __name__ == "__main__":
+        run()
+  requirements.txt: |
+    valkey>=6.0.0
+    httpx>=0.27.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
+    assurance.platform/tier: "T2"
+    assurance.platform/boundary: "ingestion"
+spec:
+  {{- if not (and (hasKey .Values.ingestionWorker "autoscaling") .Values.ingestionWorker.autoscaling.enabled) }}
+  replicas: {{ .Values.ingestionWorker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
+        checksum/config: {{ toJson .Values.ingestionWorker.env | sha256sum | trunc 16 }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "ingestion-worker" "replicaCount" .Values.ingestionWorker.replicaCount "autoscaling" (and (hasKey .Values.ingestionWorker "autoscaling") .Values.ingestionWorker.autoscaling.enabled)) | nindent 6 }}
+      initContainers:
+        {{- if .Values.valkey.enabled }}
+        {{- include "ai-stack.waitFor" (dict "name" "valkey" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) "port" .Values.valkey.service.port) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.ollama.enabled }}
+        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.valkey.enabled }}
+        - name: init-valkey-stream
+          image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              STREAM="{{ index .Values.ingestionWorker.env "INGESTION_STREAM" | default "ingestion:documents" }}"
+              GROUP="{{ index .Values.ingestionWorker.env "INGESTION_CONSUMER_GROUP" | default "ingestion-workers" }}"
+              valkey-cli -h "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" \
+                -p {{ .Values.valkey.service.port }} \
+                XGROUP CREATE "$STREAM" "$GROUP" 0 MKSTREAM 2>/dev/null || true
+              echo "Stream '$STREAM' and consumer group '$GROUP' ready."
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+        {{- end }}
+        - name: install-deps
+          image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ['sh', '-c', 'pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: deps
+              mountPath: /deps
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      containers:
+        - name: ingestion-worker
+          image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          command: ['python', '/scripts/worker.py']
+          env:
+            - name: PYTHONPATH
+              value: "/deps"
+            - name: VALKEY_URL
+              value: 'redis://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
+            {{- range $key, $value := .Values.ingestionWorker.env }}
+            - name: {{ $key }}
+              value: {{ tpl (toString $value) $ | quote }}
+            {{- end }}
+            {{- if .Values.qdrant.enabled }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                  key: api-key
+            {{- end }}
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "ingestion-worker") | nindent 12 }}
+          startupProbe:
+            exec:
+              command: ['test', '-f', '/tmp/healthy']
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ['test', '-f', '/tmp/healthy']
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ['test', '-f', '/tmp/healthy']
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: deps
+              mountPath: /deps
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.ingestionWorker.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}-script
+        - name: deps
+          emptyDir: {}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 50Mi
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
