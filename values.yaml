@@ -146,6 +146,82 @@ externalAPIs:
   #     apiKey: ""
 
 # =============================================================================
+# Authelia — Optional OIDC identity provider for Open WebUI SSO
+# Tier: T0 (safety/integrity) | Boundary: authentication
+#
+# When enabled, Authelia acts as an OpenID Connect provider. Open WebUI is
+# automatically configured as an OIDC client (OAUTH_* env vars injected).
+# Disabled by default — Open WebUI falls back to its built-in local auth.
+#
+# Storage: SQLite (lab) or PostgreSQL (prod, reuses postgres component).
+# Session: Valkey (reuses existing valkey component when available).
+# License: Apache 2.0
+# =============================================================================
+authelia:
+  enabled: false  # Opt-in; when true, Open WebUI OAUTH_* env vars are auto-wired
+  image:
+    repository: ghcr.io/authelia/authelia
+    tag: "4.38"
+  service:
+    type: ClusterIP
+    port: 9091
+  # -- OIDC configuration for Open WebUI
+  oidc:
+    # -- Client ID for the Open WebUI OIDC client (not secret)
+    clientId: "openwebui"
+    # -- Override OIDC client secret (auto-generated if empty; stored in Secret)
+    clientSecret: ""
+    # -- Scopes requested by Open WebUI
+    scopes:
+      - openid
+      - profile
+      - email
+    # -- Authelia issuer URL (must be reachable by user browsers for OIDC redirects)
+    # In-cluster traffic uses Service DNS; browser redirects need this external URL.
+    issuerUrl: "https://auth.example.local"
+  # -- Domain for Authelia session cookies
+  domain: "example.local"
+  # -- Default policy: one_factor or two_factor
+  defaultPolicy: "one_factor"
+  # -- Storage backend: "local" (SQLite) or "postgres" (reuse postgres component)
+  storage: "local"
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: auth.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /config
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      httpGet:
+        path: /api/health
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /api/health
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
 # Open WebUI — Primary user interface for LLM interaction
 # Tier: T1 (operational) | Boundary: decision
 # =============================================================================

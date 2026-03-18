@@ -98,6 +98,10 @@ spec:
           {{- if .Values.postgres.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}" "{{ .Values.postgres.service.port }}" "PostgreSQL"
           {{- end }}
+          {{- if .Values.authelia.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}" "{{ .Values.authelia.service.port }}" "Authelia"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}" "{{ .Values.authelia.service.port }}" "/api/health" "Authelia health"
+          {{- end }}
           echo "---"
           echo "Results: ${PASS} passed, ${FAIL} failed"
           [ "$FAIL" -eq 0 ]
