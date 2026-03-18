@@ -32,6 +32,8 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 | BSD-3-Clause | Permissive | Opt-in | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.1.2 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 | MIT | Permissive | Opt-in | No |
+| Authelia | `ghcr.io/authelia/authelia` | 4.38 | Apache-2.0 | Permissive | Opt-in | No |
+| Ingestion Worker | `docker.io/library/python` | 3.12-slim | PSF-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0
 
@@ -46,7 +48,7 @@ BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
 **Components:** Open WebUI, Ollama, Qdrant, Pipelines, Tika, Valkey,
-OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO
+OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)
 
@@ -96,7 +98,7 @@ consult legal counsel before enabling LangGraph. The component is opt-in
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 13 components catalogued |
+| All licenses identified | Done | 15 components catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |

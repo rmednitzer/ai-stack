@@ -521,6 +521,41 @@
     },
     {
       "type": "container",
+      "bom-ref": "authelia",
+      "name": "authelia",
+      "version": "4.38",
+      "description": "OIDC identity provider for SSO, MFA, and federated authentication",
+      "purl": "pkg:docker/authelia/authelia@4.38?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T0"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "authentication"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/authelia/authelia"
+        }
+      ]
+    },
+    {
+      "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
       "version": "3.12-slim",
@@ -572,7 +607,14 @@
         "workbench",
         "open-terminal",
         "mcpo",
-        "ingestion-worker"
+        "ingestion-worker",
+        "authelia"
+      ]
+    },
+    {
+      "ref": "authelia",
+      "dependsOn": [
+        "valkey"
       ]
     },
     {

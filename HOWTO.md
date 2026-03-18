@@ -54,49 +54,56 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
     - [Expose Open WebUI with NGINX](#111-expose-open-webui-with-nginx)
     - [Expose Open WebUI with Envoy Gateway](#112-expose-open-webui-with-envoy-gateway)
     - [Automated TLS with cert-manager](#113-automated-tls-with-cert-manager)
-12. [Networking and Security](#12-networking-and-security)
-    - [Network policies](#121-network-policies)
-    - [Pod security](#122-pod-security)
-    - [Secret management](#123-secret-management)
-    - [Rotate secrets](#124-rotate-secrets)
-13. [Observability](#13-observability)
-    - [Enable OpenTelemetry](#131-enable-opentelemetry)
-    - [Enable Prometheus ServiceMonitors](#132-enable-prometheus-servicemonitors)
-    - [PII redaction](#133-pii-redaction)
-14. [Backup and Restore](#14-backup-and-restore)
-    - [Enable automated backups](#141-enable-automated-backups)
-    - [Manual Qdrant snapshot](#142-manual-qdrant-snapshot)
-    - [Restore from backup](#143-restore-from-backup)
-15. [Scaling](#15-scaling)
-    - [Horizontal Pod Autoscaling](#151-horizontal-pod-autoscaling)
-    - [Manual scaling](#152-manual-scaling)
-    - [Resource tuning](#153-resource-tuning)
-16. [Upgrading](#16-upgrading)
-    - [Upgrade the chart](#161-upgrade-the-chart)
-    - [Upgrade individual component images](#162-upgrade-individual-component-images)
-    - [Upgrade with zero downtime](#163-upgrade-with-zero-downtime)
-17. [GitOps with ArgoCD](#17-gitops-with-argocd)
-    - [Deploy the lab application](#171-deploy-the-lab-application)
-    - [Deploy the production application](#172-deploy-the-production-application)
-    - [Customizing the application manifests](#173-customizing-the-application-manifests)
-    - [Ignore differences](#174-ignore-differences)
-    - [Disaster recovery](#175-disaster-recovery)
-18. [EU Compliance](#18-eu-compliance)
-    - [AI transparency disclosure](#181-ai-transparency-disclosure)
-    - [Data retention](#182-data-retention)
-    - [External API provider governance](#183-external-api-provider-governance)
-    - [Encryption at rest](#184-encryption-at-rest)
-    - [Compliance documentation](#185-compliance-documentation)
-19. [Troubleshooting](#19-troubleshooting)
-    - [Pods stuck in Pending](#191-pods-stuck-in-pending)
-    - [Ollama out of memory](#192-ollama-out-of-memory)
-    - [Open WebUI cannot reach Ollama](#193-open-webui-cannot-reach-ollama)
-    - [NetworkPolicy blocking traffic](#194-networkpolicy-blocking-traffic)
-    - [PVC stuck in Pending](#195-pvc-stuck-in-pending)
-    - [Secrets not generated](#196-secrets-not-generated)
-    - [Helm test failures](#197-helm-test-failures)
-    - [GPU not detected](#198-gpu-not-detected)
-20. [Uninstall](#20-uninstall)
+12. [Authentication with Authelia (SSO / OIDC)](#12-authentication-with-authelia-sso--oidc)
+    - [Enable Authelia](#121-enable-authelia)
+    - [Create users](#122-create-users)
+    - [Enable MFA (two-factor)](#123-enable-mfa-two-factor)
+    - [Use PostgreSQL as storage backend](#124-use-postgresql-as-storage-backend)
+    - [Expose Authelia via ingress](#125-expose-authelia-via-ingress)
+    - [Verify OIDC integration](#126-verify-oidc-integration)
+13. [Networking and Security](#13-networking-and-security)
+    - [Network policies](#131-network-policies)
+    - [Pod security](#132-pod-security)
+    - [Secret management](#133-secret-management)
+    - [Rotate secrets](#134-rotate-secrets)
+14. [Observability](#14-observability)
+    - [Enable OpenTelemetry](#141-enable-opentelemetry)
+    - [Enable Prometheus ServiceMonitors](#142-enable-prometheus-servicemonitors)
+    - [PII redaction](#143-pii-redaction)
+15. [Backup and Restore](#15-backup-and-restore)
+    - [Enable automated backups](#151-enable-automated-backups)
+    - [Manual Qdrant snapshot](#152-manual-qdrant-snapshot)
+    - [Restore from backup](#153-restore-from-backup)
+16. [Scaling](#16-scaling)
+    - [Horizontal Pod Autoscaling](#161-horizontal-pod-autoscaling)
+    - [Manual scaling](#162-manual-scaling)
+    - [Resource tuning](#163-resource-tuning)
+17. [Upgrading](#17-upgrading)
+    - [Upgrade the chart](#171-upgrade-the-chart)
+    - [Upgrade individual component images](#172-upgrade-individual-component-images)
+    - [Upgrade with zero downtime](#173-upgrade-with-zero-downtime)
+18. [GitOps with ArgoCD](#18-gitops-with-argocd)
+    - [Deploy the lab application](#181-deploy-the-lab-application)
+    - [Deploy the production application](#182-deploy-the-production-application)
+    - [Customizing the application manifests](#183-customizing-the-application-manifests)
+    - [Ignore differences](#184-ignore-differences)
+    - [Disaster recovery](#185-disaster-recovery)
+19. [EU Compliance](#19-eu-compliance)
+    - [AI transparency disclosure](#191-ai-transparency-disclosure)
+    - [Data retention](#192-data-retention)
+    - [External API provider governance](#193-external-api-provider-governance)
+    - [Encryption at rest](#194-encryption-at-rest)
+    - [Compliance documentation](#195-compliance-documentation)
+20. [Troubleshooting](#20-troubleshooting)
+    - [Pods stuck in Pending](#201-pods-stuck-in-pending)
+    - [Ollama out of memory](#202-ollama-out-of-memory)
+    - [Open WebUI cannot reach Ollama](#203-open-webui-cannot-reach-ollama)
+    - [NetworkPolicy blocking traffic](#204-networkpolicy-blocking-traffic)
+    - [PVC stuck in Pending](#205-pvc-stuck-in-pending)
+    - [Secrets not generated](#206-secrets-not-generated)
+    - [Helm test failures](#207-helm-test-failures)
+    - [GPU not detected](#208-gpu-not-detected)
+21. [Uninstall](#21-uninstall)
 
 ---
 
@@ -861,9 +868,111 @@ This automatically provisions and renews TLS certificates from Let's Encrypt.
 
 ---
 
-## 12. Networking and Security
+## 12. Authentication with Authelia (SSO / OIDC)
 
-### 12.1 Network Policies
+Authelia is an optional OIDC identity provider that replaces Open WebUI's built-in authentication with SSO and optional MFA. When enabled, Open WebUI is automatically configured as an OIDC client.
+
+### 12.1 Enable Authelia
+
+```yaml
+authelia:
+  enabled: true
+  domain: "example.com"
+  oidc:
+    clientId: "openwebui"
+    issuerUrl: "https://auth.example.com"
+```
+
+The chart auto-generates secrets for JWT, session, storage encryption, and the OIDC client secret. Open WebUI's `OAUTH_*` environment variables are injected automatically.
+
+### 12.2 Create users
+
+Authelia uses a file-based authentication backend by default. Generate a password hash and mount a custom `users_database.yml`:
+
+```bash
+# Generate an Argon2 password hash
+docker run --rm ghcr.io/authelia/authelia:4.38 \
+  authelia crypto hash generate argon2 --password 'your-password'
+```
+
+Create a `users_database.yml`:
+
+```yaml
+users:
+  admin:
+    displayname: "Admin User"
+    email: admin@example.com
+    password: "$argon2id$v=19$m=65536,t=3,p=4$..."  # paste hash here
+    groups:
+      - admins
+```
+
+Mount it by overriding the ConfigMap or using a Helm post-renderer.
+
+### 12.3 Enable MFA (two-factor)
+
+```yaml
+authelia:
+  enabled: true
+  defaultPolicy: "two_factor"
+```
+
+Users will be prompted to register a TOTP device on their first login.
+
+### 12.4 Use PostgreSQL as storage backend
+
+For production, switch from SQLite to PostgreSQL:
+
+```yaml
+authelia:
+  enabled: true
+  storage: "postgres"
+postgres:
+  enabled: true
+```
+
+Authelia creates its tables in a dedicated `authelia` schema within the shared PostgreSQL database.
+
+### 12.5 Expose Authelia via ingress
+
+Authelia must be reachable by user browsers for OIDC redirects:
+
+```yaml
+authelia:
+  ingress:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - host: auth.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: auth-tls
+        hosts:
+          - auth.example.com
+```
+
+### 12.6 Verify OIDC integration
+
+After deploying, verify the OIDC discovery endpoint and login flow:
+
+```bash
+# Check Authelia health
+kubectl exec -n ai-stack deploy/ai-stack-authelia -- wget -qO- http://localhost:9091/api/health
+
+# Verify OIDC discovery
+kubectl port-forward -n ai-stack svc/ai-stack-authelia 9091:9091
+curl -s http://localhost:9091/.well-known/openid-configuration | jq .issuer
+```
+
+Open WebUI should redirect to Authelia's login page when accessed.
+
+---
+
+## 13. Networking and Security
+
+### 13.1 Network Policies
 
 The chart deploys **default-deny** NetworkPolicies with per-component allowlists. This means:
 
@@ -886,7 +995,7 @@ global:
     enabled: false
 ```
 
-### 12.2 Pod Security
+### 13.2 Pod Security
 
 All pods run with PSA restricted baseline:
 
@@ -904,7 +1013,7 @@ kubectl label namespace ai-stack \
   pod-security.kubernetes.io/warn=restricted
 ```
 
-### 12.3 Secret Management
+### 13.3 Secret Management
 
 Secrets are auto-generated on first install with 64-byte random keys and annotated with `helm.sh/resource-policy: keep` to survive upgrades.
 
@@ -938,7 +1047,7 @@ externalAPIs:
         key: "api-key"
 ```
 
-### 12.4 Rotate Secrets
+### 13.4 Rotate Secrets
 
 1. Generate new secret values
 2. Update the Kubernetes Secret directly:
@@ -959,9 +1068,9 @@ kubectl rollout restart -n ai-stack deploy/ai-stack-openwebui
 
 ---
 
-## 13. Observability
+## 14. Observability
 
-### 13.1 Enable OpenTelemetry
+### 14.1 Enable OpenTelemetry
 
 ```yaml
 global:
@@ -978,7 +1087,7 @@ This deploys an OTel Collector and injects `OTEL_*` environment variables into a
 - GenAI semantic convention processing
 - PII redaction (GDPR compliance)
 
-### 13.2 Enable Prometheus ServiceMonitors
+### 14.2 Enable Prometheus ServiceMonitors
 
 **Prerequisite:** Prometheus Operator CRDs must be installed.
 
@@ -990,7 +1099,7 @@ global:
       release: prometheus  # Match your Prometheus operator selector
 ```
 
-### 13.3 PII Redaction
+### 14.3 PII Redaction
 
 The OTel Collector automatically redacts:
 
@@ -1015,9 +1124,9 @@ otelCollector:
 
 ---
 
-## 14. Backup and Restore
+## 15. Backup and Restore
 
-### 14.1 Enable Automated Backups
+### 15.1 Enable Automated Backups
 
 ```yaml
 global:
@@ -1032,7 +1141,7 @@ This creates CronJobs for:
 - **Qdrant:** Snapshot-based backup with configurable retention (default: 7 snapshots)
 - **Ollama:** Model manifest and blob backup (default: 3 backups retained)
 
-### 14.2 Manual Qdrant Snapshot
+### 15.2 Manual Qdrant Snapshot
 
 Trigger a manual Qdrant snapshot:
 
@@ -1048,7 +1157,7 @@ kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
     -H "api-key: $(kubectl get secret -n ai-stack ai-stack-qdrant-secret -o jsonpath='{.data.api-key}' | base64 -d)"
 ```
 
-### 14.3 Restore from Backup
+### 15.3 Restore from Backup
 
 **Qdrant:**
 
@@ -1061,9 +1170,9 @@ kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
 
 ---
 
-## 15. Scaling
+## 16. Scaling
 
-### 15.1 Horizontal Pod Autoscaling
+### 16.1 Horizontal Pod Autoscaling
 
 HPA is available for stateless components. Enable in your values:
 
@@ -1095,7 +1204,7 @@ Verify HPA status:
 kubectl get hpa -n ai-stack
 ```
 
-### 15.2 Manual Scaling
+### 16.2 Manual Scaling
 
 For components without HPA:
 
@@ -1109,7 +1218,7 @@ kubectl scale -n ai-stack deploy/ai-stack-ingestion-worker --replicas=4
 
 **Note:** Stateful components (Ollama, Qdrant) use ReadWriteOnce PVCs and cannot be scaled beyond 1 replica without operator support (e.g., Qdrant distributed mode) or shared storage.
 
-### 15.3 Resource Tuning
+### 16.3 Resource Tuning
 
 Adjust resource requests and limits per component. Example for a high-traffic production deployment:
 
@@ -1137,9 +1246,9 @@ ollama:
 
 ---
 
-## 16. Upgrading
+## 17. Upgrading
 
-### 16.1 Upgrade the Chart
+### 17.1 Upgrade the Chart
 
 ```bash
 # Review what will change
@@ -1154,7 +1263,7 @@ helm upgrade ai-stack . -n ai-stack -f values.yaml -f values-prod.yaml
 
 Secrets annotated with `helm.sh/resource-policy: keep` survive upgrades. PVCs are also retained.
 
-### 16.2 Upgrade Individual Component Images
+### 17.2 Upgrade Individual Component Images
 
 To update a single component without changing the chart:
 
@@ -1165,7 +1274,7 @@ helm upgrade ai-stack . -n ai-stack \
 
 Or update the tag in your values file and run `helm upgrade`.
 
-### 16.3 Upgrade with Zero Downtime
+### 17.3 Upgrade with Zero Downtime
 
 For stateless components with multiple replicas, rolling updates happen automatically. Ensure:
 
@@ -1180,7 +1289,7 @@ kubectl rollout status -n ai-stack deploy/ai-stack-openwebui
 
 ---
 
-## 17. GitOps with ArgoCD
+## 18. GitOps with ArgoCD
 
 Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Application manifests under `argocd/`.
 
@@ -1189,7 +1298,7 @@ Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Appli
 - ArgoCD installed in the cluster (namespace `argocd`)
 - Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
 
-### 17.1 Deploy the Lab Application
+### 18.1 Deploy the Lab Application
 
 The lab application enables **automated sync** with self-healing and pruning — changes pushed to `main` are applied automatically.
 
@@ -1216,7 +1325,7 @@ argocd app get ai-stack-lab
 kubectl get application ai-stack-lab -n argocd -o jsonpath='{.status.sync.status}'
 ```
 
-### 17.2 Deploy the Production Application
+### 18.2 Deploy the Production Application
 
 The production application uses **manual sync** for change-control compliance. ArgoCD detects when the repo is out-of-sync, but an operator must explicitly trigger the sync.
 
@@ -1254,7 +1363,7 @@ notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
 notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
 ```
 
-### 17.3 Customizing the Application Manifests
+### 18.3 Customizing the Application Manifests
 
 **Change the target branch or repo:**
 
@@ -1297,7 +1406,7 @@ argocd proj create ai-stack \
   --allow-cluster-resource /Namespace
 ```
 
-### 17.4 Ignore Differences
+### 18.4 Ignore Differences
 
 Both manifests ignore diffs on:
 
@@ -1314,7 +1423,7 @@ ignoreDifferences:
       - /data/custom-key
 ```
 
-### 17.5 Disaster Recovery
+### 18.5 Disaster Recovery
 
 Both applications set `revisionHistoryLimit` (5 for lab, 10 for production) so you can roll back to a previous sync:
 
@@ -1330,13 +1439,13 @@ The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resou
 
 ---
 
-## 18. EU Compliance
+## 19. EU Compliance
 
 This section covers EU regulatory compliance tasks. For the full compliance
 framework analysis, see [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md). For
 detailed templates and procedures, see [docs/compliance/](docs/compliance/).
 
-### 18.1 AI Transparency Disclosure
+### 19.1 AI Transparency Disclosure
 
 AI Act Art. 50(1) requires informing users when they interact with an AI
 system. The chart includes a configurable banner:
@@ -1351,14 +1460,14 @@ openwebui:
 
 Customise the text for your deployment. Set `WEBUI_BANNER_TEXT: ""` to disable.
 
-### 18.2 Data Retention
+### 19.2 Data Retention
 
 GDPR Art. 5(1)(e) requires storage limitation. Define and enforce retention
 periods for all personal data categories. See
 [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1
 for recommended retention periods and automated purge scripts.
 
-### 18.3 External API Provider Governance
+### 19.3 External API Provider Governance
 
 When enabling external LLM providers (`externalAPIs.enabled=true`), complete
 the pre-enablement checklist in
@@ -1370,7 +1479,7 @@ including:
 - ROPA update (PA-06 in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md))
 - Privacy notice update
 
-### 18.4 Encryption at Rest
+### 19.4 Encryption at Rest
 
 NIS2 Art. 21(2)(h) requires cryptography policies. Ensure PVCs containing
 personal data use an encrypted StorageClass. See
@@ -1382,7 +1491,7 @@ global:
   storageClass: "gp3-encrypted"  # or "zfs-encrypted", etc.
 ```
 
-### 18.5 Compliance Documentation
+### 19.5 Compliance Documentation
 
 Complete the following before production deployment:
 
@@ -1398,9 +1507,9 @@ Complete the following before production deployment:
 
 ---
 
-## 19. Troubleshooting
+## 20. Troubleshooting
 
-### 19.1 Pods Stuck in Pending
+### 20.1 Pods Stuck in Pending
 
 ```bash
 kubectl describe pod -n ai-stack <pod-name>
@@ -1412,7 +1521,7 @@ Common causes:
 - **No matching node selector/tolerations:** Check `global.nodeSelector` and `global.tolerations`
 - **GPU requested but unavailable:** Ensure the NVIDIA GPU Operator is installed and GPUs are free
 
-### 19.2 Ollama Out of Memory
+### 20.2 Ollama Out of Memory
 
 Ollama may OOM when loading large models. Solutions:
 
@@ -1435,7 +1544,7 @@ ollama:
     OLLAMA_KEEP_ALIVE: "1m"
 ```
 
-### 19.3 Open WebUI Cannot Reach Ollama
+### 20.3 Open WebUI Cannot Reach Ollama
 
 1. Check Ollama is running: `kubectl get pods -n ai-stack -l app.kubernetes.io/component=ollama`
 2. Check the service exists: `kubectl get svc -n ai-stack -l app.kubernetes.io/component=ollama`
@@ -1452,7 +1561,7 @@ kubectl exec -n ai-stack deploy/ai-stack-openwebui -- \
 kubectl describe networkpolicy -n ai-stack | grep -A 5 ollama
 ```
 
-### 19.4 NetworkPolicy Blocking Traffic
+### 20.4 NetworkPolicy Blocking Traffic
 
 Symptom: Components cannot communicate even though services exist.
 
@@ -1470,7 +1579,7 @@ helm upgrade ai-stack . -n ai-stack --set global.networkPolicy.enabled=false
 
 3. If traffic works with policies disabled, check the specific component's policy rules in `templates/common/networkpolicies.yaml`.
 
-### 19.5 PVC Stuck in Pending
+### 20.5 PVC Stuck in Pending
 
 ```bash
 kubectl describe pvc -n ai-stack <pvc-name>
@@ -1482,7 +1591,7 @@ Common causes:
 - **Insufficient storage capacity:** Check available storage in the cluster
 - **Access mode mismatch:** Ensure the StorageClass supports `ReadWriteOnce`
 
-### 19.6 Secrets Not Generated
+### 20.6 Secrets Not Generated
 
 Secrets are only generated on `helm install`, not on `helm upgrade`. If secrets are missing:
 
@@ -1498,7 +1607,7 @@ helm install ai-stack . -n ai-stack
 
 **Important:** PVCs with `helm.sh/resource-policy: keep` are not deleted on uninstall.
 
-### 19.7 Helm Test Failures
+### 20.7 Helm Test Failures
 
 ```bash
 # Run tests with verbose output
@@ -1510,7 +1619,7 @@ kubectl logs -n ai-stack ai-stack-connection-test
 
 Tests verify TCP and HTTP connectivity to all enabled services.
 
-### 19.8 GPU Not Detected
+### 20.8 GPU Not Detected
 
 ```bash
 # Check NVIDIA device plugin is running
@@ -1531,7 +1640,7 @@ Ensure:
 
 ---
 
-## 20. Uninstall
+## 21. Uninstall
 
 ```bash
 # Remove the Helm release (PVCs are retained)
