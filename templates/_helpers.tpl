@@ -127,6 +127,98 @@ topologySpreadConstraints:
 {{- end }}
 
 {{/*
+=============================================================================
+PostgreSQL connection abstraction helpers.
+These resolve hostname, port, secret references, and connection URI
+regardless of whether mode is standalone, cnpg, or external.
+=============================================================================
+*/}}
+
+{{/*
+PostgreSQL internal service/host name.
+  standalone: <release>-postgres  (Service created by deployment.yaml)
+  cnpg:       <release>-postgres-rw  (CNPG convention: <cluster>-rw)
+              or <release>-postgres-pooler-rw when pooler is enabled
+  external:   user-supplied host
+*/}}
+{{- define "ai-stack.postgresHost" -}}
+{{- if eq .Values.postgres.mode "external" -}}
+  {{- required "postgres.external.host is required when mode=external" .Values.postgres.external.host -}}
+{{- else if eq .Values.postgres.mode "cnpg" -}}
+  {{- if .Values.postgres.cnpg.pooler.enabled -}}
+    {{- printf "%s-postgres-pooler-%s" .Release.Name .Values.postgres.cnpg.pooler.type -}}
+  {{- else -}}
+    {{- printf "%s-postgres-rw" .Release.Name -}}
+  {{- end -}}
+{{- else -}}
+  {{- include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+PostgreSQL port.
+*/}}
+{{- define "ai-stack.postgresPort" -}}
+{{- if eq .Values.postgres.mode "external" -}}
+  {{- .Values.postgres.external.port | default 5432 -}}
+{{- else -}}
+  {{- .Values.postgres.service.port | default 5432 -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+PostgreSQL secret name containing the password.
+  standalone: <release>-postgres-secret   (managed by secrets.yaml)
+  cnpg:       <release>-postgres-app      (CNPG convention: <cluster>-app)
+  external:   user-supplied secret name
+*/}}
+{{- define "ai-stack.postgresSecretName" -}}
+{{- if eq .Values.postgres.mode "external" -}}
+  {{- required "postgres.external.existingSecret.name is required when mode=external" .Values.postgres.external.existingSecret.name -}}
+{{- else if eq .Values.postgres.mode "cnpg" -}}
+  {{- printf "%s-postgres-app" .Release.Name -}}
+{{- else -}}
+  {{- printf "%s-secret" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres")) -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+PostgreSQL secret key for the password field.
+  standalone: password
+  cnpg:       password  (CNPG app secret uses "password")
+  external:   user-supplied key
+*/}}
+{{- define "ai-stack.postgresSecretKey" -}}
+{{- if eq .Values.postgres.mode "external" -}}
+  {{- .Values.postgres.external.existingSecret.key | default "password" -}}
+{{- else -}}
+  password
+{{- end -}}
+{{- end }}
+
+{{/*
+PostgreSQL SSL mode for connection URIs.
+*/}}
+{{- define "ai-stack.postgresSslMode" -}}
+{{- .Values.postgres.tls.mode | default "disable" -}}
+{{- end }}
+
+{{/*
+PostgreSQL connection URI template.
+Consumers inject _PG_PASSWORD env var from the secret, then reference this
+URI which uses the variable substitution: $(_PG_PASSWORD).
+Usage in env:
+  - name: POSTGRES_URI
+    value: {{ include "ai-stack.postgresURI" . }}
+*/}}
+{{- define "ai-stack.postgresURI" -}}
+{{- $host := include "ai-stack.postgresHost" . -}}
+{{- $port := include "ai-stack.postgresPort" . -}}
+{{- $ssl := include "ai-stack.postgresSslMode" . -}}
+{{- printf "postgresql://%s:$(_PG_PASSWORD)@%s:%s/%s?sslmode=%s" .Values.postgres.user $host $port .Values.postgres.database $ssl -}}
+{{- end }}
+
+{{/*
 Init container: wait for a TCP service to become reachable.
 Uses busybox nc; no external dependencies.
 */}}

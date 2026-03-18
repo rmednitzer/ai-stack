@@ -748,13 +748,24 @@ spec:
   egress:
     # PostgreSQL (checkpoint persistence)
     {{- if .Values.postgres.enabled }}
+    {{- if eq .Values.postgres.mode "external" }}
+    # External PostgreSQL — egress to user-specified host
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.postgres.external.port | default 5432 }}
+    {{- else }}
     - to:
         - podSelector:
             matchLabels:
+              {{- if eq .Values.postgres.mode "cnpg" }}
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+              {{- else }}
               app.kubernetes.io/name: postgres
+              {{- end }}
       ports:
         - protocol: TCP
           port: 5432
+    {{- end }}
     {{- end }}
     # Ollama (LLM inference)
     {{- if .Values.ollama.enabled }}
@@ -813,9 +824,11 @@ spec:
 {{- end }}
 
 # =============================================================================
-# PostgreSQL — accepts from LangGraph only
+# PostgreSQL — accepts from LangGraph only (standalone mode)
+# CNPG mode: operator manages its own NetworkPolicies.
+# External mode: no in-cluster PostgreSQL pods to protect.
 # =============================================================================
-{{- if .Values.postgres.enabled }}
+{{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

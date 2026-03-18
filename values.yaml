@@ -658,56 +658,160 @@ langgraph:
       periodSeconds: 10
 
 # =============================================================================
-# PostgreSQL — Checkpoint persistence for LangGraph agentic state
+# PostgreSQL — Relational database for stateful services
 # Tier: T2 (productivity) | Boundary: storage
 #
 # Purpose: durable storage for LangGraph agent checkpoints, thread state,
-# and run history. Required when langgraph.enabled=true.
+# and run history. Designed as a shared database service that future
+# components can consume.
 #
-# Note: this is a lightweight single-instance PostgreSQL — not intended as
-# a general-purpose database. For production HA, consider an external
-# managed PostgreSQL and set postgres.enabled=false with a custom
-# POSTGRES_URI in langgraph.env.
+# Modes:
+#   standalone — lightweight single-instance Deployment (lab / dev)
+#   cnpg       — CloudNativePG operator-managed cluster (production HA)
+#   external   — bring-your-own managed PostgreSQL (RDS, Cloud SQL, etc.)
+#
+# When mode=cnpg, the CloudNativePG operator must be pre-installed in the
+# cluster. Install via: helm install cnpg cloudnative-pg/cloudnative-pg
 # =============================================================================
 postgres:
-  enabled: false  # Enable together with langgraph
-  replicaCount: 1
-  image:
-    repository: docker.io/library/postgres
-    tag: "16-alpine"
-  service:
-    type: ClusterIP
-    port: 5432
-  # -- Override password (auto-generated if empty; stored in Secret)
-  password: ""
+  enabled: false  # Enable together with langgraph (or any future PG consumer)
+
+  # -- PostgreSQL provisioning mode: standalone | cnpg | external
+  mode: standalone
+
   # -- Database name
   database: "langgraph"
   # -- Database user
   user: "langgraph"
-  env: {}
-  persistence:
-    enabled: true
-    size: 10Gi
-    accessMode: ReadWriteOnce
-    mountPath: /var/lib/postgresql/data
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 1Gi
-  probes:
-    liveness:
-      exec:
-        command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readiness:
-      exec:
-        command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
-      initialDelaySeconds: 5
-      periodSeconds: 10
+  # -- Override password (auto-generated if empty; stored in Secret)
+  #    Ignored when mode=external (use external.existingSecret instead).
+  #    Ignored when mode=cnpg (CNPG manages credentials automatically).
+  password: ""
+
+  # -- Service port (standalone and cnpg modes expose this port)
+  service:
+    type: ClusterIP
+    port: 5432
+
+  # -- TLS mode for client connections: disable | require | verify-ca | verify-full
+  #    standalone: passed as PGSSLMODE to clients (server-side TLS not managed)
+  #    cnpg: operator provisions certificates automatically when not "disable"
+  #    external: passed as sslmode in connection URI
+  tls:
+    mode: disable
+
+  # ---------------------------------------------------------------------------
+  # Standalone mode settings (mode: standalone)
+  # Single-instance Deployment with PVC — not HA, suitable for lab/dev.
+  # ---------------------------------------------------------------------------
+  standalone:
+    replicaCount: 1
+    image:
+      repository: docker.io/library/postgres
+      tag: "16-alpine"
+    env: {}
+    persistence:
+      enabled: true
+      size: 10Gi
+      accessMode: ReadWriteOnce
+      mountPath: /var/lib/postgresql/data
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+    probes:
+      liveness:
+        exec:
+          command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
+        initialDelaySeconds: 30
+        periodSeconds: 30
+      readiness:
+        exec:
+          command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
+        initialDelaySeconds: 5
+        periodSeconds: 10
+
+  # ---------------------------------------------------------------------------
+  # CloudNativePG mode settings (mode: cnpg)
+  # Operator-managed PostgreSQL cluster with HA, automated failover, backups,
+  # and optional connection pooling via PgBouncer.
+  #
+  # Prerequisites: CloudNativePG operator v1.25+ installed in the cluster.
+  # ---------------------------------------------------------------------------
+  cnpg:
+    # -- Number of PostgreSQL instances (1 = single, 3 = HA with streaming replication)
+    instances: 3
+    # -- PostgreSQL major version
+    imageName: "ghcr.io/cloudnative-pg/postgresql:16"
+    storage:
+      size: 20Gi
+      # -- Storage class override (uses global.storageClass if empty)
+      storageClass: ""
+    # -- Resource requests/limits for each PostgreSQL instance
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "2"
+        memory: 2Gi
+    # -- PostgreSQL configuration parameters
+    postgresql:
+      parameters:
+        shared_buffers: "256MB"
+        effective_cache_size: "768MB"
+        max_connections: "200"
+        # -- WAL settings for streaming replication
+        wal_level: "replica"
+        max_wal_senders: "10"
+        max_replication_slots: "10"
+    # -- Automated backup configuration
+    backup:
+      enabled: false
+      # -- Backup destination (S3-compatible or volume snapshot)
+      barmanObjectStore: {}
+      #   destinationPath: "s3://my-bucket/cnpg-backups"
+      #   endpointURL: "https://s3.eu-central-1.amazonaws.com"
+      #   s3Credentials:
+      #     accessKeyId:
+      #       name: cnpg-backup-creds
+      #       key: ACCESS_KEY_ID
+      #     secretAccessKey:
+      #       name: cnpg-backup-creds
+      #       key: ACCESS_SECRET_KEY
+      retentionPolicy: "30d"
+      schedule: "0 0 2 * * *"  # Daily at 02:00
+    # -- PgBouncer connection pooler
+    pooler:
+      enabled: false
+      instances: 2
+      type: rw  # rw = read-write, ro = read-only
+      pgbouncer:
+        poolMode: transaction
+        defaultPoolSize: "25"
+        maxClientConn: "200"
+    # -- Monitoring (requires Prometheus Operator)
+    monitoring:
+      enabled: false
+
+  # ---------------------------------------------------------------------------
+  # External mode settings (mode: external)
+  # Bring-your-own PostgreSQL — RDS, Cloud SQL, Supabase, self-managed, etc.
+  # The chart creates no PostgreSQL resources; only connection details.
+  # ---------------------------------------------------------------------------
+  external:
+    # -- Hostname of the external PostgreSQL server
+    host: ""
+    # -- Port (default 5432)
+    port: 5432
+    # -- Reference an existing Secret containing the password
+    #    The secret must exist in the release namespace.
+    existingSecret:
+      name: ""
+      key: "password"
 
 # =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
