@@ -190,7 +190,7 @@ openwebui:
 ollama:
   image:
     repository: registry.internal/ollama
-    tag: "0.17.7"
+    tag: "0.18.1"
 # ... repeat for all components
 ```
 
@@ -891,7 +891,7 @@ Authelia uses a file-based authentication backend by default. Generate a passwor
 
 ```bash
 # Generate an Argon2 password hash
-docker run --rm ghcr.io/authelia/authelia:4.38 \
+docker run --rm ghcr.io/authelia/authelia:4.39 \
   authelia crypto hash generate argon2 --password 'your-password'
 ```
 
