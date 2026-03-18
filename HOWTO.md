@@ -77,6 +77,9 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
 17. [GitOps with ArgoCD](#17-gitops-with-argocd)
     - [Deploy the lab application](#171-deploy-the-lab-application)
     - [Deploy the production application](#172-deploy-the-production-application)
+    - [Customizing the application manifests](#173-customizing-the-application-manifests)
+    - [Ignore differences](#174-ignore-differences)
+    - [Disaster recovery](#175-disaster-recovery)
 18. [Troubleshooting](#18-troubleshooting)
     - [Pods stuck in Pending](#181-pods-stuck-in-pending)
     - [Ollama out of memory](#182-ollama-out-of-memory)
@@ -1087,27 +1090,151 @@ kubectl rollout status -n ai-stack deploy/ai-stack-openwebui
 
 ## 17. GitOps with ArgoCD
 
+Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Application manifests under `argocd/`.
+
+**Prerequisites:**
+
+- ArgoCD installed in the cluster (namespace `argocd`)
+- Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
+
 ### 17.1 Deploy the Lab Application
+
+The lab application enables **automated sync** with self-healing and pruning — changes pushed to `main` are applied automatically.
 
 ```bash
 kubectl apply -f argocd/application-lab.yaml
 ```
 
-The lab application has auto-sync **disabled** by default — sync manually from the ArgoCD UI or CLI.
+Key settings in `argocd/application-lab.yaml`:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `syncPolicy.automated.selfHeal` | `true` | Reverts manual drift automatically |
+| `syncPolicy.automated.prune` | `true` | Deletes resources removed from the chart |
+| `valueFiles` | `values.yaml` | Uses default (lab) values only |
+| `CreateNamespace` | `true` | ArgoCD creates the `ai-stack` namespace |
+
+Verify the application synced successfully:
+
+```bash
+# ArgoCD CLI
+argocd app get ai-stack-lab
+
+# Or via kubectl
+kubectl get application ai-stack-lab -n argocd -o jsonpath='{.status.sync.status}'
+```
 
 ### 17.2 Deploy the Production Application
+
+The production application uses **manual sync** for change-control compliance. ArgoCD detects when the repo is out-of-sync, but an operator must explicitly trigger the sync.
 
 ```bash
 kubectl apply -f argocd/application-prod.yaml
 ```
 
-The production application uses **manual sync** for change-control compliance. Review changes in ArgoCD before syncing.
+Key settings in `argocd/application-prod.yaml`:
 
-Both applications use:
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `syncPolicy.automated` | *(omitted)* | Manual sync required |
+| `valueFiles` | `values.yaml`, `values-prod.yaml` | Layers production overrides |
+| `CreateNamespace` | `false` | Namespace managed externally |
+| `ApplyOutOfSyncOnly` | `true` | Only syncs changed resources |
 
-- `ServerSideApply` for clean diff and apply semantics
-- `PruneLast` to remove orphaned resources safely
-- Retry logic for transient failures
+**Sync workflow:**
+
+```bash
+# 1. Check what changed
+argocd app diff ai-stack-prod
+
+# 2. Sync after review
+argocd app sync ai-stack-prod
+
+# 3. Monitor rollout
+argocd app wait ai-stack-prod --health
+```
+
+The production manifest also configures **Slack notifications** via `argocd-notifications` for sync success, failure, and health degradation events. Update the annotation values to match your Slack channel:
+
+```yaml
+notifications.argoproj.io/subscribe.on-sync-succeeded.slack: ai-stack-alerts
+notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
+notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
+```
+
+### 17.3 Customizing the Application Manifests
+
+**Change the target branch or repo:**
+
+```yaml
+spec:
+  source:
+    repoURL: https://github.com/your-org/ai-stack.git
+    targetRevision: release/v2   # Branch, tag, or commit SHA
+```
+
+**Add per-cluster overrides** without forking the chart:
+
+```yaml
+spec:
+  source:
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters:
+        - name: openwebui.ingress.hosts[0].host
+          value: ai.my-cluster.example.com
+        - name: ollama.gpu.enabled
+          value: "true"
+```
+
+**Use a dedicated AppProject** (recommended for production):
+
+```yaml
+spec:
+  project: ai-stack  # Instead of "default"
+```
+
+Create the AppProject to restrict allowed namespaces, cluster resources, and source repos:
+
+```bash
+argocd proj create ai-stack \
+  --src https://github.com/rmednitzer/ai-stack.git \
+  --dest https://kubernetes.default.svc,ai-stack \
+  --allow-cluster-resource /Namespace
+```
+
+### 17.4 Ignore Differences
+
+Both manifests ignore diffs on:
+
+- **Deployment replicas** — prevents HPA-managed replica counts from showing as drift
+- **Secret data** — prevents Helm-generated secrets from triggering constant out-of-sync status
+
+Add additional ignore rules as needed:
+
+```yaml
+ignoreDifferences:
+  - group: ""
+    kind: ConfigMap
+    jsonPointers:
+      - /data/custom-key
+```
+
+### 17.5 Disaster Recovery
+
+Both applications set `revisionHistoryLimit` (5 for lab, 10 for production) so you can roll back to a previous sync:
+
+```bash
+# List sync history
+argocd app history ai-stack-prod
+
+# Roll back to a specific revision
+argocd app rollback ai-stack-prod <HISTORY_ID>
+```
+
+The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resources are cleaned up if the Application is deleted. Secrets and PVCs annotated with `helm.sh/resource-policy: keep` are still retained.
 
 ---
 
