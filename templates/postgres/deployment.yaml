@@ -1,4 +1,4 @@
-{{- if .Values.postgres.enabled }}
+{{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -10,7 +10,7 @@ metadata:
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "storage"
 spec:
-  replicas: {{ .Values.postgres.replicaCount }}
+  replicas: {{ .Values.postgres.standalone.replicaCount }}
   strategy:
     type: Recreate
   selector:
@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: postgres
-          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          image: "{{ .Values.postgres.standalone.image.repository }}:{{ .Values.postgres.standalone.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
@@ -61,11 +61,11 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}-secret
-                  key: password
+                  name: {{ include "ai-stack.postgresSecretName" . }}
+                  key: {{ include "ai-stack.postgresSecretKey" . }}
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
-            {{- range $key, $value := .Values.postgres.env }}
+            {{- range $key, $value := .Values.postgres.standalone.env }}
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
@@ -77,21 +77,21 @@ spec:
               mountPath: /tmp
             - name: run
               mountPath: /var/run/postgresql
-          {{- with .Values.postgres.probes.liveness }}
+          {{- with .Values.postgres.standalone.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.postgres.probes.readiness }}
+          {{- with .Values.postgres.standalone.probes.readiness }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.postgres.resources }}
+          {{- with .Values.postgres.standalone.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
         - name: data
-          {{- if .Values.postgres.persistence.enabled }}
+          {{- if .Values.postgres.standalone.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}
           {{- else }}
@@ -127,7 +127,7 @@ spec:
       name: tcp-pg
   selector:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 4 }}
-{{- if .Values.postgres.persistence.enabled }}
+{{- if .Values.postgres.standalone.persistence.enabled }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -140,12 +140,12 @@ metadata:
     helm.sh/resource-policy: keep
 spec:
   accessModes:
-    - {{ .Values.postgres.persistence.accessMode }}
+    - {{ .Values.postgres.standalone.persistence.accessMode }}
   {{- if .Values.global.storageClass }}
   storageClassName: {{ .Values.global.storageClass | quote }}
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.postgres.persistence.size }}
+      storage: {{ .Values.postgres.standalone.persistence.size }}
 {{- end }}
 {{- end }}

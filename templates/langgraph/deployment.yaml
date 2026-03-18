@@ -38,7 +38,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "langgraph" "replicaCount" .Values.langgraph.replicaCount "autoscaling" (and (hasKey .Values.langgraph "autoscaling") .Values.langgraph.autoscaling.enabled)) | nindent 6 }}
       initContainers:
         {{- if .Values.postgres.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "postgres" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres")) "port" .Values.postgres.service.port) | nindent 8 }}
+        {{- include "ai-stack.waitFor" (dict "name" "postgres" "host" (include "ai-stack.postgresHost" .) "port" (include "ai-stack.postgresPort" .)) | nindent 8 }}
         {{- end }}
         {{- if .Values.ollama.enabled }}
         {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
@@ -70,10 +70,10 @@ spec:
             - name: _PG_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}-secret
-                  key: password
+                  name: {{ include "ai-stack.postgresSecretName" . }}
+                  key: {{ include "ai-stack.postgresSecretKey" . }}
             - name: POSTGRES_URI
-              value: "postgresql://{{ .Values.postgres.user }}:$(_PG_PASSWORD)@{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database }}?sslmode=disable"
+              value: {{ include "ai-stack.postgresURI" . | quote }}
             {{- end }}
             {{- if .Values.qdrant.enabled }}
             - name: QDRANT_API_KEY

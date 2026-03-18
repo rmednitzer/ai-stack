@@ -63,8 +63,9 @@ spec:
 
 {{/*
 PostgreSQL: stateful data — allow at most one unavailable during voluntary disruption
+(standalone mode only; CNPG manages its own PDBs)
 */}}
-{{- if .Values.postgres.enabled }}
+{{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

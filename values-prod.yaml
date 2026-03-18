@@ -185,12 +185,42 @@ langgraph:
 
 postgres:
   enabled: false  # Enable together with langgraph
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 2Gi
-  persistence:
-    size: 20Gi
+  # -- Production: use CloudNativePG for HA, automated failover, and backups.
+  #    Requires: CloudNativePG operator v1.25+ installed in the cluster.
+  #    Install: helm install cnpg cloudnative-pg/cloudnative-pg
+  mode: cnpg
+  tls:
+    mode: require
+  cnpg:
+    instances: 3
+    storage:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 4Gi
+    postgresql:
+      parameters:
+        shared_buffers: "1GB"
+        effective_cache_size: "3GB"
+        max_connections: "200"
+        wal_level: "replica"
+        max_wal_senders: "10"
+        max_replication_slots: "10"
+    backup:
+      enabled: false  # Enable when S3-compatible storage is configured
+      retentionPolicy: "30d"
+      schedule: "0 0 2 * * *"
+    pooler:
+      enabled: true
+      instances: 2
+      type: rw
+      pgbouncer:
+        poolMode: transaction
+        defaultPoolSize: "25"
+        maxClientConn: "200"
+    monitoring:
+      enabled: true
