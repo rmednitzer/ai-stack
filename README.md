@@ -418,6 +418,7 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 | **chart-testing** | `ct lint` with chart-testing for standards compliance |
 | **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml` |
 | **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
+| **cve-scan** | Scans all container images for CVEs using Grype; fails on critical vulnerabilities |
 | **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
 
 ## GitOps / ArgoCD
@@ -476,9 +477,25 @@ helm install ai-stack . --dry-run --debug -n ai-stack
 ct lint --config ct.yaml --charts .
 ```
 
-See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, backup/restore, and troubleshooting.
+See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, backup/restore, EU compliance, and troubleshooting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
+
+## EU Compliance
+
+The chart ships with templates and guidance for EU-regulated deployments:
+
+| Document | Purpose |
+|----------|---------|
+| [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md) | Gap analysis against GDPR, AI Act, NIS2, CRA, ePrivacy |
+| [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure (CVD) policy |
+| [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) | Data Protection Impact Assessment template (GDPR Art. 35 + AI Act Art. 27) |
+| [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) | Records of Processing Activities template (GDPR Art. 30) |
+| [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) | Incident response playbook (GDPR Art. 33/34, NIS2 Art. 23, AI Act Art. 73) |
+| [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) | Data subject rights procedures (GDPR Art. 15–22) |
+| [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) | Data retention, DPA guidance, encryption, content marking, training |
+
+AI Act Art. 50(1) transparency is implemented via a configurable `WEBUI_BANNER_TEXT` environment variable that informs users they are interacting with an AI system.
 
 ## License
 
