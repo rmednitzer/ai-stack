@@ -34,12 +34,13 @@
     },
     // --- Group T1 (operational) images together ---
     {
-      "description": "T1 operational images (Open WebUI, Ollama, Pipelines)",
+      "description": "T1 operational images (Open WebUI, Ollama, Pipelines, LangGraph)",
       "groupName": "T1 operational images",
       "matchPackageNames": [
         "ghcr.io/open-webui/open-webui",
         "ollama/ollama",
-        "ghcr.io/open-webui/pipelines"
+        "ghcr.io/open-webui/pipelines",
+        "docker.io/langchain/langgraph-api"
       ],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": false
@@ -54,14 +55,16 @@
     },
     // --- Group T2 (productivity) images ---
     {
-      "description": "T2 productivity images (Tika, SearXNG, Valkey, Open Terminal)",
+      "description": "T2 productivity images (Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL)",
       "groupName": "T2 productivity images",
       "matchPackageNames": [
         "apache/tika",
         "searxng/searxng",
         "quay.io/jupyter/pytorch-notebook",
         "valkey/valkey",
-        "ghcr.io/open-webui/open-terminal"
+        "ghcr.io/open-webui/open-terminal",
+        "ghcr.io/open-webui/mcpo",
+        "docker.io/library/postgres"
       ],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": false
