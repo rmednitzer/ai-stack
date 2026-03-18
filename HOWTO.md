@@ -93,10 +93,10 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
     - [Open WebUI cannot reach Ollama](#193-open-webui-cannot-reach-ollama)
     - [NetworkPolicy blocking traffic](#194-networkpolicy-blocking-traffic)
     - [PVC stuck in Pending](#195-pvc-stuck-in-pending)
-    - [Secrets not generated](#186-secrets-not-generated)
-    - [Helm test failures](#187-helm-test-failures)
-    - [GPU not detected](#188-gpu-not-detected)
-19. [Uninstall](#19-uninstall)
+    - [Secrets not generated](#196-secrets-not-generated)
+    - [Helm test failures](#197-helm-test-failures)
+    - [GPU not detected](#198-gpu-not-detected)
+20. [Uninstall](#20-uninstall)
 
 ---
 
