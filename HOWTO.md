@@ -941,7 +941,7 @@ Authelia must be reachable by user browsers for OIDC redirects:
 authelia:
   ingress:
     enabled: true
-    className: "nginx"
+    className: "envoy"
     hosts:
       - host: auth.example.com
         paths:

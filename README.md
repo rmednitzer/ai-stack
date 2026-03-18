@@ -241,7 +241,7 @@ workbench:
 openwebui:
   ingress:
     enabled: true
-    className: "nginx"
+    className: "envoy"
     hosts:
       - host: ai.example.com
         paths:
@@ -370,7 +370,7 @@ authelia:
     issuerUrl: "https://auth.example.local"
   ingress:
     enabled: true
-    className: "nginx"
+    className: "envoy"
     hosts:
       - host: auth.example.local
         paths:
