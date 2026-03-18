@@ -1,8 +1,8 @@
 # ai-stack
 
-Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
+Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/) for agentic workflows, and supporting infrastructure as a single Helm chart.
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -38,6 +38,11 @@ graph TD
   LangGraph --> Pipelines
   LangGraph --> Postgres["PostgreSQL (T2, opt-in)"]
 
+  IngestionWorker["Ingestion Worker (T2, opt-in)"] --> Valkey
+  IngestionWorker --> Tika
+  IngestionWorker --> Ollama
+  IngestionWorker --> Qdrant
+
   OTel["OTel Collector (T0)"]
 
   style OTel stroke-dasharray: 5 5
@@ -46,7 +51,10 @@ graph TD
   style LangGraph stroke-dasharray: 5 5
   style Postgres stroke-dasharray: 5 5
   style ExternalAPIs stroke-dasharray: 5 5
+  style IngestionWorker stroke-dasharray: 5 5
 ```
+
+### Component Tiers
 
 Tiering follows the platform-assurance stack-bom classification:
 
@@ -54,24 +62,43 @@ Tiering follows the platform-assurance stack-bom classification:
 |------|---------|------------|
 | T0 | Safety / Integrity | OTel Collector |
 | T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench, LangGraph |
-| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL |
+| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
+
+### Default Images
+
+| Component | Image | Version |
+|-----------|-------|---------|
+| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.8.10 |
+| Ollama | `ollama/ollama` | 0.17.7 |
+| Qdrant | `qdrant/qdrant` | v1.13.2 |
+| Tika | `apache/tika` | 3.0.0.0 |
+| SearXNG | `searxng/searxng` | 2026.3.10 |
+| Valkey | `valkey/valkey` | 8.0 |
+| Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 |
+| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.1.2 |
+| MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 |
+| LangGraph | `langchain/langgraph-api` | 0.2 |
+| PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 16 |
+| Ingestion Worker | `python` | 3.12-slim |
+| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.116.0 |
 
 ## Prerequisites
 
 - Kubernetes 1.27+
 - Helm 3.12+
-- A storage class for PersistentVolumeClaims (or use `emptyDir` for lab)
+- A StorageClass for PersistentVolumeClaims (or use `emptyDir` for lab)
 - (Optional) NVIDIA GPU Operator for Ollama / Workbench GPU acceleration
 - (Optional) Prometheus Operator CRDs for ServiceMonitor resources
 - (Optional) cert-manager for automated TLS certificate provisioning
+- (Optional) CloudNativePG operator v1.25+ for HA PostgreSQL (`postgres.mode: cnpg`)
 
 ## Quick Start
 
 ```bash
-# Add and install (from local checkout)
+# Install with lab defaults
 helm install ai-stack . -n ai-stack --create-namespace
 
-# Lab profile (default) with GPU enabled for Ollama
+# Lab with GPU enabled for Ollama
 helm install ai-stack . -n ai-stack --create-namespace \
   --set ollama.gpu.enabled=true
 
@@ -80,19 +107,17 @@ helm install ai-stack . -n ai-stack --create-namespace \
   -f values.yaml -f values-prod.yaml
 ```
 
-After installation, pull your first model:
+Pull your first models:
 
 ```bash
-RELEASE_NAME=ai-stack
-kubectl exec -n ai-stack deploy/${RELEASE_NAME}-ollama -- ollama pull llama3.2
-kubectl exec -n ai-stack deploy/${RELEASE_NAME}-ollama -- ollama pull nomic-embed-text
+kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull llama3.2
+kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull nomic-embed-text
 ```
 
 Access Open WebUI:
 
 ```bash
-RELEASE_NAME=ai-stack
-kubectl port-forward -n ai-stack svc/${RELEASE_NAME}-openwebui 8080:8080
+kubectl port-forward -n ai-stack svc/ai-stack-openwebui 8080:8080
 # Open http://localhost:8080
 ```
 
@@ -103,7 +128,7 @@ The chart ships two value files:
 | File | Purpose |
 |------|---------|
 | `values.yaml` | Full reference with all defaults (lab profile) |
-| `values-prod.yaml` | Production overlay with HA, TLS ingress, GPU, and stricter resources |
+| `values-prod.yaml` | Production overlay — HA, TLS ingress, GPU, stricter resources, OTel, backups |
 
 ### Global Settings
 
@@ -118,6 +143,8 @@ The chart ships two value files:
 | `global.otel.enabled` | Deploy OTel Collector and inject env vars | `false` |
 | `global.otel.endpoint` | OTLP endpoint | `http://otel-collector....:4317` |
 | `global.serviceMonitor.enabled` | Create Prometheus ServiceMonitor CRDs | `false` |
+| `global.backup.enabled` | Deploy backup CronJobs for stateful data | `false` |
+| `global.backup.schedule` | Backup cron schedule | `0 2 * * *` |
 
 ### Component Toggles
 
@@ -134,20 +161,22 @@ tika:
   enabled: true     # Document extraction (default: true)
 searxng:
   enabled: true     # Web search (default: true)
-workbench:
-  enabled: false    # GPU ML workbench (default: false, opt-in)
 pipelines:
   enabled: true     # Function pipelines (default: true)
 valkey:
-  enabled: true     # Valkey session cache (default: true)
+  enabled: true     # Session cache (default: true)
+workbench:
+  enabled: false    # GPU ML workbench (opt-in)
 openTerminal:
-  enabled: false    # Sandboxed terminal for AI agents (default: false, opt-in)
+  enabled: false    # Sandboxed terminal for AI agents (opt-in)
 mcpo:
-  enabled: false    # MCP-to-OpenAPI proxy (default: false, opt-in)
+  enabled: false    # MCP-to-OpenAPI proxy (opt-in)
 langgraph:
-  enabled: false    # LangGraph agentic runtime (default: false, opt-in)
+  enabled: false    # LangGraph agentic runtime (opt-in)
 postgres:
-  enabled: false    # PostgreSQL for LangGraph checkpoints (default: false, opt-in)
+  enabled: false    # PostgreSQL for LangGraph checkpoints (opt-in)
+ingestionWorker:
+  enabled: false    # Async document ingestion worker (opt-in)
 ```
 
 ### Secrets
@@ -261,6 +290,62 @@ LangGraph connects to Ollama for LLM inference, Qdrant for vector retrieval, Tik
 1. **Custom image** (recommended): Build with `langgraph build -t my-graphs` and override `langgraph.image.repository`/`tag`
 2. **Volume mount**: Place graph code in the `/deps/graphs` persistent volume
 
+### PostgreSQL Modes
+
+The chart supports three PostgreSQL provisioning modes:
+
+| Mode | Use case | HA | Managed by |
+|------|----------|----|------------|
+| `standalone` | Lab / dev — single-instance Deployment | No | Helm chart |
+| `cnpg` | Production — CloudNativePG operator cluster | Yes (3 instances, streaming replication, automated failover) | CNPG operator |
+| `external` | Bring-your-own managed PostgreSQL (RDS, Cloud SQL, etc.) | Depends on provider | External |
+
+```yaml
+# Production HA with CloudNativePG
+postgres:
+  enabled: true
+  mode: cnpg
+  tls:
+    mode: require
+  cnpg:
+    instances: 3
+    pooler:
+      enabled: true  # PgBouncer connection pooling
+
+# External managed database
+postgres:
+  enabled: true
+  mode: external
+  database: "langgraph"
+  user: "langgraph"
+  external:
+    host: "my-rds-instance.abc123.us-east-1.rds.amazonaws.com"
+    port: 5432
+    existingSecret:
+      name: "rds-password"
+      key: "password"
+```
+
+### Async Document Ingestion
+
+The ingestion worker consumes tasks from a Valkey Stream and orchestrates: Tika extract, chunk, Ollama embed, Qdrant upsert. Enables non-blocking document uploads with automatic retry and status tracking.
+
+```yaml
+ingestionWorker:
+  enabled: true
+valkey:
+  persistence:
+    enabled: true  # Recommended: persist Valkey Streams across restarts
+```
+
+Producers enqueue tasks via `XADD`:
+
+```
+XADD ingestion:documents * task_id <id> file_url <url> filename <name>
+```
+
+Track status via `HGETALL ingestion:status:<task_id>`.
+
 ### OpenTelemetry
 
 When `global.otel.enabled=true`, the chart:
@@ -269,18 +354,28 @@ When `global.otel.enabled=true`, the chart:
 2. Injects `OTEL_*` environment variables into all component pods
 3. Optionally creates ServiceMonitor resources for Prometheus scraping
 
-When providing component URLs via `*.env` values, the chart supports Helm templates (rendered with `tpl`) so internal service endpoints can safely follow custom Helm release names.
+### Backups
+
+When `global.backup.enabled=true`, the chart deploys CronJobs for:
+
+- **Qdrant** — snapshot-based backup with configurable retention (default: 7 snapshots)
+- **Ollama** — model manifest and blob backup (default: 3 backups retained)
+
+Backup data is stored in a dedicated PVC annotated with `helm.sh/resource-policy: keep`. For full cluster DR, pair with Velero.
 
 ## Security
 
 This chart is designed for regulated environments:
 
 - **Network isolation**: Default-deny ingress and egress with per-component allowlists
-- **Pod Security**: PSA restricted baseline, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, capabilities `drop: [ALL]`
+- **Pod Security**: PSA restricted baseline — `runAsNonRoot`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, capabilities `drop: [ALL]`
+- **Read-only root filesystem**: Enforced for Qdrant, Valkey, Tika, SearXNG, OTel Collector
 - **Identity isolation**: Per-component ServiceAccounts with `automountServiceAccountToken: false`
-- **Secret management**: Auto-generated credentials with support for external secret stores
+- **Secret management**: Auto-generated 64-byte credentials with support for external secret stores
 - **PII redaction**: OTel Collector strips email addresses, SSNs, and credit card numbers from telemetry (GDPR Art 5(1)(c))
 - **Telemetry opt-out**: `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false` set by default
+- **Rate limiting**: Envoy Gateway rate-limit annotations in production profile
+- **Ollama root exception**: Upstream GPU access requirement; documented with `assurance.platform/security-exception` annotation
 
 ## Governance and Compliance
 
@@ -295,9 +390,11 @@ The chart aligns with the platform-assurance governance framework:
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |
 
+All pods carry `assurance.platform/*` annotations for evidence pipeline integration and audit traceability.
+
 ## SBOM and License Compliance
 
-The chart includes a machine-readable Software Bill of Materials (SBOM) and license compliance documentation for enterprise procurement and audit:
+The chart includes a machine-readable Software Bill of Materials and license compliance documentation:
 
 | File | Format | Purpose |
 |------|--------|---------|
@@ -309,7 +406,32 @@ All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-C
 - **SearXNG** (AGPL-3.0): Low risk when using the upstream container unmodified. See compliance doc for details.
 - **LangGraph API** (Elastic License 2.0): Opt-in only. Permits self-hosted use but prohibits offering as a managed service.
 
-The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness.
+The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness. Deep per-image SBOMs are generated via Syft and uploaded as CI artifacts.
+
+## CI Pipeline
+
+The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
+
+| Job | What it does |
+|-----|--------------|
+| **helm-lint** | `helm lint` and `helm template` for both lab and prod profiles |
+| **chart-testing** | `ct lint` with chart-testing for standards compliance |
+| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml` |
+| **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
+| **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
+
+## GitOps / ArgoCD
+
+Pre-built ArgoCD Application manifests are provided in `argocd/`:
+
+| File | Profile | Notes |
+|------|---------|-------|
+| `argocd/application-lab.yaml` | Lab | Auto-sync disabled — suitable for development |
+| `argocd/application-prod.yaml` | Production | Manual sync — change-control compliance |
+
+## Dependency Management
+
+Image versions are managed by [Renovate](https://docs.renovatebot.com/) with digest pinning enabled. Configuration is in `renovate.json5`.
 
 ## Verification
 
@@ -330,11 +452,12 @@ kubectl get serviceaccounts -n ai-stack
 
 # Check PodDisruptionBudgets
 kubectl get pdb -n ai-stack
+
+# Run Helm tests
+helm test ai-stack -n ai-stack
 ```
 
 ## Development
-
-### Linting
 
 ```bash
 # Lint the chart
@@ -345,17 +468,15 @@ helm lint . -f values.yaml -f values-prod.yaml
 
 # Template rendering check
 helm template ai-stack . --debug
-```
 
-### Testing
-
-```bash
 # Dry-run install
 helm install ai-stack . --dry-run --debug -n ai-stack
 
-# Use chart-testing (ct)
-ct lint --charts .
+# Chart-testing
+ct lint --config ct.yaml --charts .
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
 
 ## License
 
