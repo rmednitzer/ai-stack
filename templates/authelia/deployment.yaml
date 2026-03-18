@@ -31,18 +31,9 @@ data:
         host: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
         port: {{ .Values.valkey.service.port }}
       {{- end }}
-    {{- if eq .Values.authelia.storage "postgres" }}
-    storage:
-      postgres:
-        address: tcp://{{ include "ai-stack.postgresHost" . }}:{{ include "ai-stack.postgresPort" . }}
-        database: {{ .Values.postgres.database }}
-        username: {{ .Values.postgres.user }}
-        schema: authelia
-    {{- else }}
     storage:
       local:
         path: /config/db.sqlite3
-    {{- end }}
     access_control:
       default_policy: {{ .Values.authelia.defaultPolicy }}
     identity_providers:
@@ -130,10 +121,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}-secret
                   key: oidc-client-secret
-            {{- if and (eq .Values.authelia.storage "postgres") .Values.postgres.enabled }}
-            - name: AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE
-              value: /secrets/pg-password
-            {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "authelia") | nindent 12 }}
           volumeMounts:
             - name: config
@@ -185,13 +172,6 @@ spec:
                       path: session-secret
                     - key: storage-encryption-key
                       path: storage-encryption-key
-              {{- if and (eq .Values.authelia.storage "postgres") .Values.postgres.enabled }}
-              - secret:
-                  name: {{ include "ai-stack.postgresSecretName" . }}
-                  items:
-                    - key: {{ include "ai-stack.postgresSecretKey" . }}
-                      path: pg-password
-              {{- end }}
         - name: data
           {{- if .Values.authelia.persistence.enabled }}
           persistentVolumeClaim:

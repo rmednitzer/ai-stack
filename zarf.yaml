@@ -16,6 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
+    Optimised for VMware Tanzu with Contour ingress and Veeam K10 backup.
   version: 1.0.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
@@ -51,52 +52,6 @@ components:
       - ghcr.io/open-webui/pipelines:0.1.2
       # Valkey
       - valkey/valkey:8.1
-      # Ingestion worker
-      - python:3.12-slim
-
-  # ---------------------------------------------------------------------------
-  # Optional: GPU Workbench
-  # ---------------------------------------------------------------------------
-  - name: workbench
-    required: false
-    description: "GPU-enabled JupyterLab workbench for ML experimentation"
-    charts:
-      - name: ai-stack
-        localPath: "."
-        namespace: ai-stack
-        version: 1.0.0
-        valuesFiles:
-          - values.yaml
-        variables:
-          - name: WORKBENCH_ENABLED
-            path: workbench.enabled
-            default: "true"
-    images:
-      - quay.io/jupyter/pytorch-notebook:cuda12-python-3.11
-
-  # ---------------------------------------------------------------------------
-  # Optional: LangGraph agentic workflows
-  # ---------------------------------------------------------------------------
-  - name: langgraph
-    required: false
-    description: "LangGraph API server with PostgreSQL for agentic workflows"
-    charts:
-      - name: ai-stack
-        localPath: "."
-        namespace: ai-stack
-        version: 1.0.0
-        valuesFiles:
-          - values.yaml
-        variables:
-          - name: LANGGRAPH_ENABLED
-            path: langgraph.enabled
-            default: "true"
-          - name: POSTGRES_ENABLED
-            path: postgres.enabled
-            default: "true"
-    images:
-      - docker.io/langchain/langgraph-server:0.7-py3.12
-      - docker.io/library/postgres:16-alpine
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)

@@ -23,7 +23,7 @@ spec:
         app.kubernetes.io/part-of: ai-stack
       annotations:
         assurance.platform/security-exception: "ollama-requires-root"
-        assurance.platform/security-exception-reason: "Upstream Ollama image requires root for GPU access and model management"
+        assurance.platform/security-exception-reason: "Upstream Ollama image requires root for model management"
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
@@ -48,7 +48,7 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-            # Note: no runAsNonRoot — Ollama requires root for GPU access
+            # Note: no runAsNonRoot — Ollama requires root for model management
           ports:
             - name: http
               containerPort: 11434
@@ -79,11 +79,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           resources:
-            {{- $res := deepCopy .Values.ollama.resources }}
-            {{- if .Values.ollama.gpu.enabled }}
-            {{- $_ := set $res.limits (.Values.ollama.gpu.resourceName) (.Values.ollama.gpu.count | int) }}
-            {{- end }}
-            {{- toYaml $res | nindent 12 }}
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
       volumes:
         - name: data
           {{- if .Values.ollama.persistence.enabled }}

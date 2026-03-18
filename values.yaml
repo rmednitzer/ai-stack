@@ -28,7 +28,7 @@ global:
   dnsConfig: {}
 
   # -- Namespace where the ingress controller runs (used in NetworkPolicy ingress rules)
-  ingressNamespace: "envoy-gateway-system"
+  ingressNamespace: "projectcontour"
   # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for scrape ingress)
   monitoringNamespace: "monitoring"
 
@@ -53,18 +53,14 @@ global:
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
     labels: {}
 
-  # -- Backup configuration for stateful components
+  # -- Veeam K10 (Kasten) backup integration
+  # Backup is managed externally by Veeam K10 policies. The chart annotates
+  # PVCs and the namespace for K10 auto-discovery. Create K10 policies in
+  # the Kasten dashboard or via K10 Policy CRD.
   backup:
     enabled: false
-    # -- Cron schedule (default: daily at 02:00 UTC)
-    schedule: "0 2 * * *"
-    # -- Number of successful/failed jobs to retain
-    successfulJobsHistoryLimit: 3
-    failedJobsHistoryLimit: 3
-    # -- Backup storage PVC size
-    storageSize: 50Gi
-    # -- TTL for completed backup jobs (24h)
-    ttlSecondsAfterFinished: 86400
+    # -- K10 backup frequency (used in namespace annotation for policy hint)
+    frequency: "@daily"
 
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
@@ -153,7 +149,7 @@ externalAPIs:
 # automatically configured as an OIDC client (OAUTH_* env vars injected).
 # Disabled by default — Open WebUI falls back to its built-in local auth.
 #
-# Storage: SQLite (lab) or PostgreSQL (prod, reuses postgres component).
+# Storage: SQLite (local filesystem).
 # Session: Valkey (reuses existing valkey component when available).
 # License: Apache 2.0
 # =============================================================================
@@ -183,7 +179,7 @@ authelia:
   domain: "example.local"
   # -- Default policy: one_factor or two_factor
   defaultPolicy: "one_factor"
-  # -- Storage backend: "local" (SQLite) or "postgres" (reuse postgres component)
+  # -- Storage backend: "local" (SQLite)
   storage: "local"
   ingress:
     enabled: false
@@ -353,13 +349,6 @@ ollama:
   service:
     type: ClusterIP
     port: 11434
-  # -- GPU resources (NVIDIA)
-  gpu:
-    enabled: false
-    # -- Number of GPUs to request
-    count: 1
-    # -- NVIDIA device plugin resource name
-    resourceName: nvidia.com/gpu
   env:
     OLLAMA_HOST: "0.0.0.0"
     OLLAMA_KEEP_ALIVE: "5m"
@@ -537,90 +526,6 @@ searxng:
       periodSeconds: 10
 
 # =============================================================================
-# Workbench — GPU-enabled ML engineering environment
-# Tier: T1 (operational) | Boundary: decision (user code execution + GPU)
-#
-# Purpose: full-featured compute environment for ML experimentation,
-# model evaluation, data pipeline development, and infrastructure
-# operations. Isolated GPU scheduling, wider attack surface, and
-# heavier resource profile.
-#
-# Base image: NVIDIA CUDA + JupyterLab + system tools.
-# Custom image recommended — build from the Dockerfile reference below.
-# =============================================================================
-workbench:
-  enabled: false  # Opt-in; GPU workload
-  replicaCount: 1
-  image:
-    # -- Use a custom image built from the Dockerfile in this chart,
-    # or any CUDA-enabled Jupyter image. The quay.io/jupyter/pytorch-notebook
-    # includes PyTorch + CUDA but not system tools — extend as needed.
-    repository: quay.io/jupyter/pytorch-notebook
-    tag: "cuda12-python-3.11"
-  service:
-    type: ClusterIP
-    port: 8888
-  # -- GPU resources (NVIDIA)
-  gpu:
-    enabled: true
-    count: 1
-    resourceName: nvidia.com/gpu
-  env:
-    JUPYTER_ENABLE_LAB: "yes"
-    # -- Grant access to all stack services
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
-    # -- NVIDIA visibility
-    NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-    # -- Default pip packages installed at runtime (extend via custom image)
-    PIP_PACKAGES: "openai langchain langchain-community qdrant-client httpx tiktoken transformers datasets accelerate bitsandbytes"
-  # -- Override token (auto-generated if empty; stored in Secret)
-  token: ""
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts:
-      - host: workbench.example.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  persistence:
-    enabled: true
-    size: 100Gi
-    accessMode: ReadWriteOnce
-    mountPath: /home/jovyan/work
-  # -- Shared memory for PyTorch DataLoader workers (required for multi-worker)
-  shmSize: 8Gi
-  resources:
-    requests:
-      cpu: "2"
-      memory: 16Gi
-    limits:
-      cpu: "16"
-      memory: 64Gi
-  probes:
-    liveness:
-      httpGet:
-        path: /api
-        port: http
-      initialDelaySeconds: 120
-      periodSeconds: 30
-      timeoutSeconds: 10
-    readiness:
-      httpGet:
-        path: /api
-        port: http
-      initialDelaySeconds: 30
-      periodSeconds: 10
-
-# =============================================================================
 # Open Terminal — AI-agent sandboxed terminal with REST API
 # Tier: T2 (productivity) | Boundary: execution (command execution)
 # =============================================================================
@@ -731,245 +636,6 @@ mcpo:
       initialDelaySeconds: 5
       periodSeconds: 10
 
-# =============================================================================
-# LangGraph — Agentic workflow runtime (LangGraph Platform API server)
-# Tier: T1 (operational) | Boundary: decision (agentic orchestration)
-#
-# Purpose: stateful, multi-step agentic workflows with tool calling,
-# human-in-the-loop, and persistent checkpointing. Provides an OpenAPI-
-# compatible REST API for creating, running, and streaming agent graphs.
-#
-# Requires PostgreSQL for checkpoint persistence (enable postgres below).
-# Connects to Ollama for LLM inference and Qdrant for vector retrieval.
-#
-# Image: langchain/langgraph-server — the official self-hosted runtime.
-# Deploy custom graphs by building an image with `langgraph build` or
-# by mounting graph code into the /deps/graphs volume.
-# =============================================================================
-langgraph:
-  enabled: false  # Opt-in; requires postgres for checkpoint persistence
-  replicaCount: 1
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  image:
-    # -- Override with a custom image built via `langgraph build`
-    repository: docker.io/langchain/langgraph-server
-    tag: "0.7-py3.12"
-  service:
-    type: ClusterIP
-    port: 8000
-  # -- Override API key (auto-generated if empty; stored in Secret)
-  apiKey: ""
-  env:
-    # -- Ollama backend URL (OpenAI-compatible via /v1)
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    # -- Qdrant vector store URL
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # QDRANT_API_KEY injected from Secret in deployment template
-    # -- SearXNG web search URL
-    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-    # -- Tika document extraction URL
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    # -- Pipelines URL
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
-    # -- Disable LangSmith telemetry (keep data on-prem)
-    LANGCHAIN_TRACING_V2: "false"
-    LANGSMITH_API_KEY: ""
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts:
-      - host: langgraph.example.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
-  persistence:
-    enabled: true
-    size: 5Gi
-    accessMode: ReadWriteOnce
-    mountPath: /deps/graphs
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 4Gi
-  probes:
-    liveness:
-      httpGet:
-        path: /ok
-        port: http
-      initialDelaySeconds: 15
-      periodSeconds: 30
-    readiness:
-      httpGet:
-        path: /ok
-        port: http
-      initialDelaySeconds: 5
-      periodSeconds: 10
-
-# =============================================================================
-# PostgreSQL — Relational database for stateful services
-# Tier: T2 (productivity) | Boundary: storage
-#
-# Purpose: durable storage for LangGraph agent checkpoints, thread state,
-# and run history. Designed as a shared database service that future
-# components can consume.
-#
-# Modes:
-#   standalone — lightweight single-instance Deployment (lab / dev)
-#   cnpg       — CloudNativePG operator-managed cluster (production HA)
-#   external   — bring-your-own managed PostgreSQL (RDS, Cloud SQL, etc.)
-#
-# When mode=cnpg, the CloudNativePG operator must be pre-installed in the
-# cluster. Install via: helm install cnpg cloudnative-pg/cloudnative-pg
-# =============================================================================
-postgres:
-  enabled: false  # Enable together with langgraph (or any future PG consumer)
-
-  # -- PostgreSQL provisioning mode: standalone | cnpg | external
-  mode: standalone
-
-  # -- Database name
-  database: "langgraph"
-  # -- Database user
-  user: "langgraph"
-  # -- Override password (auto-generated if empty; stored in Secret)
-  #    Ignored when mode=external (use external.existingSecret instead).
-  #    Ignored when mode=cnpg (CNPG manages credentials automatically).
-  password: ""
-
-  # -- Service port (standalone and cnpg modes expose this port)
-  service:
-    type: ClusterIP
-    port: 5432
-
-  # -- TLS mode for client connections: disable | require | verify-ca | verify-full
-  #    standalone: passed as PGSSLMODE to clients (server-side TLS not managed)
-  #    cnpg: operator provisions certificates automatically when not "disable"
-  #    external: passed as sslmode in connection URI
-  tls:
-    mode: disable
-
-  # ---------------------------------------------------------------------------
-  # Standalone mode settings (mode: standalone)
-  # Single-instance Deployment with PVC — not HA, suitable for lab/dev.
-  # ---------------------------------------------------------------------------
-  standalone:
-    replicaCount: 1
-    image:
-      repository: docker.io/library/postgres
-      tag: "16-alpine"
-    env: {}
-    persistence:
-      enabled: true
-      size: 10Gi
-      accessMode: ReadWriteOnce
-      mountPath: /var/lib/postgresql/data
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: "1"
-        memory: 1Gi
-    probes:
-      liveness:
-        exec:
-          command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
-        initialDelaySeconds: 30
-        periodSeconds: 30
-      readiness:
-        exec:
-          command: ["pg_isready", "-U", "langgraph", "-d", "langgraph"]
-        initialDelaySeconds: 5
-        periodSeconds: 10
-
-  # ---------------------------------------------------------------------------
-  # CloudNativePG mode settings (mode: cnpg)
-  # Operator-managed PostgreSQL cluster with HA, automated failover, backups,
-  # and optional connection pooling via PgBouncer.
-  #
-  # Prerequisites: CloudNativePG operator v1.25+ installed in the cluster.
-  # ---------------------------------------------------------------------------
-  cnpg:
-    # -- Number of PostgreSQL instances (1 = single, 3 = HA with streaming replication)
-    instances: 3
-    # -- PostgreSQL major version
-    imageName: "ghcr.io/cloudnative-pg/postgresql:16"
-    storage:
-      size: 20Gi
-      # -- Storage class override (uses global.storageClass if empty)
-      storageClass: ""
-    # -- Resource requests/limits for each PostgreSQL instance
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: "2"
-        memory: 2Gi
-    # -- PostgreSQL configuration parameters
-    postgresql:
-      parameters:
-        shared_buffers: "256MB"
-        effective_cache_size: "768MB"
-        max_connections: "200"
-        # -- WAL settings for streaming replication
-        wal_level: "replica"
-        max_wal_senders: "10"
-        max_replication_slots: "10"
-    # -- Automated backup configuration
-    backup:
-      enabled: false
-      # -- Backup destination (S3-compatible or volume snapshot)
-      barmanObjectStore: {}
-      #   destinationPath: "s3://my-bucket/cnpg-backups"
-      #   endpointURL: "https://s3.eu-central-1.amazonaws.com"
-      #   s3Credentials:
-      #     accessKeyId:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_KEY_ID
-      #     secretAccessKey:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_SECRET_KEY
-      retentionPolicy: "30d"
-      schedule: "0 0 2 * * *"  # Daily at 02:00
-    # -- PgBouncer connection pooler
-    pooler:
-      enabled: false
-      instances: 2
-      type: rw  # rw = read-write, ro = read-only
-      pgbouncer:
-        poolMode: transaction
-        defaultPoolSize: "25"
-        maxClientConn: "200"
-    # -- Monitoring (requires Prometheus Operator)
-    monitoring:
-      enabled: false
-
-  # ---------------------------------------------------------------------------
-  # External mode settings (mode: external)
-  # Bring-your-own PostgreSQL — RDS, Cloud SQL, Supabase, self-managed, etc.
-  # The chart creates no PostgreSQL resources; only connection details.
-  # ---------------------------------------------------------------------------
-  external:
-    # -- Hostname of the external PostgreSQL server
-    host: ""
-    # -- Port (default 5432)
-    port: 5432
-    # -- Reference an existing Secret containing the password
-    #    The secret must exist in the release namespace.
-    existingSecret:
-      name: ""
-      key: "password"
 
 # =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
@@ -1059,81 +725,6 @@ valkey:
       initialDelaySeconds: 5
       periodSeconds: 5
 
-# =============================================================================
-# Ingestion Worker — Async document ingestion via Valkey Streams
-# Tier: T2 (productivity) | Boundary: ingestion (async pipeline)
-#
-# Purpose: background worker that consumes document ingestion tasks from a
-# Valkey Stream and orchestrates: Tika extract → chunk → Ollama embed →
-# Qdrant upsert. Enables non-blocking document uploads with automatic retry,
-# status tracking, and parallel processing via consumer groups.
-#
-# Requires: valkey (stream broker), tika, ollama, qdrant.
-# Producers enqueue tasks via XADD:
-#   XADD ingestion:documents * task_id <id> file_url <url> filename <name>
-# Status tracking via:
-#   HGETALL ingestion:status:<task_id>
-# =============================================================================
-ingestionWorker:
-  # Opt-in; requires valkey + tika + ollama + qdrant.
-  # When enabled, consider setting valkey.persistence.enabled=true so that
-  # Valkey Streams survive pod restarts. Without persistence, in-flight
-  # tasks are lost on Valkey restart (source documents remain intact and
-  # can be re-enqueued).
-  enabled: false
-  replicaCount: 1
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  image:
-    repository: python
-    tag: "3.12-slim"
-  env:
-    # -- Tika document extraction URL
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    # -- Ollama backend URL (for embeddings)
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    # -- Qdrant vector store URL
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # -- Embedding model (must match the model used by Open WebUI RAG)
-    RAG_EMBEDDING_MODEL: "nomic-embed-text"
-    # -- Chunk size in characters for document splitting
-    RAG_CHUNK_SIZE: "1500"
-    # -- Overlap between chunks
-    RAG_CHUNK_OVERLAP: "100"
-    # -- Valkey Stream name for ingestion tasks
-    INGESTION_STREAM: "ingestion:documents"
-    # -- Consumer group name
-    INGESTION_CONSUMER_GROUP: "ingestion-workers"
-    # -- Status key prefix in Valkey
-    INGESTION_STATUS_PREFIX: "ingestion:status:"
-    # -- TTL for status keys in seconds (24h)
-    INGESTION_STATUS_TTL: "86400"
-    # -- Number of messages to read per batch
-    INGESTION_BATCH_SIZE: "5"
-    # -- Block timeout in ms when waiting for new messages
-    INGESTION_BLOCK_MS: "5000"
-    # -- Max retries per task before marking as failed
-    INGESTION_MAX_RETRIES: "3"
-    # -- Qdrant collection name for ingested documents
-    QDRANT_COLLECTION: "documents"
-    # -- Valkey pub/sub channel for corpus state change notifications
-    # LangGraph agents and other consumers can subscribe to receive events
-    # when a collection transitions state (e.g. becomes 'ready' or 'stale').
-    # Requires postgres.enabled=true for the state machine to activate.
-    CORPUS_PUBSUB_CHANNEL: "corpus:state"
-    # -- Log level
-    LOG_LEVEL: "INFO"
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 1Gi
 
 # =============================================================================
 # OTel Collector — observability pipeline for the AI stack

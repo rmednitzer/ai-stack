@@ -260,20 +260,20 @@ jobs:
 
       - name: Validate manifests (lab profile)
         env:
-          KUBERNETES_VERSION: "1.32.0"  # kubernetes/kubernetes
+          KUBERNETES_VERSION: "1.30.10"  # VMware Tanzu v1.30.10
         run: |
           helm template ai-stack . | kubeconform \
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor
+            -skip CustomResourceDefinition,ServiceMonitor,Policy
 
       - name: Validate manifests (prod profile)
         env:
-          KUBERNETES_VERSION: "1.32.0"  # kubernetes/kubernetes
+          KUBERNETES_VERSION: "1.30.10"  # VMware Tanzu v1.30.10
         run: |
           helm template ai-stack . -f values.yaml -f values-prod.yaml | kubeconform \
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor
+            -skip CustomResourceDefinition,ServiceMonitor,Policy
