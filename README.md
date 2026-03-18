@@ -476,6 +476,8 @@ helm install ai-stack . --dry-run --debug -n ai-stack
 ct lint --config ct.yaml --charts .
 ```
 
+See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, backup/restore, and troubleshooting.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
 
 ## License
