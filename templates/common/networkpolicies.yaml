@@ -286,6 +286,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.ingestionWorker.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingestion-worker
+        {{- end }}
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: ollama-backup
@@ -329,6 +334,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.ingestionWorker.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingestion-worker
+        {{- end }}
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: otel-collector
@@ -373,6 +383,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.ingestionWorker.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingestion-worker
+        {{- end }}
       ports:
         - protocol: TCP
           port: 9998
@@ -854,9 +869,70 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
+        {{- if $.Values.ingestionWorker.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingestion-worker
+        {{- end }}
       ports:
         - protocol: TCP
           port: 6379
+{{- end }}
+
+# =============================================================================
+# Ingestion Worker — async document processing; egress to Valkey, Tika, Ollama, Qdrant
+# =============================================================================
+{{- if .Values.ingestionWorker.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-ingestion-worker
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    {{- if .Values.valkey.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: valkey
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
+    {{- end }}
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    {{- end }}
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    {{- end }}
 {{- end }}
 
 # =============================================================================

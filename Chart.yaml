@@ -8,6 +8,8 @@ description: >-
   Includes MCPO for MCP-to-OpenAPI tool server proxying.
   Includes LangGraph for stateful agentic workflows with checkpoint
   persistence via PostgreSQL.
+  Includes async document ingestion worker using Valkey Streams for
+  non-blocking Tika→Ollama→Qdrant RAG pipeline processing.
   Designed for deployment into governance-as-code environments with
   PSA restricted baseline, NetworkPolicy default-deny, and OTel
   instrumentation hooks.
@@ -34,6 +36,7 @@ keywords:
   - open-terminal
   - mcpo
   - langgraph
+  - ingestion-worker
   - agentic
   - postgres
 annotations:

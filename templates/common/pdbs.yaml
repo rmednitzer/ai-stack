@@ -80,6 +80,29 @@ spec:
 {{- end }}
 
 {{/*
+Ingestion Worker: scalable worker — PDB when replicas > 1 or HPA active
+*/}}
+{{- if .Values.ingestionWorker.enabled }}
+{{- $multiReplica := gt (int .Values.ingestionWorker.replicaCount) 1 }}
+{{- $hpaActive := and (hasKey .Values.ingestionWorker "autoscaling") .Values.ingestionWorker.autoscaling.enabled }}
+{{- if or $multiReplica $hpaActive }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 6 }}
+{{- end }}
+{{- end }}
+
+{{/*
 Workbench: GPU workload — allow at most one unavailable during voluntary disruption
 */}}
 {{- if .Values.workbench.enabled }}
