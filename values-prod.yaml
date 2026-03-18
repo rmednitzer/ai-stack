@@ -30,6 +30,25 @@ global:
     schedule: "0 2 * * *"
     storageSize: 100Gi
 
+# -- External inference API providers (opt-in)
+# Uncomment and configure to add cloud-hosted LLM providers alongside Ollama.
+# API keys should be managed via an external secret manager (ESO / Vault)
+# in production — use existingSecret references instead of inline apiKey.
+#
+# externalAPIs:
+#   enabled: true
+#   providers:
+#     - name: openai
+#       baseUrl: "https://api.openai.com/v1"
+#       existingSecret:
+#         name: "openai-api-key"
+#         key: "api-key"
+#     - name: azure-openai
+#       baseUrl: "https://my-resource.openai.azure.com/openai/deployments/gpt-4o"
+#       existingSecret:
+#         name: "azure-openai-api-key"
+#         key: "api-key"
+
 openwebui:
   replicaCount: 2
   image:

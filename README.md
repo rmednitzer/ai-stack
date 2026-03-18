@@ -29,6 +29,7 @@ graph TD
   OpenWebUI --> OpenTerminal["Open Terminal (T2, opt-in)"]
   OpenWebUI --> MCPO["MCPO (T2, opt-in)"]
   OpenWebUI --> LangGraph["LangGraph (T1, opt-in)"]
+  OpenWebUI --> ExternalAPIs["External APIs (T1, opt-in)"]
 
   LangGraph --> Ollama
   LangGraph --> Qdrant
@@ -44,6 +45,7 @@ graph TD
   style MCPO stroke-dasharray: 5 5
   style LangGraph stroke-dasharray: 5 5
   style Postgres stroke-dasharray: 5 5
+  style ExternalAPIs stroke-dasharray: 5 5
 ```
 
 Tiering follows the platform-assurance stack-bom classification:
@@ -211,6 +213,37 @@ openwebui:
         hosts:
           - ai.example.com
 ```
+
+### External Inference APIs
+
+Add cloud-hosted LLM providers (OpenAI, Azure OpenAI, Anthropic, Gemini, Mistral, etc.) alongside local Ollama inference:
+
+```yaml
+externalAPIs:
+  enabled: true
+  providers:
+    - name: openai
+      baseUrl: "https://api.openai.com/v1"
+      apiKey: "sk-..."
+    - name: gemini
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai"
+      apiKey: "AIza..."
+```
+
+API keys are stored in Kubernetes Secrets. For production, use an external secret manager:
+
+```yaml
+externalAPIs:
+  enabled: true
+  providers:
+    - name: openai
+      baseUrl: "https://api.openai.com/v1"
+      existingSecret:
+        name: "my-openai-secret"
+        key: "api-key"
+```
+
+When enabled, Open WebUI users can select external models from the model picker alongside locally-served Ollama models. HTTPS egress (port 443) is automatically added to the Open WebUI NetworkPolicy.
 
 ### LangGraph (Agentic Workloads)
 

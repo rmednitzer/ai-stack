@@ -63,8 +63,12 @@ spec:
               protocol: TCP
           env:
             {{- range $key, $value := .Values.openwebui.env }}
+            {{- if and (eq $key "OPENAI_API_BASE_URLS") ($.Values.externalAPIs.enabled) }}
+            {{- /* Skip static OPENAI_API_BASE_URLS when externalAPIs are enabled — overridden below */ -}}
+            {{- else }}
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.qdrant.enabled }}
             - name: QDRANT_API_KEY
@@ -72,6 +76,28 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
                   key: api-key
+            {{- end }}
+            {{- /* --- External API provider configuration --- */ -}}
+            {{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers }}
+            {{- /* Inject per-provider API key env vars from Secrets (used via variable substitution) */ -}}
+            {{- range $i, $provider := .Values.externalAPIs.providers }}
+            - name: _EXTAPI_KEY_{{ $i }}
+              valueFrom:
+                secretKeyRef:
+                  {{- if and $provider.existingSecret $provider.existingSecret.name }}
+                  name: {{ $provider.existingSecret.name | quote }}
+                  key: {{ $provider.existingSecret.key | default "api-key" | quote }}
+                  {{- else }}
+                  name: {{ include "ai-stack.extapiSecretName" (dict "Release" $.Release "Chart" $.Chart "provider" $provider) }}
+                  key: api-key
+                  {{- end }}
+            {{- end }}
+            {{- /* Override OPENAI_API_BASE_URLS with combined internal + external URLs */ -}}
+            - name: OPENAI_API_BASE_URLS
+              value: {{ include "ai-stack.openaiBaseUrls" . | quote }}
+            {{- /* Set OPENAI_API_KEYS with placeholder keys for internal + secret refs for external */ -}}
+            - name: OPENAI_API_KEYS
+              value: {{ include "ai-stack.openaiApiKeys" . | quote }}
             {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "openwebui") | nindent 12 }}
           startupProbe:

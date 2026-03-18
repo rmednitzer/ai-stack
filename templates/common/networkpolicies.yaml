@@ -252,6 +252,12 @@ spec:
         - protocol: TCP
           port: 8000
     {{- end }}
+    {{- if .Values.externalAPIs.enabled }}
+    # External inference API providers (OpenAI, Azure, Anthropic, Gemini, etc.)
+    - ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
 {{- end }}
 
 # =============================================================================

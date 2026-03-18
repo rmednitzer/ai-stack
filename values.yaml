@@ -72,6 +72,80 @@ global:
     assurance.platform/chart: "ai-stack"
 
 # =============================================================================
+# External Inference APIs — Cloud-hosted LLM providers
+# Tier: T1 (operational) | Boundary: model serving (external)
+#
+# Adds external OpenAI-compatible API endpoints to Open WebUI alongside
+# local Ollama inference. Supports OpenAI, Azure OpenAI, Anthropic (Claude),
+# Google Gemini, and any OpenAI-compatible provider (e.g. Mistral, Together,
+# Fireworks, Groq, DeepSeek).
+#
+# API keys are stored in Kubernetes Secrets (auto-generated from values or
+# referenced from an existing Secret / external secret manager).
+#
+# When enabled, Open WebUI users can select external models from the model
+# picker alongside locally-served Ollama models.
+#
+# Security notes:
+#   - API keys are never stored in plaintext in rendered manifests
+#   - HTTPS egress (port 443) is added to Open WebUI NetworkPolicy
+#   - All requests traverse Open WebUI's audit and rate-limiting layer
+#   - Telemetry: external providers may log prompts per their data policies;
+#     review each provider's data processing terms before enabling in prod
+# =============================================================================
+externalAPIs:
+  # -- Enable external inference API providers alongside local Ollama
+  enabled: false
+
+  # -- List of external API providers
+  # Each provider adds an OpenAI-compatible endpoint to Open WebUI.
+  # The 'name' must be unique, DNS-safe (lowercase alphanumeric + hyphens),
+  # and is used for Secret naming: <release>-extapi-<name>-secret
+  #
+  # Fields:
+  #   name:            Unique provider identifier (DNS-safe)
+  #   baseUrl:         OpenAI-compatible API base URL
+  #   apiKey:          API key value (stored in chart-managed Secret)
+  #   existingSecret:  Reference an existing Secret instead of chart-managed
+  #     name:          Secret name (must exist in release namespace)
+  #     key:           Key within the Secret containing the API key
+  providers: []
+  #   # --- OpenAI ---
+  #   - name: openai
+  #     baseUrl: "https://api.openai.com/v1"
+  #     apiKey: ""
+  #     # existingSecret:
+  #     #   name: "my-openai-secret"
+  #     #   key: "api-key"
+  #
+  #   # --- Azure OpenAI ---
+  #   - name: azure-openai
+  #     baseUrl: "https://<resource>.openai.azure.com/openai/deployments/<deployment>"
+  #     apiKey: ""
+  #
+  #   # --- Anthropic (Claude) ---
+  #   # Note: requires Open WebUI v0.6+ with Anthropic API translation layer,
+  #   # or use a Pipelines function for protocol translation.
+  #   - name: anthropic
+  #     baseUrl: "https://api.anthropic.com/v1"
+  #     apiKey: ""
+  #
+  #   # --- Google Gemini (OpenAI-compatible endpoint) ---
+  #   - name: gemini
+  #     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai"
+  #     apiKey: ""
+  #
+  #   # --- Mistral AI ---
+  #   - name: mistral
+  #     baseUrl: "https://api.mistral.ai/v1"
+  #     apiKey: ""
+  #
+  #   # --- Any OpenAI-compatible provider ---
+  #   - name: custom-provider
+  #     baseUrl: "https://api.example.com/v1"
+  #     apiKey: ""
+
+# =============================================================================
 # Open WebUI — Primary user interface for LLM interaction
 # Tier: T1 (operational) | Boundary: decision
 # =============================================================================
