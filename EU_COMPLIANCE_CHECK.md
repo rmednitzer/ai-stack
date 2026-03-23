@@ -1,6 +1,6 @@
 # EU Legal Framework Compliance Check — ai-stack
 
-**Date:** 2026-03-18
+**Date:** 2026-03-23 (validated)
 **Chart version:** 1.0.0 | **appVersion:** 2026.1
 **Assessor:** Automated (Claude Code)
 **Scope:** EU regulatory framework applicability and gap analysis
@@ -17,8 +17,8 @@ following EU regulations apply:
 |------------|------------|-----------|-----------|
 | **GDPR** (Reg. 2016/679) | Certain | Art. 2 — processes personal data of EU residents | 2018-05-25 |
 | **AI Act** (Reg. 2024/1689) | Certain | Art. 50 — AI systems interacting with humans | 2024-08-01 (phased) |
-| **NIS2** (Dir. 2022/2555) | Likely | Art. 21 — digital infrastructure operators | 2024-10-18 |
-| **CRA** (Reg. 2024/2847) | Likely | Art. 13 — products with digital elements | 2024-12-10 (phased) |
+| **NIS2** (Dir. 2022/2555) | Likely | Art. 21 — digital infrastructure operators | 2024-10-17 |
+| **CRA** (Reg. 2024/2847) | Likely | Art. 13 — products with digital elements | 2024-12-10 (entry into force; main obligations apply 2027-12-11) |
 | **ePrivacy** (Dir. 2002/58/EC) | Likely | Art. 5 — electronic communications confidentiality | In force |
 | **Austrian DSG** (BGBl. I Nr. 165/1999) | Certain | National GDPR supplement | In force |
 
@@ -79,7 +79,7 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 | Component | AI Act Classification | Basis | Obligations | Deadline |
 |-----------|----------------------|-------|-------------|----------|
 | Ollama (local LLM inference) | **Limited risk** (Art. 50) | AI system interacting with natural persons | Transparency: users must know they interact with AI | In force |
-| Open WebUI (chat interface) | **Deployer** (Art. 26) | Deploys AI system to end users | Transparency, monitoring, logging | In force |
+| Open WebUI (chat interface) | **Deployer** (Art. 26) | Deploys AI system to end users | Transparency, monitoring, logging (high-risk only) | 2026-08-02 |
 | LangGraph (agentic runtime) | **Limited risk** (Art. 50) | Autonomous AI agent actions | Transparency about AI-generated content | In force |
 | Ollama + external models | **GPAI considerations** (Art. 53) | If integrating general-purpose AI models | Documentation, downstream information | 2025-08-02 |
 | Any Annex III use case | **High-risk** (Art. 6) | If used for HR, credit, law enforcement, etc. | Full conformity assessment | 2026-08-02 |
@@ -91,11 +91,11 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 | **Art. 50(1)** | Inform users they interact with AI | Addressed | Configurable `WEBUI_BANNER_TEXT` in values.yaml with default AI disclosure text |
 | **Art. 50(2)** | Machine-readable marking of AI-generated content | Gap | No watermarking or C2PA metadata applied to AI outputs |
 | **Art. 50(4)** | Deep fake disclosure | N/A | Not applicable unless generating synthetic media for public dissemination |
-| **Art. 13** | Transparency for deployers (high-risk) | Conditional | Tier labels and boundary annotations provide governance metadata; full compliance depends on use case |
+| **Art. 13** | Transparency — provider obligation to inform deployers (high-risk) | Conditional | Tier labels and boundary annotations provide governance metadata; full compliance depends on use case. Note: Art. 13 is a provider obligation; deployers consume this information per Art. 26(9) |
 | **Art. 26** | Deployer obligations (high-risk) | Conditional | Monitoring via OTel, human oversight via Open WebUI; completeness depends on use case |
-| **Art. 27** | Fundamental rights impact assessment | Gap | No FRIA template provided; required if high-risk classification applies |
+| **Art. 27** | Fundamental rights impact assessment | Gap | No FRIA template provided; required for public bodies, private entities providing public services, and deployers under Annex III points 5(b)/(c) — not all high-risk deployers |
 | **Art. 53** | GPAI provider obligations | Attention | If deploying third-party GPAI models, downstream documentation must be obtained from providers |
-| **Art. 73** | Serious incident reporting | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific incidents |
+| **Art. 73** | Serious incident reporting (provider obligation) | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific incidents. Note: Art. 73 applies to providers of high-risk AI systems; deployers report to providers per Art. 26(5) |
 
 #### Gaps Requiring Action
 
@@ -105,9 +105,9 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 3. **GPAI Downstream Documentation (Art. 53)** — When using external model providers (OpenAI, Anthropic, etc.), deployers must obtain and maintain model documentation per Art. 53(1)(b). Guidance should be added to operator documentation.
 
-4. **Fundamental Rights Impact Assessment (Art. 27)** — If the platform is used for any Annex III high-risk purpose (e.g., HR screening, credit assessment, legal analysis), a FRIA is mandatory before deployment.
+4. **Fundamental Rights Impact Assessment (Art. 27)** — Art. 27(1) requires a FRIA for deployers that are public bodies, private entities providing public services, or deployers of systems under Annex III points 5(b) (creditworthiness) and 5(c) (risk assessment/pricing for life and health insurance). Not all Annex III high-risk deployers are subject to this obligation.
 
-5. **Incident Reporting (Art. 73)** — Addressed: Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific serious incident reporting.
+5. **Incident Reporting (Art. 73)** — Addressed: Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific serious incident reporting. Note: Art. 73 is a provider obligation; as a deployer platform, reporting flows through providers per Art. 26(5), with deployers informing providers of serious incidents.
 
 ---
 
@@ -149,8 +149,9 @@ NIS2 applicability depends on whether the deploying organization falls within An
 The CRA applies to "products with digital elements" placed on the EU market. Whether the ai-stack Helm chart constitutes a product with digital elements depends on how it is distributed:
 
 - **If distributed commercially** (even as part of a service): CRA Art. 13 obligations apply to the manufacturer, including cybersecurity risk assessment, vulnerability handling, SBOM, CE marking, and a minimum 5-year support period.
-- **If distributed as free/open-source software not in the course of a commercial activity**: CRA Art. 53(2) exception may apply, exempting from most obligations.
-- **Component-level obligations**: Even under the FOSS exception, due diligence on third-party components (Art. 13(5)) applies to integrators.
+- **If distributed as free/open-source software not in the course of a commercial activity**: Outside CRA scope per Art. 3(22) definition of "making available on the market" (requires commercial activity). See Recitals 17-20 for guidance on what constitutes commercial activity for FOSS.
+- **Open-source software stewards**: If a legal entity systematically supports FOSS intended for commercial activities, limited obligations apply under Art. 24 (security policies, vulnerability cooperation, SBOM).
+- **Component-level obligations**: Even under the FOSS exclusion, due diligence on third-party components (Art. 13(5)) applies to integrators.
 
 #### Current Controls
 
@@ -161,6 +162,12 @@ The CRA applies to "products with digital elements" placed on the EU market. Whe
 | Cybersecurity risk assessment | Partial | Tier classification, boundary annotations; no formal risk assessment document |
 | Security updates for support period | N/A | Depends on distribution model |
 | CE marking / Declaration of Conformity | N/A | Only if commercially distributed |
+
+**CRA Phased Application (Art. 71):**
+- **2024-12-10**: Entry into force
+- **2026-06-11**: Market surveillance (Chapter IV, Art. 35-51)
+- **2026-09-11**: Reporting obligations (Art. 14)
+- **2027-12-11**: Full application (all manufacturer obligations, Art. 13)
 
 #### Gaps Requiring Action
 
@@ -270,10 +277,25 @@ This assessment was conducted by:
 - ai-stack chart source code and documentation
 - GDPR, AI Act, NIS2, and CRA regulation guides
 
+### Validation (2026-03-23)
+
+Cross-checked against EU regulation full texts and Austrian RIS OGD. Corrections applied:
+
+1. **NIS2 effective date** — Corrected from 2024-10-18 to 2024-10-17 (CELEX 32022L2555)
+2. **CRA FOSS exception** — Removed incorrect "Art. 53(2)" reference; FOSS exclusion operates via Art. 3(22) definition scope (Recitals 17-20)
+3. **CRA phased timeline** — Added Art. 71 phased application dates (full application 2027-12-11, not just entry into force 2024-12-10)
+4. **AI Act Art. 26 deadline** — Corrected from "In force" to 2026-08-02 (Chapter III general application date)
+5. **AI Act Art. 27 FRIA scope** — Narrowed to actual scope per Art. 27(1): public bodies, public service providers, and Annex III points 5(b)/(c) deployers only
+6. **AI Act Art. 73 provider/deployer distinction** — Clarified Art. 73 is a provider obligation; deployers report to providers per Art. 26(5)
+7. **AI Act Art. 73 timelines** — Added nuanced deadlines from Art. 73(2)-(4): 15 days (general), 2 days (widespread), 10 days (death)
+8. **AI Act Art. 13 role** — Corrected from deployer obligation to provider obligation (deployers consume info per Art. 26(9))
+9. **Incident response authority** — Corrected from "National AI authority" to "Market surveillance authority" per Art. 73(1)
+
 ### Limitations
 
 - This is a **technical compliance gap analysis**, not legal advice. Formal legal review by qualified counsel is recommended before production deployment.
 - Austrian NISG 2024 transposition details were not fully available in the legislation database; manual verification against the official Bundesgesetzblatt is recommended.
+- Austrian DSG (BGBl. I Nr. 165/1999) and TKG 2021 section references could not be fully validated against the RIS OGD database due to indexing coverage; citations are based on established legal references.
 - CRA applicability depends on the distribution model (commercial vs. FOSS); both scenarios are addressed.
 - AI Act classification depends on the specific use case; high-risk scenarios are flagged as conditional.
 - ePrivacy assessment is preliminary; a detailed cookie audit of Open WebUI is needed.

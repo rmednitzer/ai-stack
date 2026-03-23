@@ -4,6 +4,10 @@
 
 *This is a template. Complete all sections before production deployment.*
 
+> **Scope note:** AI Act Art. 27 FRIA is required for deployers that are public bodies,
+> private entities providing public services, or deployers under Annex III points 5(b)/(c).
+> Per Art. 27(4), a FRIA can complement an existing DPIA rather than duplicating it.
+
 ---
 
 ## 1. Assessment Metadata
