@@ -14,7 +14,7 @@ three overlapping notification regimes:
 | **GDPR Art. 33** | Personal data breach | Data Protection Authority (DPA) | 72 hours from awareness |
 | **GDPR Art. 34** | High-risk breach to individuals | Data subjects | Without undue delay |
 | **NIS2 Art. 23** | Significant cybersecurity incident | CSIRT (AT: CERT.at) | 24h early warning, 72h notification, 1 month report |
-| **AI Act Art. 73** | Serious AI incident | National AI authority | 15 days from awareness |
+| **AI Act Art. 73** | Serious AI incident (provider obligation; deployers report to providers per Art. 26(5)) | Market surveillance authority | 15 days from causal link established (Art. 73(2)); 2 days for widespread infringement (Art. 73(3)); 10 days if death involved (Art. 73(4)) |
 
 **These obligations are cumulative.** A single event may trigger all three.
 
