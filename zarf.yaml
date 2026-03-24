@@ -38,21 +38,21 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.8.10
       # Ollama
-      - ollama/ollama:0.18.1
+      - ollama/ollama:0.18.2
       # Qdrant
-      - qdrant/qdrant:v1.17.1
+      - qdrant/qdrant:v1.17.0
       # Apache Tika
-      - apache/tika:3.2.3.0
+      - apache/tika:3.3.0.0
       # SearXNG
-      - searxng/searxng:2026.3.16-4c4ed4b19
+      - searxng/searxng:2026.3.23-2c1ce3bd3
       # Open Terminal
-      - ghcr.io/open-webui/open-terminal:0.11.20
+      - ghcr.io/open-webui/open-terminal:0.11.27
       # Pipelines
       - ghcr.io/open-webui/pipelines:0.1.2
       # Valkey
       - valkey/valkey:8.1
       # Ingestion worker
-      - python:3.12-slim
+      - python:3.13-slim
 
   # ---------------------------------------------------------------------------
   # Optional: GPU Workbench
@@ -72,7 +72,7 @@ components:
             path: workbench.enabled
             default: "true"
     images:
-      - quay.io/jupyter/pytorch-notebook:cuda12-python-3.11
+      - quay.io/jupyter/pytorch-notebook:cuda12-python-3.13
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows
@@ -96,7 +96,7 @@ components:
             default: "true"
     images:
       - docker.io/langchain/langgraph-server:0.7-py3.12
-      - docker.io/library/postgres:16-alpine
+      - docker.io/library/postgres:17-alpine
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
@@ -136,4 +136,4 @@ components:
             path: global.otel.enabled
             default: "true"
     images:
-      - otel/opentelemetry-collector-contrib:0.147.0
+      - otel/opentelemetry-collector-contrib:0.148.0
