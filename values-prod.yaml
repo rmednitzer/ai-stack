@@ -73,6 +73,7 @@ openwebui:
       gateway.envoyproxy.io/rate-limit-local: "60"
       gateway.envoyproxy.io/rate-limit-burst: "20"
     hosts:
+      # -- REQUIRED: Replace with your actual domain before deploying to production
       - host: ai.example.com
         paths:
           - path: /
@@ -80,6 +81,7 @@ openwebui:
     tls:
       - secretName: ai-tls
         hosts:
+          # -- REQUIRED: Replace with your actual domain before deploying to production
           - ai.example.com
   resources:
     requests:

@@ -74,20 +74,20 @@ Tiering follows the platform-assurance stack-bom classification:
 | Component | Image | Version |
 |-----------|-------|---------|
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.8.10 |
-| Ollama | `ollama/ollama` | 0.18.1 |
-| Qdrant | `qdrant/qdrant` | v1.17.1 |
-| Tika | `apache/tika` | 3.2.3.0 |
-| SearXNG | `searxng/searxng` | 2026.3.16 |
+| Ollama | `ollama/ollama` | 0.18.2 |
+| Qdrant | `qdrant/qdrant` | v1.17.0 |
+| Tika | `apache/tika` | 3.3.0.0 |
+| SearXNG | `searxng/searxng` | 2026.3.23-2c1ce3bd3 |
 | Valkey | `valkey/valkey` | 8.1 |
 | Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 |
-| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.20 |
+| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.27 |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 |
 | LangGraph | `langchain/langgraph-server` | 0.7-py3.12 |
-| PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 16 |
-| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.11 |
-| Ingestion Worker | `python` | 3.12-slim |
+| PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 17-alpine |
+| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 |
+| Ingestion Worker | `python` | 3.13-slim |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39 |
-| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.147.0 |
+| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.148.0 |
 
 ## Prerequisites
 

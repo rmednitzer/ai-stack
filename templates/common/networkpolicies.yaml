@@ -37,6 +37,155 @@ spec:
           port: 53
 
 # =============================================================================
+# Connection test pod — allows the helm test pod to reach all enabled services
+# =============================================================================
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-connection-test
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: connection-test
+  policyTypes:
+    - Egress
+  egress:
+    {{- if .Values.openwebui.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+      ports:
+        - protocol: TCP
+          port: {{ .Values.openwebui.service.port }}
+    {{- end }}
+    {{- if .Values.ollama.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: {{ .Values.ollama.service.port }}
+    {{- end }}
+    {{- if .Values.qdrant.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - protocol: TCP
+          port: {{ .Values.qdrant.service.httpPort }}
+    {{- end }}
+    {{- if .Values.tika.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tika
+      ports:
+        - protocol: TCP
+          port: {{ .Values.tika.service.port }}
+    {{- end }}
+    {{- if .Values.searxng.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: searxng
+      ports:
+        - protocol: TCP
+          port: {{ .Values.searxng.service.port }}
+    {{- end }}
+    {{- if .Values.pipelines.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pipelines
+      ports:
+        - protocol: TCP
+          port: {{ .Values.pipelines.service.port }}
+    {{- end }}
+    {{- if .Values.valkey.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: valkey
+      ports:
+        - protocol: TCP
+          port: {{ .Values.valkey.service.port }}
+    {{- end }}
+    {{- if .Values.workbench.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+      ports:
+        - protocol: TCP
+          port: {{ .Values.workbench.service.port }}
+    {{- end }}
+    {{- if .Values.openTerminal.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: open-terminal
+      ports:
+        - protocol: TCP
+          port: {{ .Values.openTerminal.service.port }}
+    {{- end }}
+    {{- if .Values.mcpo.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpo
+      ports:
+        - protocol: TCP
+          port: {{ .Values.mcpo.service.port }}
+    {{- end }}
+    {{- if .Values.langgraph.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langgraph
+      ports:
+        - protocol: TCP
+          port: {{ .Values.langgraph.service.port }}
+    {{- end }}
+    {{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: {{ .Values.postgres.service.port }}
+    {{- end }}
+    {{- if .Values.authelia.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+      ports:
+        - protocol: TCP
+          port: {{ .Values.authelia.service.port }}
+    {{- end }}
+    {{- if .Values.global.otel.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 8888
+    {{- end }}
+
+# =============================================================================
 # OTel Collector — accepts OTLP from all stack pods; exports to platform
 # =============================================================================
 {{- if .Values.global.otel.enabled }}
@@ -75,6 +224,14 @@ spec:
           port: 8888
         - protocol: TCP
           port: 8889
+    # helm test connection check
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
+      ports:
+        - protocol: TCP
+          port: 8888
   egress:
     # Forward to platform OTel Collector / Prometheus / Loki
     - ports:
@@ -309,6 +466,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: ollama-backup
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 11434
@@ -360,6 +520,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: qdrant-backup
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 6333
@@ -403,6 +566,9 @@ spec:
             matchLabels:
               app.kubernetes.io/name: ingestion-worker
         {{- end }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 9998
@@ -440,6 +606,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 8080
@@ -489,6 +658,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 9099
@@ -671,6 +843,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 8000
@@ -707,6 +882,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 8000
@@ -749,6 +927,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pipelines
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 8000
@@ -874,6 +1055,9 @@ spec:
             matchLabels:
               app.kubernetes.io/name: authelia
         {{- end }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 5432
@@ -917,6 +1101,9 @@ spec:
             matchLabels:
               app.kubernetes.io/name: authelia
         {{- end }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 6379
@@ -954,6 +1141,14 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
+      ports:
+        - protocol: TCP
+          port: 9091
+    # helm test connection check
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
           port: 9091

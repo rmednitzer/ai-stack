@@ -10,6 +10,7 @@ metadata:
   name: {{ include "ai-stack.fullname" . }}-connection-test
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/name: connection-test
   annotations:
     helm.sh/hook: test
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
@@ -31,23 +32,48 @@ spec:
           PASS=0
           FAIL=0
           check_tcp() {
-            if nc -z -w 5 "$1" "$2" 2>/dev/null; then
-              echo "PASS [tcp]: $3 ($1:$2)"
-              PASS=$((PASS+1))
-            else
-              echo "FAIL [tcp]: $3 ($1:$2)"
-              FAIL=$((FAIL+1))
-            fi
+            local N=1
+            while [ $N -le 3 ]; do
+              if nc -z -w 5 "$1" "$2" 2>/dev/null; then
+                echo "PASS [tcp]: $3 ($1:$2)"
+                PASS=$((PASS+1))
+                return 0
+              fi
+              [ $N -lt 3 ] && sleep 2
+              N=$((N+1))
+            done
+            echo "FAIL [tcp]: $3 ($1:$2)"
+            FAIL=$((FAIL+1))
           }
           check_http() {
-            STATUS=$(wget -qO /dev/null -S --timeout=10 "http://$1:$2$3" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}')
-            if [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
-              echo "PASS [http $STATUS]: $4 (http://$1:$2$3)"
-              PASS=$((PASS+1))
-            else
-              echo "FAIL [http $STATUS]: $4 (http://$1:$2$3)"
-              FAIL=$((FAIL+1))
-            fi
+            local N=1
+            while [ $N -le 3 ]; do
+              STATUS=$(wget -qO /dev/null -S --timeout=5 "http://$1:$2$3" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}')
+              if [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
+                echo "PASS [http $STATUS]: $4 (http://$1:$2$3)"
+                PASS=$((PASS+1))
+                return 0
+              fi
+              [ $N -lt 3 ] && sleep 2
+              N=$((N+1))
+            done
+            echo "FAIL [http ${STATUS:-no-response}]: $4 (http://$1:$2$3)"
+            FAIL=$((FAIL+1))
+          }
+          check_redis() {
+            local N=1
+            while [ $N -le 3 ]; do
+              RESP=$(printf '*1\r\n$4\r\nPING\r\n' | nc -w 5 "$1" "$2" 2>/dev/null)
+              if printf '%s' "$RESP" | grep -q '+PONG'; then
+                echo "PASS [redis]: $3 ($1:$2)"
+                PASS=$((PASS+1))
+                return 0
+              fi
+              [ $N -lt 3 ] && sleep 2
+              N=$((N+1))
+            done
+            echo "FAIL [redis]: $3 ($1:$2)"
+            FAIL=$((FAIL+1))
           }
           {{- if .Values.openwebui.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}" "{{ .Values.openwebui.service.port }}" "Open WebUI"
@@ -74,7 +100,7 @@ spec:
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "/health" "Pipelines health"
           {{- end }}
           {{- if .Values.valkey.enabled }}
-          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
+          check_redis "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
           {{- end }}
           {{- if .Values.workbench.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "Workbench"
@@ -101,6 +127,10 @@ spec:
           {{- if .Values.authelia.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}" "{{ .Values.authelia.service.port }}" "Authelia"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}" "{{ .Values.authelia.service.port }}" "/api/health" "Authelia health"
+          {{- end }}
+          {{- if .Values.global.otel.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}" "4317" "OTel Collector gRPC"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}" "8888" "/metrics" "OTel Collector metrics"
           {{- end }}
           echo "---"
           echo "Results: ${PASS} passed, ${FAIL} failed"

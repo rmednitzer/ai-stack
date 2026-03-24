@@ -13,8 +13,7 @@ report it responsibly.
 
 ### How to Report
 
-1. **Email:** Send a report to **[security@example.com]** *(replace with your
-   security contact)*
+1. **Email:** Send a report to **r.mednitzer@outlook.com**
 2. **Subject line:** `[ai-stack] Security vulnerability report`
 3. **Include:**
    - Description of the vulnerability
