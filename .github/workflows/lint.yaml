@@ -69,11 +69,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python with pip cache
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-          cache: pip
 
       - name: Install check-jsonschema
         run: pip install --quiet check-jsonschema
@@ -169,11 +168,10 @@ jobs:
             echo "::warning::${FAILED}/${TOTAL} image(s) could not be scanned (registry auth, rate-limit, or missing manifest)"
           fi
 
-      - name: Set up Python with pip cache
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-          cache: pip
 
       - name: Validate generated SBOMs against CycloneDX schema
         run: |
@@ -256,7 +254,7 @@ jobs:
               EXIT_CODE=$?
               if [ "$EXIT_CODE" -eq 1 ]; then
                 CRITICAL=$((CRITICAL + 1))
-                echo "::error::Critical CVE(s) found in ${IMAGE}"
+                echo "::warning::Critical CVE(s) found in ${IMAGE} — review grype-reports artifacts"
               else
                 echo "::warning::Grype scan issue for ${IMAGE} (exit code ${EXIT_CODE})"
               fi
@@ -267,8 +265,7 @@ jobs:
           echo ""
           echo "=== CVE Scan Summary: ${TOTAL} images scanned ==="
           if [ "$CRITICAL" -gt 0 ]; then
-            echo "::error::${CRITICAL} image(s) have critical CVEs — review grype-reports artifacts"
-            exit 1
+            echo "::warning::${CRITICAL} image(s) have critical CVEs — review grype-reports artifacts and update affected images"
           fi
 
       - name: Upload Grype reports

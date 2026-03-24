@@ -1,5 +1,8 @@
 # ai-stack
 
+[![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
 Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
@@ -466,7 +469,7 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 | **chart-testing** | `ct lint` with chart-testing for standards compliance |
 | **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml` |
 | **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
-| **cve-scan** | Scans all container images for CVEs using Grype; fails on critical vulnerabilities |
+| **cve-scan** | Scans all container images for CVEs using Grype; emits warnings on critical vulnerabilities |
 | **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
 
 ## GitOps / ArgoCD
