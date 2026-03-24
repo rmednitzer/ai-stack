@@ -12,6 +12,11 @@ on:
   push:
     branches: [main]
 
+# Cancel any in-progress run for the same branch/PR to avoid wasted minutes on stale commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -64,6 +69,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python with pip cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+
       - name: Install check-jsonschema
         run: pip install --quiet check-jsonschema
 
@@ -87,12 +98,22 @@ jobs:
           fi
 
   syft-sbom:
+    # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache Syft binary
+        id: cache-syft
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/syft
+          key: syft-v1.21.0
+
       - name: Install Syft
+        if: steps.cache-syft.outputs.cache-hit != 'true'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
             | sh -s -- -b /usr/local/bin v1.21.0  # anchore/syft
@@ -148,6 +169,12 @@ jobs:
             echo "::warning::${FAILED}/${TOTAL} image(s) could not be scanned (registry auth, rate-limit, or missing manifest)"
           fi
 
+      - name: Set up Python with pip cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+
       - name: Validate generated SBOMs against CycloneDX schema
         run: |
           pip install --quiet check-jsonschema
@@ -174,12 +201,22 @@ jobs:
           retention-days: 90
 
   cve-scan:
+    # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache Grype binary
+        id: cache-grype
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/grype
+          key: grype-v0.91.0
+
       - name: Install Grype
+        if: steps.cache-grype.outputs.cache-hit != 'true'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
             | sh -s -- -b /usr/local/bin v0.91.0  # anchore/grype
@@ -253,7 +290,15 @@ jobs:
         with:
           version: v3.20.0  # helm/helm
 
+      - name: Cache kubeconform binary
+        id: cache-kubeconform
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/kubeconform
+          key: kubeconform-v0.7.0
+
       - name: Install kubeconform
+        if: steps.cache-kubeconform.outputs.cache-hit != 'true'
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
