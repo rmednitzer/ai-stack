@@ -14,7 +14,7 @@ three overlapping notification regimes:
 | **GDPR Art. 33** | Personal data breach | Data Protection Authority (DPA) | 72 hours from awareness |
 | **GDPR Art. 34** | High-risk breach to individuals | Data subjects | Without undue delay |
 | **NIS2 Art. 23** | Significant cybersecurity incident | CSIRT (AT: CERT.at) | 24h early warning, 72h notification, 1 month report |
-| **AI Act Art. 73** | Serious AI incident (provider obligation; deployers report to providers per Art. 26(5)) | Market surveillance authority | 15 days from causal link established (Art. 73(2)); 2 days for widespread infringement (Art. 73(3)); 10 days if death involved (Art. 73(4)) |
+| **AI Act Art. 73** | Serious AI incident (provider obligation; deployers report to providers per Art. 26(5)) | Market surveillance authority | Immediately upon causal link, max 15 days from awareness (Art. 73(2)); 2 days for widespread/critical infrastructure (Art. 73(3)); immediately upon suspected causal link, max 10 days if death involved (Art. 73(4)) |
 
 **These obligations are cumulative.** A single event may trigger all three.
 
@@ -126,7 +126,7 @@ If breach is likely to result in **high risk** to rights and freedoms:
 | **Deadline** | 72 hours from awareness |
 | **Content** | Update to early warning with: severity, impact, indicators of compromise, root cause (if known) |
 
-#### AI Act Serious Incident Report (15 days)
+#### AI Act Serious Incident Report (tiered deadlines)
 
 If the AI system caused or contributed to a serious incident (death, serious
 health damage, serious property damage, serious disruption of critical
@@ -134,8 +134,10 @@ infrastructure):
 
 | Field | Value |
 |-------|-------|
-| **Authority** | National AI supervisory authority |
-| **Deadline** | 15 days from awareness (Art. 73(1)) |
+| **Authority** | Market surveillance authority (Art. 73(1)) |
+| **Deadline (general)** | Immediately upon causal link; max 15 days from awareness (Art. 73(2)) |
+| **Deadline (widespread/critical infra)** | Immediately; max 2 days from awareness (Art. 73(3)) |
+| **Deadline (death)** | Immediately upon suspected causal link; max 10 days from awareness (Art. 73(4)) |
 | **Content** | AI system identification, nature of incident, corrective measures |
 
 ### Phase 3: Eradication & Recovery (hours–days)
@@ -200,7 +202,7 @@ infrastructure):
 |-----------|---------|---------|
 | **CERT.at** | *[current contact]* | NIS2 incident notification |
 | **Datenschutzbehörde** | *[current contact]* | GDPR breach notification |
-| **National AI Authority** | *[pending designation]* | AI Act incident reporting |
+| **Market surveillance authority** | *[pending designation]* | AI Act serious incident reporting (Art. 73) |
 
 ---
 

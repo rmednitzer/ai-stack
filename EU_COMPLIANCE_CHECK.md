@@ -78,11 +78,13 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 | Component | AI Act Classification | Basis | Obligations | Deadline |
 |-----------|----------------------|-------|-------------|----------|
-| Ollama (local LLM inference) | **Limited risk** (Art. 50) | AI system interacting with natural persons | Transparency: users must know they interact with AI | In force |
+| Ollama (local LLM inference) | **Limited risk** (Art. 50) | AI system interacting with natural persons | Transparency: users must know they interact with AI | 2026-08-02 |
 | Open WebUI (chat interface) | **Deployer** (Art. 26) | Deploys AI system to end users | Transparency, monitoring, logging (high-risk only) | 2026-08-02 |
-| LangGraph (agentic runtime) | **Limited risk** (Art. 50) | Autonomous AI agent actions | Transparency about AI-generated content | In force |
+| LangGraph (agentic runtime) | **Limited risk** (Art. 50) | Autonomous AI agent actions | Transparency about AI-generated content | 2026-08-02 |
 | Ollama + external models | **GPAI considerations** (Art. 53) | If integrating general-purpose AI models | Documentation, downstream information | 2025-08-02 |
 | Any Annex III use case | **High-risk** (Art. 6) | If used for HR, credit, law enforcement, etc. | Full conformity assessment | 2026-08-02 |
+
+> **Open-source note:** The AI Act's open-source exemption (Art. 2(12)) does **not** apply to Art. 50 transparency obligations. AI systems released under FOSS licences are still subject to Art. 50 when placed on the market or put into service (Art. 2(12), second subparagraph). This means local Ollama models with open-source weights must still comply with Art. 50 disclosure requirements.
 
 #### Current Controls
 
@@ -165,7 +167,7 @@ The CRA applies to "products with digital elements" placed on the EU market. Whe
 
 **CRA Phased Application (Art. 71):**
 - **2024-12-10**: Entry into force
-- **2026-06-11**: Market surveillance (Chapter IV, Art. 35-51)
+- **2026-06-11**: Conformity assessment body notification (Chapter IV, Art. 35-51)
 - **2026-09-11**: Reporting obligations (Art. 14)
 - **2027-12-11**: Full application (all manufacturer obligations, Art. 13)
 
@@ -290,6 +292,17 @@ Cross-checked against EU regulation full texts and Austrian RIS OGD. Corrections
 7. **AI Act Art. 73 timelines** — Added nuanced deadlines from Art. 73(2)-(4): 15 days (general), 2 days (widespread), 10 days (death)
 8. **AI Act Art. 13 role** — Corrected from deployer obligation to provider obligation (deployers consume info per Art. 26(9))
 9. **Incident response authority** — Corrected from "National AI authority" to "Market surveillance authority" per Art. 73(1)
+
+### Validation (2026-03-26)
+
+Cross-checked against EUR-Lex full texts (CELEX 32024R1689, 32024R2847, 32022L2555), artificialintelligenceact.eu article annotations, digital-strategy.ec.europa.eu CRA implementation pages, and Austrian RIS OGD (Gesetzesnummer 10001597). Corrections applied:
+
+10. **AI Act Art. 50 deadline** — Corrected Ollama and LangGraph Art. 50 deadlines from "In force" to 2026-08-02. Art. 50 transparency obligations become applicable 24 months after entry into force per Art. 113(a), i.e. 2 August 2026.
+11. **AI Act Art. 50 open-source exemption** — Added note that the FOSS exemption (Art. 2(12)) does not apply to Art. 50. Open-source AI systems must still comply with transparency requirements.
+12. **CRA Chapter IV label** — Corrected "Market surveillance" to "Conformity assessment body notification". Chapter IV (Art. 35-51) covers notification of conformity assessment bodies, not market surveillance.
+13. **Incident response Art. 73 authority** — Corrected remaining "National AI supervisory authority" references in INCIDENT_RESPONSE.md to "Market surveillance authority" per Art. 73(1).
+14. **Incident response Art. 73 death timeline** — Clarified that death reporting requires immediate notification upon suspected causal link, with 10-day outer limit (Art. 73(4)), not just the outer limit.
+15. **LICENSE_COMPLIANCE.md version alignment** — Updated 9 component versions to match values.yaml: Ollama 0.18.2, Qdrant v1.17.0, Tika 3.3.0.0, SearXNG 2026.3.23, OTel 0.148.0, PostgreSQL 17-alpine, Workbench cuda12-python-3.13, Open Terminal 0.11.27, Ingestion Worker 3.13-slim.
 
 ### Limitations
 
