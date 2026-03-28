@@ -35,7 +35,7 @@ alignment with governance, security, observability, and operational requirements
 - Explicit framework alignment: **NIS2**, **GDPR**, **AI Act**
 - PII redaction in telemetry pipeline (email, SSN, credit card patterns)
 - Governance-as-code annotations (`assurance.platform/*`) on all resources
-- Control reference traceability (CTL-0006, CTL-0009, POL-03)
+- Control reference traceability (CTL-001, CTL-002, POL-001) — defined in [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md)
 - Tier classification system (T0–T3) with clear boundary labels
 
 ### 3. Observability — Production-Grade

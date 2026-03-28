@@ -430,13 +430,15 @@ This chart is designed for regulated environments:
 
 ## Governance and Compliance
 
-The chart aligns with the platform-assurance governance framework:
+The chart aligns with the platform-assurance governance framework. All CTL and
+POL identifiers are formally defined in
+[docs/governance/CONTROLS.md](docs/governance/CONTROLS.md).
 
 | Control | Description | Implementation |
 |---------|-------------|----------------|
-| CTL-0006 | Observability | OTel Collector, ServiceMonitors |
-| CTL-0009 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
-| POL-03 | Least-privilege | Per-component ServiceAccounts, no automount |
+| CTL-001 | Observability | OTel Collector, ServiceMonitors |
+| CTL-002 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
+| POL-001 | Least-privilege | Per-component ServiceAccounts, no automount |
 | GDPR Art 5(1)(c) | Data minimisation | PII redaction in OTel pipeline |
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |
@@ -538,6 +540,7 @@ The chart ships with templates and guidance for EU-regulated deployments:
 
 | Document | Purpose |
 |----------|---------|
+| [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md) | Authoritative registry of all CTL and POL identifiers with descriptions and regulatory basis |
 | [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md) | Gap analysis against GDPR, AI Act, NIS2, CRA, ePrivacy |
 | [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure (CVD) policy |
 | [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) | Data Protection Impact Assessment template (GDPR Art. 35 + AI Act Art. 27) |

@@ -6,7 +6,7 @@ Gated behind global.serviceMonitor.enabled to avoid CRD dependency in lab.
 Aligns with:
   - stack-bom.md §5: Prometheus + Alertmanager (T0)
   - observability-iam.md §3.4: metrics architecture
-  - CTL-0006: Logging legality, minimisation, and forensic correlation
+  - CTL-001: Logging legality, minimisation, and forensic correlation
 */}}
 
 {{- if .Values.global.serviceMonitor.enabled }}

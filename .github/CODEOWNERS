@@ -1,0 +1,30 @@
+# CODEOWNERS — ai-stack Helm chart
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Each line is a file pattern followed by one or more owners.
+# The last matching pattern takes precedence.
+
+# Default owner for everything in the repository
+* @rmednitzer
+
+# Helm chart core
+Chart.yaml @rmednitzer
+values.yaml @rmednitzer
+values-prod.yaml @rmednitzer
+templates/ @rmednitzer
+
+# Security-sensitive files require explicit review
+SECURITY.md @rmednitzer
+.github/workflows/ @rmednitzer
+templates/common/networkpolicies.yaml @rmednitzer
+templates/common/secrets.yaml @rmednitzer
+templates/common/serviceaccounts.yaml @rmednitzer
+
+# EU compliance documentation
+EU_COMPLIANCE_CHECK.md @rmednitzer
+docs/compliance/ @rmednitzer
+
+# CI/CD and dependency management
+.github/dependabot.yml @rmednitzer
+ct.yaml @rmednitzer
+sbom.cdx.json @rmednitzer

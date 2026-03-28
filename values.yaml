@@ -1148,7 +1148,7 @@ ingestionWorker:
 #   - stack-bom.md §5: OTel Collector (T0, non-negotiable)
 #   - observability-iam.md §3.1: collection layer
 #   - ai-api-management.md: GenAI semantic conventions
-#   - CTL-0006, CTL-0009
+#   - CTL-001, CTL-002
 # =============================================================================
 otelCollector:
   replicaCount: 1
