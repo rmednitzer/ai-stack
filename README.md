@@ -434,9 +434,9 @@ The chart aligns with the platform-assurance governance framework:
 
 | Control | Description | Implementation |
 |---------|-------------|----------------|
-| CTL-0006 | Observability | OTel Collector, ServiceMonitors |
-| CTL-0009 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
-| POL-03 | Least-privilege | Per-component ServiceAccounts, no automount |
+| CTL-006 | Observability | OTel Collector, ServiceMonitors |
+| CTL-009 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
+| POL-003 | Least-privilege | Per-component ServiceAccounts, no automount |
 | GDPR Art 5(1)(c) | Data minimisation | PII redaction in OTel pipeline |
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |

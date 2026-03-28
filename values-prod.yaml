@@ -22,7 +22,7 @@ global:
   podAnnotations:
     assurance.platform/chart: "ai-stack"
     assurance.platform/profile: "prod"
-    assurance.platform/control-refs: "CTL-0009"
+    assurance.platform/control-refs: "CTL-009"
 
   # -- Enable backup CronJobs for stateful data
   backup:
