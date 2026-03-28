@@ -7,8 +7,8 @@ Aligns with:
   - stack-bom.md §5: OTel Collector (T0, non-negotiable)
   - observability-iam.md §3.1: OTel Collector pipeline
   - ai-api-management.md Part 4: GenAI semantic conventions
-  - CTL-006: Logging legality, minimisation, and forensic correlation
-  - CTL-009: AI gateway policy (OTel GenAI instrumentation)
+  - CTL-001: Logging legality, minimisation, and forensic correlation
+  - CTL-002: AI gateway policy (OTel GenAI instrumentation)
 */}}
 ---
 apiVersion: v1
@@ -173,7 +173,7 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
     assurance.platform/tier: "T0"
     assurance.platform/boundary: "observability"
-    assurance.platform/control-refs: "CTL-006,CTL-009"
+    assurance.platform/control-refs: "CTL-001,CTL-002"
 spec:
   replicas: {{ .Values.otelCollector.replicaCount | default 1 }}
   selector:

@@ -48,6 +48,6 @@ annotations:
   # platform-assurance tier classification
   assurance.platform/tier: "T1"
   assurance.platform/boundary: "decision"
-  assurance.platform/control-refs: "CTL-009"
+  assurance.platform/control-refs: "CTL-002"
   # Regulatory scope markers
   assurance.platform/frameworks: "NIS2,GDPR,AI-Act"
