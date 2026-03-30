@@ -192,7 +192,7 @@ jobs:
 
       - name: Upload deep SBOMs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: syft-deep-sboms
           path: syft-sbom-output/
@@ -270,7 +270,7 @@ jobs:
 
       - name: Upload Grype reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: grype-cve-reports
           path: grype-reports/
