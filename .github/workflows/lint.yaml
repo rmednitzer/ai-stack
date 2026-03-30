@@ -106,7 +106,7 @@ jobs:
 
       - name: Cache Syft binary
         id: cache-syft
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /usr/local/bin/syft
           key: syft-v1.21.0
@@ -208,7 +208,7 @@ jobs:
 
       - name: Cache Grype binary
         id: cache-grype
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /usr/local/bin/grype
           key: grype-v0.91.0
@@ -289,7 +289,7 @@ jobs:
 
       - name: Cache kubeconform binary
         id: cache-kubeconform
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /usr/local/bin/kubeconform
           key: kubeconform-v0.7.0
