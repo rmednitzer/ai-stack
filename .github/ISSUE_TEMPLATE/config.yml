@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/rmednitzer/ai-stack/blob/main/HOWTO.md
     about: Task-oriented guide for installation, configuration, and operations
   - name: Security Vulnerability
-    url: https://github.com/rmednitzer/ai-stack/blob/main/SECURITY.md
-    about: Report security vulnerabilities via the coordinated disclosure process (do not open a public issue)
+    url: https://github.com/rmednitzer/ai-stack/security/advisories/new
+    about: Report security vulnerabilities privately via GitHub Security Advisories

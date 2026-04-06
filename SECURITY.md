@@ -13,8 +13,8 @@ report it responsibly.
 
 ### How to Report
 
-1. **Email:** Send a report to **r.mednitzer@outlook.com**
-2. **Subject line:** `[ai-stack] Security vulnerability report`
+1. **Preferred:** Use [GitHub Security Advisories](https://github.com/rmednitzer/ai-stack/security/advisories/new) to report privately
+2. **Alternative:** Email **r.mednitzer@outlook.com** with subject `[ai-stack] Security vulnerability report`
 3. **Include:**
    - Description of the vulnerability
    - Steps to reproduce

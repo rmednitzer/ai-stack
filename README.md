@@ -2,6 +2,8 @@
 
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.0.0-blue.svg)](Chart.yaml)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
@@ -504,6 +506,8 @@ ct lint --config ct.yaml --charts .
 See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, EU compliance, and troubleshooting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes in each release.
 
 ## EU Compliance
 

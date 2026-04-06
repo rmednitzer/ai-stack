@@ -5,6 +5,7 @@
 .git/
 .gitignore
 .gitattributes
+.editorconfig
 
 # GitHub / CI / CD
 .github/
@@ -25,6 +26,8 @@ README.md
 HOWTO.md
 CONTRIBUTING.md
 SECURITY.md
+CODE_OF_CONDUCT.md
+CHANGELOG.md
 LICENSE
 docs/
 
