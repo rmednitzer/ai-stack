@@ -118,13 +118,13 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/bin/syft
-          key: syft-v1.21.0
+          key: syft-v1.42.3
 
       - name: Install Syft
         if: steps.cache-syft.outputs.cache-hit != 'true'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b /usr/local/bin v1.21.0  # anchore/syft
+            | sh -s -- -b /usr/local/bin v1.42.3  # anchore/syft
           syft version
 
       - name: Extract image references from values.yaml
@@ -222,13 +222,13 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: /usr/local/bin/grype
-          key: grype-v0.91.0
+          key: grype-v0.110.0
 
       - name: Install Grype
         if: steps.cache-grype.outputs.cache-hit != 'true'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
-            | sh -s -- -b /usr/local/bin v0.91.0  # anchore/grype
+            | sh -s -- -b /usr/local/bin v0.110.0  # anchore/grype
           grype version
 
       - name: Extract image references from values.yaml

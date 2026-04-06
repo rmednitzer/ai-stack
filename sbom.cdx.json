@@ -5,7 +5,7 @@
   "serialNumber": "urn:uuid:cc5b9da3-be5e-4bf8-a708-8844e4ffd972",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-24T00:00:00Z",
+    "timestamp": "2026-04-06T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -59,9 +59,9 @@
       "type": "container",
       "bom-ref": "open-webui",
       "name": "open-webui",
-      "version": "v0.8.10",
+      "version": "v0.8.12",
       "description": "Primary user interface for LLM interaction",
-      "purl": "pkg:docker/open-webui/open-webui@v0.8.10?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-webui@v0.8.12?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -94,9 +94,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.18.2",
+      "version": "0.20.2",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.18.2",
+      "purl": "pkg:docker/ollama/ollama@0.20.2",
       "licenses": [
         {
           "license": {
@@ -129,9 +129,9 @@
       "type": "container",
       "bom-ref": "qdrant",
       "name": "qdrant",
-      "version": "v1.17.0",
+      "version": "v1.17.1",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.17.0",
+      "purl": "pkg:docker/qdrant/qdrant@v1.17.1",
       "licenses": [
         {
           "license": {
@@ -199,9 +199,9 @@
       "type": "container",
       "bom-ref": "searxng",
       "name": "searxng",
-      "version": "2026.3.23-2c1ce3bd3",
+      "version": "2026.4.5-474b0a55b",
       "description": "Privacy-respecting metasearch engine for web RAG",
-      "purl": "pkg:docker/searxng/searxng@2026.3.23-2c1ce3bd3",
+      "purl": "pkg:docker/searxng/searxng@2026.4.5-474b0a55b",
       "licenses": [
         {
           "license": {
@@ -238,9 +238,9 @@
       "type": "container",
       "bom-ref": "valkey",
       "name": "valkey",
-      "version": "8.1",
+      "version": "8.1.6",
       "description": "In-memory session cache and rate-limiting backend",
-      "purl": "pkg:docker/valkey/valkey@8.1",
+      "purl": "pkg:docker/valkey/valkey@8.1.6",
       "licenses": [
         {
           "license": {
@@ -273,9 +273,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.148.0",
+      "version": "0.149.0",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.148.0",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.149.0",
       "licenses": [
         {
           "license": {
@@ -418,9 +418,9 @@
       "type": "container",
       "bom-ref": "open-terminal",
       "name": "open-terminal",
-      "version": "0.11.27",
+      "version": "0.11.32",
       "description": "Sandboxed terminal with REST API for AI agent code execution",
-      "purl": "pkg:docker/open-webui/open-terminal@0.11.27?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-terminal@0.11.32?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -453,9 +453,9 @@
       "type": "container",
       "bom-ref": "mcpo",
       "name": "mcpo",
-      "version": "0.2.0",
+      "version": "0.0.20",
       "description": "MCP-to-OpenAPI proxy for Open WebUI tool integration",
-      "purl": "pkg:docker/open-webui/mcpo@0.2.0?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/mcpo@0.0.20?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -523,9 +523,9 @@
       "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
-      "version": "3.13-slim",
+      "version": "3.12-slim",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.13-slim?repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.12-slim?repository_url=docker.io",
       "licenses": [
         {
           "license": {
