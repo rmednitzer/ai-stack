@@ -10,8 +10,9 @@
 README.md
 CONTRIBUTING.md
 LICENSE
-LICENSE_COMPLIANCE.md
-ENTERPRISE_EVALUATION.md
+docs/compliance/LICENSE_COMPLIANCE.md
+docs/enterprise/ENTERPRISE_EVALUATION.md
+docs/compliance/EU_COMPLIANCE_CHECK.md
 sbom.cdx.json
 ct.yaml
 renovate.json5

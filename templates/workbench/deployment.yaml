@@ -36,9 +36,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        {{- if .Values.ollama.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
-        {{- end }}
         # Install additional Python packages at startup
         # For production, bake these into a custom image instead
         {{- if .Values.workbench.env.PIP_PACKAGES }}

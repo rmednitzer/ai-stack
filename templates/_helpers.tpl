@@ -56,6 +56,53 @@ Usage: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Cha
 {{- end }}
 
 {{/*
+Check if autoscaling is enabled for a component spec.
+Usage: {{ include "ai-stack.autoscalingEnabled" .Values.openwebui }}
+Returns "true" or "".
+*/}}
+{{- define "ai-stack.autoscalingEnabled" -}}
+{{- if and (hasKey . "autoscaling") .autoscaling.enabled -}}true{{- end -}}
+{{- end }}
+
+{{/*
+Resolve component enabled state for components with non-standard value paths.
+Returns "true" or "".
+Usage: {{ if include "ai-stack.componentEnabled" (dict "Values" .Values "component" "otel-collector") }}
+*/}}
+{{- define "ai-stack.componentEnabled" -}}
+{{- $component := .component -}}
+{{- $enabled := false -}}
+{{- if eq $component "otel-collector" -}}
+  {{- $enabled = .Values.global.otel.enabled -}}
+{{- else if eq $component "ingestion-worker" -}}
+  {{- $enabled = .Values.ingestionWorker.enabled -}}
+{{- else if eq $component "open-terminal" -}}
+  {{- $enabled = .Values.openTerminal.enabled -}}
+{{- else if eq $component "postgres" -}}
+  {{- $enabled = and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") -}}
+{{- else -}}
+  {{- $enabled = (index .Values $component).enabled -}}
+{{- end -}}
+{{- if $enabled -}}true{{- end -}}
+{{- end }}
+
+{{/*
+Network policy egress rule for a component.
+Usage: {{ include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) }}
+*/}}
+{{- define "ai-stack.netpolEgress" -}}
+{{- if .enabled }}
+- to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: {{ .name }}
+  ports:
+    - protocol: TCP
+      port: {{ .port }}
+{{- end }}
+{{- end }}
+
+{{/*
 OTel environment variables (injected into all pods when otel.enabled=true).
 */}}
 {{- define "ai-stack.otelEnv" -}}
@@ -227,15 +274,10 @@ by combining internal service endpoints with external API providers.
 */}}
 
 {{/*
-Construct OPENAI_API_BASE_URLS: internal endpoints + external provider URLs.
-Internal endpoints (Pipelines, Ollama) come first, followed by each
-externalAPIs.providers[].baseUrl.
+Construct OPENAI_API_BASE_URLS: Ollama endpoint + external provider URLs.
 */}}
 {{- define "ai-stack.openaiBaseUrls" -}}
 {{- $urls := list -}}
-{{- if .Values.pipelines.enabled -}}
-  {{- $urls = append $urls (printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines")) (.Values.pipelines.service.port | toString)) -}}
-{{- end -}}
 {{- if .Values.ollama.enabled -}}
   {{- $urls = append $urls (printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) (.Values.ollama.service.port | toString)) -}}
 {{- end -}}
@@ -248,17 +290,10 @@ externalAPIs.providers[].baseUrl.
 {{- end }}
 
 {{/*
-Construct OPENAI_API_KEYS: placeholder keys for internal endpoints + secret
-references for external providers.
-Internal endpoints use "0" (Open WebUI convention for no-auth endpoints).
-External provider keys use Kubernetes variable substitution: $(_EXTAPI_KEY_<index>)
-which are injected as env vars from Secrets.
+Construct OPENAI_API_KEYS: placeholder for Ollama + secret refs for external providers.
 */}}
 {{- define "ai-stack.openaiApiKeys" -}}
 {{- $keys := list -}}
-{{- if .Values.pipelines.enabled -}}
-  {{- $keys = append $keys "0" -}}
-{{- end -}}
 {{- if .Values.ollama.enabled -}}
   {{- $keys = append $keys "0" -}}
 {{- end -}}
@@ -399,29 +434,3 @@ spec:
 {{- end }}
 {{- end }}
 
-{{/*
-Init container: wait for a TCP service to become reachable.
-Uses busybox nc; no external dependencies.
-*/}}
-{{- define "ai-stack.waitFor" -}}
-- name: wait-for-{{ .name }}
-  image: busybox:1.37
-  command: ['sh', '-c', 'until nc -z {{ .host }} {{ .port }} ; do echo "waiting for {{ .name }}..."; sleep 2; done']
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 65534
-    capabilities:
-      drop:
-        - ALL
-    seccompProfile:
-      type: RuntimeDefault
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 50m
-      memory: 32Mi
-{{- end }}

@@ -1,8 +1,8 @@
 # =============================================================================
 # ai-stack Helm Chart — values.yaml
 # =============================================================================
-# Tiering key (per platform-assurance stack-bom.md):
-#   T0 = safety/integrity  |  T1 = operational  |  T2 = productivity  |  T3 = exploratory
+# Tiering key (see docs/governance/CONTROLS.md):
+#   T0 = safety/integrity  |  T1 = operational  |  T2 = productivity
 #
 # Deployment targets:
 #   lab   — single-node, no HA, relaxed resource limits
@@ -53,19 +53,6 @@ global:
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
     labels: {}
 
-  # -- Backup configuration for stateful components
-  backup:
-    enabled: false
-    # -- Cron schedule (default: daily at 02:00 UTC)
-    schedule: "0 2 * * *"
-    # -- Number of successful/failed jobs to retain
-    successfulJobsHistoryLimit: 3
-    failedJobsHistoryLimit: 3
-    # -- Backup storage PVC size
-    storageSize: 50Gi
-    # -- TTL for completed backup jobs (24h)
-    ttlSecondsAfterFinished: 86400
-
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
   podAnnotations:
@@ -110,40 +97,7 @@ externalAPIs:
   #     name:          Secret name (must exist in release namespace)
   #     key:           Key within the Secret containing the API key
   providers: []
-  #   # --- OpenAI ---
-  #   - name: openai
-  #     baseUrl: "https://api.openai.com/v1"
-  #     apiKey: ""
-  #     # existingSecret:
-  #     #   name: "my-openai-secret"
-  #     #   key: "api-key"
-  #
-  #   # --- Azure OpenAI ---
-  #   - name: azure-openai
-  #     baseUrl: "https://<resource>.openai.azure.com/openai/deployments/<deployment>"
-  #     apiKey: ""
-  #
-  #   # --- Anthropic (Claude) ---
-  #   # Note: requires Open WebUI v0.6+ with Anthropic API translation layer,
-  #   # or use a Pipelines function for protocol translation.
-  #   - name: anthropic
-  #     baseUrl: "https://api.anthropic.com/v1"
-  #     apiKey: ""
-  #
-  #   # --- Google Gemini (OpenAI-compatible endpoint) ---
-  #   - name: gemini
-  #     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai"
-  #     apiKey: ""
-  #
-  #   # --- Mistral AI ---
-  #   - name: mistral
-  #     baseUrl: "https://api.mistral.ai/v1"
-  #     apiKey: ""
-  #
-  #   # --- Any OpenAI-compatible provider ---
-  #   - name: custom-provider
-  #     baseUrl: "https://api.example.com/v1"
-  #     apiKey: ""
+  # See HOWTO.md §6 for provider configuration examples (OpenAI, Azure, Anthropic, Gemini, etc.)
 
 # =============================================================================
 # Authelia — Optional OIDC identity provider for Open WebUI SSO
@@ -253,8 +207,8 @@ openwebui:
   env:
     # -- Ollama backend URL (internal service DNS)
     OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    # -- Open WebUI Pipelines URL
-    OPENAI_API_BASE_URLS: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099;http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    # -- OpenAI-compatible API base URLs (Ollama serves /v1 natively)
+    OPENAI_API_BASE_URLS: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
 
     # --- RAG configuration ---
     # -- Web search via SearXNG
@@ -273,12 +227,12 @@ openwebui:
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
-    # -- Overlap between chunks
-    RAG_CHUNK_OVERLAP: "100"
+    # -- Overlap between chunks (10% of chunk size for coherent context boundaries)
+    RAG_CHUNK_OVERLAP: "150"
     # -- Number of top chunks to retrieve
     RAG_TOP_K: "5"
-    # -- Minimum relevance score (0.0 = no filter)
-    RAG_RELEVANCE_THRESHOLD: "0.0"
+    # -- Minimum relevance score (filter low-quality chunks to reduce noise)
+    RAG_RELEVANCE_THRESHOLD: "0.2"
     # -- Verify TLS when loading web content for RAG
     ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION: "true"
 
@@ -375,8 +329,8 @@ ollama:
       cpu: "1"
       memory: 4Gi
     limits:
-      cpu: "8"
-      memory: 32Gi
+      cpu: "4"
+      memory: 16Gi
   probes:
     liveness:
       httpGet:
@@ -573,7 +527,6 @@ workbench:
     # QDRANT_API_KEY injected from Secret in deployment template
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
     # -- NVIDIA visibility
     NVIDIA_VISIBLE_DEVICES: "all"
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
@@ -603,8 +556,8 @@ workbench:
       cpu: "2"
       memory: 16Gi
     limits:
-      cpu: "16"
-      memory: 64Gi
+      cpu: "8"
+      memory: 32Gi
   probes:
     liveness:
       httpGet:
@@ -697,19 +650,9 @@ mcpo:
   # -- MCP server configuration (Claude Desktop config format)
   # Each entry under mcpServers defines an upstream MCP server that MCPO
   # will expose as an OpenAPI endpoint. Add your MCP servers here.
+  # -- MCP server configuration (Claude Desktop config format)
   config:
     mcpServers: {}
-    #   # Example: filesystem MCP server
-    #   filesystem:
-    #     command: "npx"
-    #     args:
-    #       - "-y"
-    #       - "@modelcontextprotocol/server-filesystem"
-    #       - "/data"
-    #   # Example: remote SSE MCP server
-    #   remote-tools:
-    #     url: "https://mcp.example.com/sse"
-    #     type: "sse"
   resources:
     requests:
       cpu: 100m
@@ -774,8 +717,6 @@ langgraph:
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    # -- Pipelines URL
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
     # -- Disable LangSmith telemetry (keep data on-prem)
     LANGCHAIN_TRACING_V2: "false"
     LANGSMITH_API_KEY: ""
@@ -852,8 +793,8 @@ postgres:
     port: 5432
 
   # -- TLS mode for client connections: disable | require | verify-ca | verify-full
-  #    standalone: passed as PGSSLMODE to clients (server-side TLS not managed)
-  #    cnpg: operator provisions certificates automatically when not "disable"
+  #    standalone: "disable" (server-side TLS not managed by chart)
+  #    cnpg: set to "require" — operator provisions certificates automatically
   #    external: passed as sslmode in connection URI
   tls:
     mode: disable
@@ -929,22 +870,12 @@ postgres:
     # -- Automated backup configuration
     backup:
       enabled: false
-      # -- Backup destination (S3-compatible or volume snapshot)
       barmanObjectStore: {}
-      #   destinationPath: "s3://my-bucket/cnpg-backups"
-      #   endpointURL: "https://s3.eu-central-1.amazonaws.com"
-      #   s3Credentials:
-      #     accessKeyId:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_KEY_ID
-      #     secretAccessKey:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_SECRET_KEY
       retentionPolicy: "30d"
       schedule: "0 0 2 * * *"  # Daily at 02:00
-    # -- PgBouncer connection pooler
+    # -- PgBouncer connection pooler (recommended for multi-instance deployments)
     pooler:
-      enabled: false
+      enabled: true
       instances: 2
       type: rw  # rw = read-write, ro = read-only
       pgbouncer:
@@ -972,59 +903,6 @@ postgres:
       key: "password"
 
 # =============================================================================
-# Open WebUI Pipelines — Function/filter pipeline server
-# Tier: T1 (operational) | Boundary: decision (pre/post-processing)
-# =============================================================================
-pipelines:
-  enabled: true
-  replicaCount: 1
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  image:
-    repository: ghcr.io/open-webui/pipelines
-    tag: "0.1.2"
-  service:
-    type: ClusterIP
-    port: 9099
-  env:
-    PIPELINES_DIR: "/app/pipelines"
-    # -- Backend URLs for pipeline functions that need to call stack services
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-  persistence:
-    enabled: true
-    size: 5Gi
-    accessMode: ReadWriteOnce
-    mountPath: /app/pipelines
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 4Gi
-  probes:
-    liveness:
-      httpGet:
-        path: /health
-        port: http
-      initialDelaySeconds: 15
-      periodSeconds: 30
-    readiness:
-      httpGet:
-        path: /health
-        port: http
-      initialDelaySeconds: 5
-      periodSeconds: 10
-
-# =============================================================================
 # Valkey — Session cache / rate limiting backend
 # Tier: T2 (productivity) | Boundary: none (ephemeral cache)
 # Note: Using Valkey (BSD 3-Clause) per license audit recommendation
@@ -1034,7 +912,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "8.1"
+    tag: "8.1.1"
   service:
     type: ClusterIP
     port: 6379
@@ -1090,7 +968,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.13-slim"
+    tag: "3.12-slim"
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
@@ -1102,8 +980,8 @@ ingestionWorker:
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
-    # -- Overlap between chunks
-    RAG_CHUNK_OVERLAP: "100"
+    # -- Overlap between chunks (10% of chunk size)
+    RAG_CHUNK_OVERLAP: "150"
     # -- Valkey Stream name for ingestion tasks
     INGESTION_STREAM: "ingestion:documents"
     # -- Consumer group name
@@ -1113,9 +991,9 @@ ingestionWorker:
     # -- TTL for status keys in seconds (24h)
     INGESTION_STATUS_TTL: "86400"
     # -- Number of messages to read per batch
-    INGESTION_BATCH_SIZE: "5"
+    INGESTION_BATCH_SIZE: "10"
     # -- Block timeout in ms when waiting for new messages
-    INGESTION_BLOCK_MS: "5000"
+    INGESTION_BLOCK_MS: "2000"
     # -- Max retries per task before marking as failed
     INGESTION_MAX_RETRIES: "3"
     # -- Qdrant collection name for ingested documents
@@ -1156,8 +1034,8 @@ otelCollector:
     repository: otel/opentelemetry-collector-contrib
     tag: "0.148.0"
   logLevel: info
-  memoryLimitMiB: 400
-  spikeMemoryLimitMiB: 100
+  memoryLimitMiB: 450
+  spikeMemoryLimitMiB: 128
   resources:
     requests:
       cpu: 100m

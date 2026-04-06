@@ -162,41 +162,6 @@
     },
     {
       "type": "container",
-      "bom-ref": "pipelines",
-      "name": "pipelines",
-      "version": "0.1.2",
-      "description": "Open WebUI function/filter pipeline server",
-      "purl": "pkg:docker/open-webui/pipelines@0.1.2?repository_url=ghcr.io",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "properties": [
-        {
-          "name": "assurance.platform/tier",
-          "value": "T1"
-        },
-        {
-          "name": "assurance.platform/boundary",
-          "value": "decision"
-        },
-        {
-          "name": "chart.ai-stack/default-enabled",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "website",
-          "url": "https://github.com/open-webui/pipelines"
-        }
-      ]
-    },
-    {
-      "type": "container",
       "bom-ref": "tika",
       "name": "tika",
       "version": "3.3.0.0",
@@ -597,7 +562,6 @@
         "open-webui",
         "ollama",
         "qdrant",
-        "pipelines",
         "tika",
         "searxng",
         "valkey",
@@ -624,8 +588,7 @@
         "qdrant",
         "tika",
         "searxng",
-        "valkey",
-        "pipelines"
+        "valkey"
       ]
     },
     {
@@ -635,8 +598,7 @@
         "ollama",
         "qdrant",
         "tika",
-        "searxng",
-        "pipelines"
+        "searxng"
       ]
     },
     {
@@ -645,8 +607,7 @@
         "ollama",
         "qdrant",
         "tika",
-        "searxng",
-        "pipelines"
+        "searxng"
       ]
     },
     {
@@ -656,15 +617,6 @@
     {
       "ref": "qdrant",
       "dependsOn": []
-    },
-    {
-      "ref": "pipelines",
-      "dependsOn": [
-        "ollama",
-        "qdrant",
-        "tika",
-        "searxng"
-      ]
     },
     {
       "ref": "tika",

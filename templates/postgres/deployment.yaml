@@ -35,6 +35,7 @@ spec:
         fsGroup: 999
         seccompProfile:
           type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
       containers:
         - name: postgres
           image: "{{ .Values.postgres.standalone.image.repository }}:{{ .Values.postgres.standalone.image.tag }}"
@@ -69,6 +70,11 @@ spec:
               mountPath: /tmp
             - name: run
               mountPath: /var/run/postgresql
+          startupProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.postgres.user | quote }}, "-d", {{ .Values.postgres.database | quote }}]
+            failureThreshold: 30
+            periodSeconds: 5
           {{- with .Values.postgres.standalone.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

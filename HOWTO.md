@@ -70,30 +70,26 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
     - [Enable OpenTelemetry](#141-enable-opentelemetry)
     - [Enable Prometheus ServiceMonitors](#142-enable-prometheus-servicemonitors)
     - [PII redaction](#143-pii-redaction)
-15. [Backup and Restore](#15-backup-and-restore)
-    - [Enable automated backups](#151-enable-automated-backups)
-    - [Manual Qdrant snapshot](#152-manual-qdrant-snapshot)
-    - [Restore from backup](#153-restore-from-backup)
-16. [Scaling](#16-scaling)
-    - [Horizontal Pod Autoscaling](#161-horizontal-pod-autoscaling)
-    - [Manual scaling](#162-manual-scaling)
-    - [Resource tuning](#163-resource-tuning)
-17. [Upgrading](#17-upgrading)
-    - [Upgrade the chart](#171-upgrade-the-chart)
-    - [Upgrade individual component images](#172-upgrade-individual-component-images)
-    - [Upgrade with zero downtime](#173-upgrade-with-zero-downtime)
-18. [GitOps with ArgoCD](#18-gitops-with-argocd)
-    - [Deploy the lab application](#181-deploy-the-lab-application)
-    - [Deploy the production application](#182-deploy-the-production-application)
-    - [Customizing the application manifests](#183-customizing-the-application-manifests)
-    - [Ignore differences](#184-ignore-differences)
-    - [Disaster recovery](#185-disaster-recovery)
-19. [EU Compliance](#19-eu-compliance)
-    - [AI transparency disclosure](#191-ai-transparency-disclosure)
-    - [Data retention](#192-data-retention)
-    - [External API provider governance](#193-external-api-provider-governance)
-    - [Encryption at rest](#194-encryption-at-rest)
-    - [Compliance documentation](#195-compliance-documentation)
+15. [Scaling](#15-scaling)
+    - [Horizontal Pod Autoscaling](#151-horizontal-pod-autoscaling)
+    - [Manual scaling](#152-manual-scaling)
+    - [Resource tuning](#153-resource-tuning)
+16. [Upgrading](#16-upgrading)
+    - [Upgrade the chart](#161-upgrade-the-chart)
+    - [Upgrade individual component images](#162-upgrade-individual-component-images)
+    - [Upgrade with zero downtime](#163-upgrade-with-zero-downtime)
+17. [GitOps with ArgoCD](#17-gitops-with-argocd)
+    - [Deploy the lab application](#171-deploy-the-lab-application)
+    - [Deploy the production application](#172-deploy-the-production-application)
+    - [Customizing the application manifests](#173-customizing-the-application-manifests)
+    - [Ignore differences](#174-ignore-differences)
+    - [Disaster recovery](#175-disaster-recovery)
+18. [EU Compliance](#18-eu-compliance)
+    - [AI transparency disclosure](#181-ai-transparency-disclosure)
+    - [Data retention](#182-data-retention)
+    - [External API provider governance](#183-external-api-provider-governance)
+    - [Encryption at rest](#184-encryption-at-rest)
+    - [Compliance documentation](#185-compliance-documentation)
 20. [Troubleshooting](#20-troubleshooting)
     - [Pods stuck in Pending](#201-pods-stuck-in-pending)
     - [Ollama out of memory](#202-ollama-out-of-memory)
@@ -136,7 +132,7 @@ helm install ai-stack . -n ai-stack --create-namespace \
 
 ### 1.2 Production Environment
 
-Production mode enables HA replicas, autoscaling, TLS ingress, backups, and observability.
+Production mode enables HA replicas, autoscaling, TLS ingress, and observability.
 
 **Additional prerequisites:**
 
@@ -561,7 +557,7 @@ externalAPIs:
       apiKey: "sk-ant-..."
 ```
 
-**Note:** Anthropic API integration requires Open WebUI v0.6+ with the Anthropic API translation layer, or a Pipelines function for protocol translation.
+**Note:** Anthropic API integration requires Open WebUI v0.6+ with the Anthropic API translation layer, or an Open WebUI function for protocol translation.
 
 ### 6.4 Use an External Secret Manager
 
@@ -1124,55 +1120,9 @@ otelCollector:
 
 ---
 
-## 15. Backup and Restore
+## 15. Scaling
 
-### 15.1 Enable Automated Backups
-
-```yaml
-global:
-  backup:
-    enabled: true
-    schedule: "0 2 * * *"    # Daily at 02:00 UTC
-    storageSize: 100Gi       # Backup PVC size
-```
-
-This creates CronJobs for:
-
-- **Qdrant:** Snapshot-based backup with configurable retention (default: 7 snapshots)
-- **Ollama:** Model manifest and blob backup (default: 3 backups retained)
-
-### 15.2 Manual Qdrant Snapshot
-
-Trigger a manual Qdrant snapshot:
-
-```bash
-# Create a snapshot of all collections
-kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
-  curl -s -X POST http://localhost:6333/snapshots \
-    -H "api-key: $(kubectl get secret -n ai-stack ai-stack-qdrant-secret -o jsonpath='{.data.api-key}' | base64 -d)"
-
-# List snapshots
-kubectl exec -n ai-stack deploy/ai-stack-qdrant -- \
-  curl -s http://localhost:6333/snapshots \
-    -H "api-key: $(kubectl get secret -n ai-stack ai-stack-qdrant-secret -o jsonpath='{.data.api-key}' | base64 -d)"
-```
-
-### 15.3 Restore from Backup
-
-**Qdrant:**
-
-1. Stop the Qdrant deployment: `kubectl scale -n ai-stack deploy/ai-stack-qdrant --replicas=0`
-2. Copy the snapshot to the Qdrant PVC
-3. Restart Qdrant: `kubectl scale -n ai-stack deploy/ai-stack-qdrant --replicas=1`
-4. Use the Qdrant REST API to recover from the snapshot
-
-**Full cluster recovery:** Pair the chart's CronJob backups with [Velero](https://velero.io/) for complete cluster-level disaster recovery.
-
----
-
-## 16. Scaling
-
-### 16.1 Horizontal Pod Autoscaling
+### 15.1 Horizontal Pod Autoscaling
 
 HPA is available for stateless components. Enable in your values:
 
@@ -1190,12 +1140,6 @@ tika:
     enabled: true
     minReplicas: 2
     maxReplicas: 4
-
-pipelines:
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
 ```
 
 Verify HPA status:
@@ -1204,7 +1148,7 @@ Verify HPA status:
 kubectl get hpa -n ai-stack
 ```
 
-### 16.2 Manual Scaling
+### 15.2 Manual Scaling
 
 For components without HPA:
 
@@ -1218,7 +1162,7 @@ kubectl scale -n ai-stack deploy/ai-stack-ingestion-worker --replicas=4
 
 **Note:** Stateful components (Ollama, Qdrant) use ReadWriteOnce PVCs and cannot be scaled beyond 1 replica without operator support (e.g., Qdrant distributed mode) or shared storage.
 
-### 16.3 Resource Tuning
+### 15.3 Resource Tuning
 
 Adjust resource requests and limits per component. Example for a high-traffic production deployment:
 
@@ -1246,9 +1190,9 @@ ollama:
 
 ---
 
-## 17. Upgrading
+## 16. Upgrading
 
-### 17.1 Upgrade the Chart
+### 15.1 Upgrade the Chart
 
 ```bash
 # Review what will change
@@ -1263,7 +1207,7 @@ helm upgrade ai-stack . -n ai-stack -f values.yaml -f values-prod.yaml
 
 Secrets annotated with `helm.sh/resource-policy: keep` survive upgrades. PVCs are also retained.
 
-### 17.2 Upgrade Individual Component Images
+### 15.2 Upgrade Individual Component Images
 
 To update a single component without changing the chart:
 
@@ -1274,7 +1218,7 @@ helm upgrade ai-stack . -n ai-stack \
 
 Or update the tag in your values file and run `helm upgrade`.
 
-### 17.3 Upgrade with Zero Downtime
+### 15.3 Upgrade with Zero Downtime
 
 For stateless components with multiple replicas, rolling updates happen automatically. Ensure:
 
@@ -1289,7 +1233,7 @@ kubectl rollout status -n ai-stack deploy/ai-stack-openwebui
 
 ---
 
-## 18. GitOps with ArgoCD
+## 17. GitOps with ArgoCD
 
 Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Application manifests under `argocd/`.
 
@@ -1298,7 +1242,7 @@ Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Appli
 - ArgoCD installed in the cluster (namespace `argocd`)
 - Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
 
-### 18.1 Deploy the Lab Application
+### 16.1 Deploy the Lab Application
 
 The lab application enables **automated sync** with self-healing and pruning — changes pushed to `main` are applied automatically.
 
@@ -1325,7 +1269,7 @@ argocd app get ai-stack-lab
 kubectl get application ai-stack-lab -n argocd -o jsonpath='{.status.sync.status}'
 ```
 
-### 18.2 Deploy the Production Application
+### 16.2 Deploy the Production Application
 
 The production application uses **manual sync** for change-control compliance. ArgoCD detects when the repo is out-of-sync, but an operator must explicitly trigger the sync.
 
@@ -1363,7 +1307,7 @@ notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
 notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
 ```
 
-### 18.3 Customizing the Application Manifests
+### 16.3 Customizing the Application Manifests
 
 **Change the target branch or repo:**
 
@@ -1406,7 +1350,7 @@ argocd proj create ai-stack \
   --allow-cluster-resource /Namespace
 ```
 
-### 18.4 Ignore Differences
+### 16.4 Ignore Differences
 
 Both manifests ignore diffs on:
 
@@ -1423,7 +1367,7 @@ ignoreDifferences:
       - /data/custom-key
 ```
 
-### 18.5 Disaster Recovery
+### 16.5 Disaster Recovery
 
 Both applications set `revisionHistoryLimit` (5 for lab, 10 for production) so you can roll back to a previous sync:
 
@@ -1439,13 +1383,13 @@ The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resou
 
 ---
 
-## 19. EU Compliance
+## 18. EU Compliance
 
 This section covers EU regulatory compliance tasks. For the full compliance
-framework analysis, see [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md). For
+framework analysis, see [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md). For
 detailed templates and procedures, see [docs/compliance/](docs/compliance/).
 
-### 19.1 AI Transparency Disclosure
+### 17.1 AI Transparency Disclosure
 
 AI Act Art. 50(1) requires informing users when they interact with an AI
 system. The chart includes a configurable banner:
@@ -1460,14 +1404,14 @@ openwebui:
 
 Customise the text for your deployment. Set `WEBUI_BANNER_TEXT: ""` to disable.
 
-### 19.2 Data Retention
+### 17.2 Data Retention
 
 GDPR Art. 5(1)(e) requires storage limitation. Define and enforce retention
 periods for all personal data categories. See
 [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1
 for recommended retention periods and automated purge scripts.
 
-### 19.3 External API Provider Governance
+### 17.3 External API Provider Governance
 
 When enabling external LLM providers (`externalAPIs.enabled=true`), complete
 the pre-enablement checklist in
@@ -1479,7 +1423,7 @@ including:
 - ROPA update (PA-06 in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md))
 - Privacy notice update
 
-### 19.4 Encryption at Rest
+### 17.4 Encryption at Rest
 
 NIS2 Art. 21(2)(h) requires cryptography policies. Ensure PVCs containing
 personal data use an encrypted StorageClass. See
@@ -1491,7 +1435,7 @@ global:
   storageClass: "gp3-encrypted"  # or "zfs-encrypted", etc.
 ```
 
-### 19.5 Compliance Documentation
+### 17.5 Compliance Documentation
 
 Complete the following before production deployment:
 
@@ -1503,13 +1447,13 @@ Complete the following before production deployment:
 | Data Subject Rights Procedures | [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) | Template — establish intake channels |
 | EU Operations Guide | [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) | Reference — review all sections |
 | Security Policy / CVD | [SECURITY.md](SECURITY.md) | Template — set security contact email |
-| EU Compliance Check | [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md) | Complete — review and track gaps |
+| EU Compliance Check | [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md) | Complete — review and track gaps |
 
 ---
 
-## 20. Troubleshooting
+## 19. Troubleshooting
 
-### 20.1 Pods Stuck in Pending
+### 18.1 Pods Stuck in Pending
 
 ```bash
 kubectl describe pod -n ai-stack <pod-name>
@@ -1521,7 +1465,7 @@ Common causes:
 - **No matching node selector/tolerations:** Check `global.nodeSelector` and `global.tolerations`
 - **GPU requested but unavailable:** Ensure the NVIDIA GPU Operator is installed and GPUs are free
 
-### 20.2 Ollama Out of Memory
+### 18.2 Ollama Out of Memory
 
 Ollama may OOM when loading large models. Solutions:
 
@@ -1544,7 +1488,7 @@ ollama:
     OLLAMA_KEEP_ALIVE: "1m"
 ```
 
-### 20.3 Open WebUI Cannot Reach Ollama
+### 18.3 Open WebUI Cannot Reach Ollama
 
 1. Check Ollama is running: `kubectl get pods -n ai-stack -l app.kubernetes.io/component=ollama`
 2. Check the service exists: `kubectl get svc -n ai-stack -l app.kubernetes.io/component=ollama`
@@ -1561,7 +1505,7 @@ kubectl exec -n ai-stack deploy/ai-stack-openwebui -- \
 kubectl describe networkpolicy -n ai-stack | grep -A 5 ollama
 ```
 
-### 20.4 NetworkPolicy Blocking Traffic
+### 18.4 NetworkPolicy Blocking Traffic
 
 Symptom: Components cannot communicate even though services exist.
 
@@ -1579,7 +1523,7 @@ helm upgrade ai-stack . -n ai-stack --set global.networkPolicy.enabled=false
 
 3. If traffic works with policies disabled, check the specific component's policy rules in `templates/common/networkpolicies.yaml`.
 
-### 20.5 PVC Stuck in Pending
+### 18.5 PVC Stuck in Pending
 
 ```bash
 kubectl describe pvc -n ai-stack <pvc-name>
@@ -1591,7 +1535,7 @@ Common causes:
 - **Insufficient storage capacity:** Check available storage in the cluster
 - **Access mode mismatch:** Ensure the StorageClass supports `ReadWriteOnce`
 
-### 20.6 Secrets Not Generated
+### 18.6 Secrets Not Generated
 
 Secrets are only generated on `helm install`, not on `helm upgrade`. If secrets are missing:
 
@@ -1607,7 +1551,7 @@ helm install ai-stack . -n ai-stack
 
 **Important:** PVCs with `helm.sh/resource-policy: keep` are not deleted on uninstall.
 
-### 20.7 Helm Test Failures
+### 18.7 Helm Test Failures
 
 ```bash
 # Run tests with verbose output
@@ -1619,7 +1563,7 @@ kubectl logs -n ai-stack ai-stack-connection-test
 
 Tests verify TCP and HTTP connectivity to all enabled services.
 
-### 20.8 GPU Not Detected
+### 18.8 GPU Not Detected
 
 ```bash
 # Check NVIDIA device plugin is running
@@ -1640,7 +1584,7 @@ Ensure:
 
 ---
 
-## 21. Uninstall
+## 20. Uninstall
 
 ```bash
 # Remove the Helm release (PVCs are retained)

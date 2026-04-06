@@ -21,9 +21,6 @@ COMPONENTS:
 {{- if .Values.searxng.enabled }}
   ✓ SearXNG           {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:{{ .Values.searxng.service.port }}
 {{- end }}
-{{- if .Values.pipelines.enabled }}
-  ✓ Pipelines         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:{{ .Values.pipelines.service.port }}
-{{- end }}
 {{- if .Values.workbench.enabled }}
   ✓ Workbench         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}:{{ .Values.workbench.service.port }}  GPU={{ .Values.workbench.gpu.enabled }}
 {{- end }}
@@ -79,4 +76,4 @@ AUTHELIA (OIDC):
   Generate password hashes: kubectl exec deploy/{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }} -- authelia crypto hash generate argon2
 {{- end }}
 
-CONTROL MAPPING: CTL-0009 (AI gateway policy, provenance, kill switch)
+CONTROL MAPPING: CTL-002 (AI gateway policy, network boundaries, OTel instrumentation)

@@ -10,7 +10,7 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
 spec:
-  {{- if not (and (hasKey .Values.openwebui "autoscaling") .Values.openwebui.autoscaling.enabled) }}
+  {{- if not (include "ai-stack.autoscalingEnabled" .Values.openwebui) }}
   replicas: {{ .Values.openwebui.replicaCount }}
   {{- end }}
   selector:
@@ -35,14 +35,8 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount "autoscaling" (and (hasKey .Values.openwebui "autoscaling") .Values.openwebui.autoscaling.enabled)) | nindent 6 }}
-      initContainers:
-        {{- if .Values.ollama.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.qdrant.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "qdrant" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant")) "port" .Values.qdrant.service.httpPort) | nindent 8 }}
-        {{- end }}
+      terminationGracePeriodSeconds: 60
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.openwebui)) | nindent 6 }}
       containers:
         - name: openwebui
           image: "{{ .Values.openwebui.image.repository }}:{{ .Values.openwebui.image.tag }}"

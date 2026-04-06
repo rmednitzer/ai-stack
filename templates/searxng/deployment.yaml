@@ -55,6 +55,7 @@ spec:
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: false
+        fsGroup: 977
         seccompProfile:
           type: RuntimeDefault
       containers:

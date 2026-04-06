@@ -22,7 +22,6 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.8.10 | MIT | Permissive | Enabled | No |
 | Ollama | `ollama/ollama` | 0.18.2 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.17.0 | Apache-2.0 | Permissive | Enabled | No |
-| Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 | MIT | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.0.0 | Apache-2.0 | Permissive | Enabled | No |
 | SearXNG | `searxng/searxng` | 2026.3.23 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 8.1 | BSD-3-Clause | Permissive | Enabled | No |
@@ -47,7 +46,6 @@ The majority of the stack uses permissive licenses (MIT, Apache-2.0,
 BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
-**Components:** Open WebUI, Ollama, Qdrant, Pipelines, Tika, Valkey,
 OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)

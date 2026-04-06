@@ -1,11 +1,13 @@
 {{/*
-PodDisruptionBudgets for scalable components when replicas > 1 or HPA active.
-Ensures at least one pod survives voluntary disruption (node drain, upgrade).
+PodDisruptionBudgets — ensures availability during voluntary disruptions.
+  - Scalable T1 components: minAvailable=1 when replicas > 1 or HPA active
+  - Stateful/GPU components: maxUnavailable=1 always
+  - T0 authentication: maxUnavailable=1 always
 */}}
 
-{{- $t1Components := list "openwebui" "pipelines" "tika" "langgraph" }}
-{{- range $component := $t1Components }}
-{{- $spec := index $.Values $component }}
+{{/* Scalable components — PDB only when multi-replica or HPA */}}
+{{- $scalable := dict "openwebui" .Values.openwebui "tika" .Values.tika "langgraph" .Values.langgraph "ingestion-worker" .Values.ingestionWorker }}
+{{- range $component, $spec := $scalable }}
 {{- $multiReplica := gt (int $spec.replicaCount) 1 }}
 {{- $hpaActive := and (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}
 {{- if and $spec.enabled (or $multiReplica $hpaActive) }}
@@ -25,46 +27,26 @@ spec:
 {{- end }}
 {{- end }}
 
-{{/*
-Ollama: always PDB with maxUnavailable=1 (GPU workload — never double-evict)
-*/}}
-{{- if .Values.ollama.enabled }}
+{{/* Stateful/GPU/critical components — always PDB with maxUnavailable=1 */}}
+{{- $protected := dict "ollama" .Values.ollama.enabled "qdrant" .Values.qdrant.enabled "workbench" .Values.workbench.enabled "authelia" .Values.authelia.enabled "searxng" .Values.searxng.enabled }}
+{{- range $component, $enabled := $protected }}
+{{- if $enabled }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+  name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" $component) }}
   labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.labels" $ | nindent 4 }}
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ollama") | nindent 6 }}
+      {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 6 }}
+{{- end }}
 {{- end }}
 
-{{/*
-Qdrant: stateful data — allow at most one unavailable during voluntary disruption
-*/}}
-{{- if .Values.qdrant.enabled }}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  maxUnavailable: 1
-  selector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
-{{- end }}
-
-{{/*
-PostgreSQL: stateful data — allow at most one unavailable during voluntary disruption
-(standalone mode only; CNPG manages its own PDBs)
-*/}}
+{{/* PostgreSQL standalone — maxUnavailable=1 (CNPG manages its own PDBs) */}}
 {{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
 ---
 apiVersion: policy/v1
@@ -78,45 +60,4 @@ spec:
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 6 }}
-{{- end }}
-
-{{/*
-Ingestion Worker: scalable worker — PDB when replicas > 1 or HPA active
-*/}}
-{{- if .Values.ingestionWorker.enabled }}
-{{- $multiReplica := gt (int .Values.ingestionWorker.replicaCount) 1 }}
-{{- $hpaActive := and (hasKey .Values.ingestionWorker "autoscaling") .Values.ingestionWorker.autoscaling.enabled }}
-{{- if or $multiReplica $hpaActive }}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 6 }}
-{{- end }}
-{{- end }}
-
-{{/*
-Workbench: GPU workload — allow at most one unavailable during voluntary disruption
-*/}}
-{{- if .Values.workbench.enabled }}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  maxUnavailable: 1
-  selector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
 {{- end }}

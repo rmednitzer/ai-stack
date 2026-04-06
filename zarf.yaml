@@ -47,12 +47,10 @@ components:
       - searxng/searxng:2026.3.23-2c1ce3bd3
       # Open Terminal
       - ghcr.io/open-webui/open-terminal:0.11.27
-      # Pipelines
-      - ghcr.io/open-webui/pipelines:0.1.2
       # Valkey
-      - valkey/valkey:8.1
+      - valkey/valkey:8.1.1
       # Ingestion worker
-      - python:3.13-slim
+      - python:3.12-slim
 
   # ---------------------------------------------------------------------------
   # Optional: GPU Workbench

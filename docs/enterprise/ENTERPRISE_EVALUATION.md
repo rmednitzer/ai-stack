@@ -54,10 +54,10 @@ alignment with governance, security, observability, and operational requirements
 - **Dependabot** for GitHub Actions dependency management; container image versions managed manually
 - **Pod Disruption Budgets** for stateful components (Ollama, Qdrant)
 - **Topology spread constraints** in prod profile for HA
-- **HPA autoscaling** for stateless components (Open WebUI, Tika, Pipelines)
-- **Backup CronJobs** for Qdrant snapshots and Ollama model data
+- **HPA autoscaling** for stateless components (Open WebUI, Tika)
+- **Disaster recovery** via external tooling (Velero + CSI volume snapshots, CNPG barman for PostgreSQL)
 - CI pipeline: Helm lint → chart-testing → kubeconform schema validation
-- Chart version 1.0.0 with semver compliance
+- Chart version 2.0.0 with semver compliance
 
 ### 5. Architecture
 
@@ -68,13 +68,11 @@ alignment with governance, security, observability, and operational requirements
 - Opt-in components (Workbench, Open Terminal, MCPO) reduce default attack surface
 - All images pinned to versioned tags
 - CycloneDX 1.6 SBOM ([sbom.cdx.json](sbom.cdx.json)) with full license and dependency graph
-- License compliance matrix ([LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md)) with copyleft analysis
+- License compliance matrix ([LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md)) with copyleft analysis
 - SBOM validation in CI (schema + component count cross-check)
 
 ### 6. Disaster Recovery
 
-- Qdrant snapshot-based backup via CronJob with configurable schedule
-- Ollama model manifest and blob backup via CronJob
 - Backup PVC with `helm.sh/resource-policy: keep` annotation
 - Configurable retention (default: 7 Qdrant snapshots, 3 Ollama backups)
 
@@ -96,7 +94,7 @@ alignment with governance, security, observability, and operational requirements
 | Area | Status | Recommendation |
 |------|--------|----------------|
 | Image digests | Container image versions pinned in values.yaml | Review Dependabot PRs for GitHub Actions; manually track container image updates |
-| Velero integration | Not included | Pair backup CronJobs with Velero for full cluster DR |
+| Velero integration | Not included | Use Velero with CSI volume snapshots for full cluster DR |
 | External secret manager | Supported but optional | Use ESO or Vault CSI for production secret rotation |
 | WAF | Not included | Deploy upstream WAF (ModSecurity, Coraza) for deep packet inspection |
 
@@ -110,7 +108,7 @@ alignment with governance, security, observability, and operational requirements
 | Compliance / Governance | Excellent |
 | Observability | Production-grade |
 | High Availability | Good (HPA for stateless; stateful needs operator for full HA) |
-| Disaster Recovery | Addressed (snapshot + model backup CronJobs) |
+| Disaster Recovery | Good (PVC snapshots; external DR tooling recommended) |
 | Supply Chain Security | Excellent (versioned tags + Dependabot + CycloneDX SBOM + license compliance) |
 | Scalability | Good (HPA autoscaling for stateless components) |
 | Operational Maturity | Strong |
