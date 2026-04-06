@@ -8,7 +8,7 @@ description: >-
 type: application
 version: 2.0.0
 appVersion: "2026.1"
-home: https://github.com/rmednitzer/platform-assurance
+home: https://github.com/rmednitzer/ai-stack
 maintainers:
   - name: Roman Mednitzer
     email: r.mednitzer@outlook.com
@@ -34,7 +34,7 @@ keywords:
   - oidc
   - sso
 annotations:
-  # platform-assurance tier classification
+  # Tier classification (see docs/governance/CONTROLS.md)
   assurance.platform/tier: "T1"
   assurance.platform/boundary: "decision"
   assurance.platform/control-refs: "CTL-002"

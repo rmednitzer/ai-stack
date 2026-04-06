@@ -125,7 +125,7 @@ NIS2 applicability depends on whether the deploying organization falls within An
 |-----------------|-------------|--------|----------|
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
 | **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
-| **(c)** Business continuity & DR | Good | Backup CronJobs (Qdrant, Ollama), PDB, HA in prod profile |
+| **(c)** Business continuity & DR | Good | PVC snapshots with external DR (Velero), PDB, HA in prod profile |
 | **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Dependabot, license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
 | **(f)** Effectiveness assessment | Good | Penetration testing cadence, AI-specific security testing, and assessment programme documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §5 |

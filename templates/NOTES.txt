@@ -76,4 +76,4 @@ AUTHELIA (OIDC):
   Generate password hashes: kubectl exec deploy/{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }} -- authelia crypto hash generate argon2
 {{- end }}
 
-CONTROL MAPPING: CTL-0009 (AI gateway policy, provenance, kill switch)
+CONTROL MAPPING: CTL-002 (AI gateway policy, network boundaries, OTel instrumentation)

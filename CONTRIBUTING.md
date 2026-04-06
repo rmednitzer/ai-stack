@@ -13,7 +13,7 @@ files, and CI workflows.
 GitHub Actions CI (lint, chart-testing, kubeconform, Syft SBOM, Grype CVE scan).
 
 **Components:** Open WebUI, Ollama, Qdrant, Tika, SearXNG, Workbench, Valkey,
-Pipelines, Open Terminal, MCPO, LangGraph (with PostgreSQL), ingestion worker,
+Open Terminal, MCPO, LangGraph (with PostgreSQL), ingestion worker,
 and optional Authelia OIDC. Each lives under `templates/<component>/`.
 
 **Values profiles:** `lab` (default, single-node) and `prod` (`values-prod.yaml`).

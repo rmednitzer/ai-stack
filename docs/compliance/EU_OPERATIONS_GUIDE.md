@@ -22,7 +22,7 @@ retention policies appropriate to their use case.
 | Cross-conversation memories | Until user deletes | Open WebUI | User self-service or admin purge |
 | LangGraph checkpoints | 90 days (or per policy) | PostgreSQL | `DELETE WHERE created_at < NOW() - INTERVAL '90 days'` |
 | Telemetry/logs | 30 days (logs), 90 days (metrics) | OTel pipeline | Configure exporter TTL |
-| Backup snapshots | 30 days | Backup PVC | Configure `global.backup` retention |
+| PVC snapshots | Per retention policy | External storage | Configure Velero retention |
 
 ### 1.2 Automated Purge Script
 
@@ -126,7 +126,6 @@ depends on the underlying storage infrastructure.
 | `ai-stack-qdrant` | Yes (vector embeddings from documents) | Yes |
 | `ai-stack-ollama` | No (model weights only) | Recommended |
 | `ai-stack-postgres` | Yes (if LangGraph enabled — agent state) | Yes |
-| `ai-stack-pipelines` | Possibly (pipeline code) | Recommended |
 | `ai-stack-workbench` | Possibly (notebooks, datasets) | Yes |
 | `ai-stack-backup` | Yes (contains copies of above) | Yes |
 
@@ -172,7 +171,6 @@ embedded in exported content.
 |-------|--------|----------|
 | 1 | Monitor AI Office codes of practice for Art. 50(2) implementation guidance | Ongoing |
 | 2 | Evaluate C2PA (Coalition for Content Provenance and Authenticity) integration for exported content | When C2PA tooling matures for text |
-| 3 | Implement metadata injection in Pipelines for document-generating workflows | When standard is defined |
 | 4 | Add `ai-generated: true` metadata to any content exported from the platform | Near-term (low effort) |
 
 ### 4.3 Interim Measure

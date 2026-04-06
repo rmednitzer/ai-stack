@@ -5,7 +5,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
-Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -25,11 +25,9 @@ graph TD
   OpenWebUI --> Tika["Tika (T2)"]
   OpenWebUI --> SearXNG["SearXNG (T2)"]
   OpenWebUI --> Valkey
-  OpenWebUI --> Pipelines["Pipelines (T1)"]
 
   Workbench --> Ollama
   Workbench --> Qdrant
-  Workbench --> Pipelines
   Workbench --> Tika
   Workbench --> SearXNG
 
@@ -42,7 +40,6 @@ graph TD
   LangGraph --> Qdrant
   LangGraph --> Tika
   LangGraph --> SearXNG
-  LangGraph --> Pipelines
   LangGraph --> Postgres["PostgreSQL (T2, opt-in)"]
 
   IngestionWorker["Ingestion Worker (T2, opt-in)"] --> Valkey
@@ -64,33 +61,17 @@ graph TD
 
 ### Component Tiers
 
-Tiering follows the platform-assurance stack-bom classification:
+Components are classified by operational criticality:
 
 | Tier | Meaning | Components |
 |------|---------|------------|
-| T0 | Safety / Integrity | OTel Collector, Authelia |
-| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench, LangGraph |
-| T2 | Productivity | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
+| T0 | Safety / Integrity — non-negotiable for security and compliance | OTel Collector, Authelia |
+| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, Workbench, LangGraph |
+| T2 | Productivity — supporting services and optional tooling | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
 
 ### Default Images
 
-| Component | Image | Version |
-|-----------|-------|---------|
-| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.8.10 |
-| Ollama | `ollama/ollama` | 0.18.2 |
-| Qdrant | `qdrant/qdrant` | v1.17.0 |
-| Tika | `apache/tika` | 3.3.0.0 |
-| SearXNG | `searxng/searxng` | 2026.3.23-2c1ce3bd3 |
-| Valkey | `valkey/valkey` | 8.1 |
-| Pipelines | `ghcr.io/open-webui/pipelines` | 0.1.2 |
-| Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.27 |
-| MCPO | `ghcr.io/open-webui/mcpo` | 0.2.0 |
-| LangGraph | `langchain/langgraph-server` | 0.7-py3.12 |
-| PostgreSQL | `postgres` (standalone) / `ghcr.io/cloudnative-pg/postgresql` (CNPG) | 17-alpine |
-| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 |
-| Ingestion Worker | `python` | 3.13-slim |
-| Authelia | `ghcr.io/authelia/authelia` | 4.39 |
-| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.148.0 |
+Image versions are defined in [`values.yaml`](values.yaml) per component. For a full software bill of materials including licenses and dependency graph, see [`sbom.cdx.json`](sbom.cdx.json).
 
 ## Prerequisites
 
@@ -138,7 +119,7 @@ The chart ships two value files:
 | File | Purpose |
 |------|---------|
 | `values.yaml` | Full reference with all defaults (lab profile) |
-| `values-prod.yaml` | Production overlay — HA, TLS ingress, GPU, stricter resources, OTel, backups |
+| `values-prod.yaml` | Production overlay — HA, TLS ingress, GPU, stricter resources, OTel |
 
 ### Global Settings
 
@@ -153,8 +134,6 @@ The chart ships two value files:
 | `global.otel.enabled` | Deploy OTel Collector and inject env vars | `false` |
 | `global.otel.endpoint` | OTLP endpoint | `http://otel-collector....:4317` |
 | `global.serviceMonitor.enabled` | Create Prometheus ServiceMonitor CRDs | `false` |
-| `global.backup.enabled` | Deploy backup CronJobs for stateful data | `false` |
-| `global.backup.schedule` | Backup cron schedule | `0 2 * * *` |
 
 ### Component Toggles
 
@@ -171,8 +150,6 @@ tika:
   enabled: true     # Document extraction (default: true)
 searxng:
   enabled: true     # Web search (default: true)
-pipelines:
-  enabled: true     # Function pipelines (default: true)
 valkey:
   enabled: true     # Session cache (default: true)
 workbench:
@@ -405,14 +382,9 @@ When `global.otel.enabled=true`, the chart:
 2. Injects `OTEL_*` environment variables into all component pods
 3. Optionally creates ServiceMonitor resources for Prometheus scraping
 
-### Backups
+### Disaster Recovery
 
-When `global.backup.enabled=true`, the chart deploys CronJobs for:
-
-- **Qdrant** — snapshot-based backup with configurable retention (default: 7 snapshots)
-- **Ollama** — model manifest and blob backup (default: 3 backups retained)
-
-Backup data is stored in a dedicated PVC annotated with `helm.sh/resource-policy: keep`. For full cluster DR, pair with Velero.
+For production DR, use [Velero](https://velero.io/) with CSI volume snapshots for PVC-backed data (Qdrant, Ollama models, Open WebUI). PostgreSQL in CNPG mode supports automated backups via Barman to S3-compatible storage — see [HOWTO.md](HOWTO.md) §10 for configuration.
 
 ## Security
 
@@ -430,8 +402,7 @@ This chart is designed for regulated environments:
 
 ## Governance and Compliance
 
-The chart aligns with the platform-assurance governance framework. All CTL and
-POL identifiers are formally defined in
+Control and policy identifiers used in this chart are defined in
 [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md).
 
 | Control | Description | Implementation |
@@ -530,7 +501,7 @@ helm install ai-stack . --dry-run --debug -n ai-stack
 ct lint --config ct.yaml --charts .
 ```
 
-See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, backup/restore, EU compliance, and troubleshooting.
+See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, EU compliance, and troubleshooting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
 

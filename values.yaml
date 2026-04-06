@@ -1,8 +1,8 @@
 # =============================================================================
 # ai-stack Helm Chart — values.yaml
 # =============================================================================
-# Tiering key (per platform-assurance stack-bom.md):
-#   T0 = safety/integrity  |  T1 = operational  |  T2 = productivity  |  T3 = exploratory
+# Tiering key (see docs/governance/CONTROLS.md):
+#   T0 = safety/integrity  |  T1 = operational  |  T2 = productivity
 #
 # Deployment targets:
 #   lab   — single-node, no HA, relaxed resource limits
@@ -527,7 +527,6 @@ workbench:
     # QDRANT_API_KEY injected from Secret in deployment template
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
     # -- NVIDIA visibility
     NVIDIA_VISIBLE_DEVICES: "all"
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
@@ -718,8 +717,6 @@ langgraph:
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    # -- Pipelines URL
-    PIPELINES_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099'
     # -- Disable LangSmith telemetry (keep data on-prem)
     LANGCHAIN_TRACING_V2: "false"
     LANGSMITH_API_KEY: ""
