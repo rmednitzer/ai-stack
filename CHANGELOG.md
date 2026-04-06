@@ -5,6 +5,27 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-06
+
+### Changed
+
+- Updated Open WebUI image tag from v0.8.10 to v0.8.12
+- Updated Ollama image tag from 0.18.2 to 0.20.2
+- Updated Qdrant image tag from v1.17.0 to v1.17.1
+- Updated SearXNG image tag from 2026.3.23-2c1ce3bd3 to 2026.4.5-474b0a55b
+- Updated Open Terminal image tag from 0.11.27 to 0.11.32
+- Updated Valkey image tag from 8.1.1 to 8.1.6
+- Updated OTel Collector image tag from 0.148.0 to 0.149.0
+- Updated Syft from v1.21.0 to v1.42.3 in CI pipeline
+- Updated Grype from v0.91.0 to v0.110.0 in CI pipeline
+- Bumped chart version from 2.0.0 to 2.1.0
+
+### Fixed
+
+- Fixed MCPO image tag from 0.2.0 to 0.0.20 to match actual GHCR release tags
+- Fixed SBOM Python ingestion-worker version from 3.13-slim to 3.12-slim to match values.yaml
+- Fixed SBOM Valkey version from 8.1 to 8.1.6 to match values.yaml pinned version
+
 ## [2.0.0] - 2026-04-06
 
 ### Changed
@@ -42,5 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
+[2.1.0]: https://github.com/rmednitzer/ai-stack/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rmednitzer/ai-stack/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/rmednitzer/ai-stack/releases/tag/v1.0.0
