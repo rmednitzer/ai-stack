@@ -110,40 +110,7 @@ externalAPIs:
   #     name:          Secret name (must exist in release namespace)
   #     key:           Key within the Secret containing the API key
   providers: []
-  #   # --- OpenAI ---
-  #   - name: openai
-  #     baseUrl: "https://api.openai.com/v1"
-  #     apiKey: ""
-  #     # existingSecret:
-  #     #   name: "my-openai-secret"
-  #     #   key: "api-key"
-  #
-  #   # --- Azure OpenAI ---
-  #   - name: azure-openai
-  #     baseUrl: "https://<resource>.openai.azure.com/openai/deployments/<deployment>"
-  #     apiKey: ""
-  #
-  #   # --- Anthropic (Claude) ---
-  #   # Note: requires Open WebUI v0.6+ with Anthropic API translation layer,
-  #   # or use a Pipelines function for protocol translation.
-  #   - name: anthropic
-  #     baseUrl: "https://api.anthropic.com/v1"
-  #     apiKey: ""
-  #
-  #   # --- Google Gemini (OpenAI-compatible endpoint) ---
-  #   - name: gemini
-  #     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai"
-  #     apiKey: ""
-  #
-  #   # --- Mistral AI ---
-  #   - name: mistral
-  #     baseUrl: "https://api.mistral.ai/v1"
-  #     apiKey: ""
-  #
-  #   # --- Any OpenAI-compatible provider ---
-  #   - name: custom-provider
-  #     baseUrl: "https://api.example.com/v1"
-  #     apiKey: ""
+  # See HOWTO.md §6 for provider configuration examples (OpenAI, Azure, Anthropic, Gemini, etc.)
 
 # =============================================================================
 # Authelia — Optional OIDC identity provider for Open WebUI SSO
@@ -697,19 +664,9 @@ mcpo:
   # -- MCP server configuration (Claude Desktop config format)
   # Each entry under mcpServers defines an upstream MCP server that MCPO
   # will expose as an OpenAPI endpoint. Add your MCP servers here.
+  # -- MCP server configuration (Claude Desktop config format)
   config:
     mcpServers: {}
-    #   # Example: filesystem MCP server
-    #   filesystem:
-    #     command: "npx"
-    #     args:
-    #       - "-y"
-    #       - "@modelcontextprotocol/server-filesystem"
-    #       - "/data"
-    #   # Example: remote SSE MCP server
-    #   remote-tools:
-    #     url: "https://mcp.example.com/sse"
-    #     type: "sse"
   resources:
     requests:
       cpu: 100m
@@ -929,17 +886,7 @@ postgres:
     # -- Automated backup configuration
     backup:
       enabled: false
-      # -- Backup destination (S3-compatible or volume snapshot)
       barmanObjectStore: {}
-      #   destinationPath: "s3://my-bucket/cnpg-backups"
-      #   endpointURL: "https://s3.eu-central-1.amazonaws.com"
-      #   s3Credentials:
-      #     accessKeyId:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_KEY_ID
-      #     secretAccessKey:
-      #       name: cnpg-backup-creds
-      #       key: ACCESS_SECRET_KEY
       retentionPolicy: "30d"
       schedule: "0 0 2 * * *"  # Daily at 02:00
     # -- PgBouncer connection pooler (recommended for multi-instance deployments)

@@ -10,7 +10,7 @@ metadata:
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "ingestion"
 spec:
-  {{- if not (and (hasKey .Values.tika "autoscaling") .Values.tika.autoscaling.enabled) }}
+  {{- if not (include "ai-stack.autoscalingEnabled" .Values.tika) }}
   replicas: {{ .Values.tika.replicaCount }}
   {{- end }}
   selector:
@@ -35,7 +35,7 @@ spec:
         fsGroup: 35002
         seccompProfile:
           type: RuntimeDefault
-      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (and (hasKey .Values.tika "autoscaling") .Values.tika.autoscaling.enabled)) | nindent 6 }}
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.tika)) | nindent 6 }}
       containers:
         - name: tika
           image: "{{ .Values.tika.image.repository }}:{{ .Values.tika.image.tag }}"

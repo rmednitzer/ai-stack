@@ -56,123 +56,19 @@ spec:
   policyTypes:
     - Egress
   egress:
-    {{- if .Values.openwebui.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: openwebui
-      ports:
-        - protocol: TCP
-          port: {{ .Values.openwebui.service.port }}
-    {{- end }}
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: {{ .Values.ollama.service.port }}
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: {{ .Values.qdrant.service.httpPort }}
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: {{ .Values.tika.service.port }}
-    {{- end }}
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: {{ .Values.searxng.service.port }}
-    {{- end }}
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: {{ .Values.pipelines.service.port }}
-    {{- end }}
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: {{ .Values.valkey.service.port }}
-    {{- end }}
-    {{- if .Values.workbench.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-      ports:
-        - protocol: TCP
-          port: {{ .Values.workbench.service.port }}
-    {{- end }}
-    {{- if .Values.openTerminal.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: open-terminal
-      ports:
-        - protocol: TCP
-          port: {{ .Values.openTerminal.service.port }}
-    {{- end }}
-    {{- if .Values.mcpo.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: mcpo
-      ports:
-        - protocol: TCP
-          port: {{ .Values.mcpo.service.port }}
-    {{- end }}
-    {{- if .Values.langgraph.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-      ports:
-        - protocol: TCP
-          port: {{ .Values.langgraph.service.port }}
-    {{- end }}
-    {{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: postgres
-      ports:
-        - protocol: TCP
-          port: {{ .Values.postgres.service.port }}
-    {{- end }}
-    {{- if .Values.authelia.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: authelia
-      ports:
-        - protocol: TCP
-          port: {{ .Values.authelia.service.port }}
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openwebui.enabled "name" "openwebui" "port" .Values.openwebui.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" .Values.ollama.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" .Values.qdrant.service.httpPort) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" .Values.tika.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" .Values.searxng.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" .Values.pipelines.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" .Values.valkey.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.workbench.enabled "name" "workbench" "port" .Values.workbench.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" .Values.openTerminal.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.mcpo.enabled "name" "mcpo" "port" .Values.mcpo.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" .Values.langgraph.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" (and .Values.postgres.enabled (eq .Values.postgres.mode "standalone")) "name" "postgres" "port" .Values.postgres.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.authelia.enabled "name" "authelia" "port" .Values.authelia.service.port) | nindent 4 }}
     {{- if .Values.global.otel.enabled }}
     - to:
         - podSelector:
@@ -328,98 +224,17 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
-    {{- if .Values.openTerminal.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: open-terminal
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
-    {{- if .Values.mcpo.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: mcpo
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
-    {{- if .Values.langgraph.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
-    {{- if .Values.authelia.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: authelia
-      ports:
-        - protocol: TCP
-          port: 9091
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" 8000) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.mcpo.enabled "name" "mcpo" "port" 8000) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" 8000) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.authelia.enabled "name" "authelia" "port" 9091) | nindent 4 }}
     {{- if .Values.externalAPIs.enabled }}
-    # External inference API providers (OpenAI, Azure, Anthropic, Gemini, etc.)
     - ports:
         - protocol: TCP
           port: 443
@@ -613,15 +428,7 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
     - ports:
         - protocol: TCP
           port: 443
@@ -665,52 +472,11 @@ spec:
         - protocol: TCP
           port: 9099
   egress:
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
-    # Pipelines may call external APIs (agentic tool calls)
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
     - ports:
         - protocol: TCP
           port: 443
@@ -748,17 +514,7 @@ spec:
         - protocol: TCP
           port: 8888
   egress:
-    # Ollama (inference + embeddings)
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    # Qdrant (vector operations)
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
     {{- if .Values.qdrant.enabled }}
     - to:
         - podSelector:
@@ -770,46 +526,10 @@ spec:
         - protocol: TCP
           port: 6334
     {{- end }}
-    # Pipelines
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    # Tika (document extraction from notebooks)
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    # SearXNG (web search from notebooks)
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    # LangGraph (agentic workflows from notebooks)
-    {{- if .Values.langgraph.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-      ports:
-        - protocol: TCP
-          port: 8000
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" 8000) | nindent 4 }}
     # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
     - ports:
         - protocol: TCP
@@ -817,7 +537,7 @@ spec:
         - protocol: TCP
           port: 80
         - protocol: TCP
-          port: 22   # git+ssh
+          port: 22
 {{- end }}
 
 # =============================================================================
@@ -942,10 +662,8 @@ spec:
         - protocol: TCP
           port: 8000
   egress:
-    # PostgreSQL (checkpoint persistence)
     {{- if .Values.postgres.enabled }}
     {{- if eq .Values.postgres.mode "external" }}
-    # External PostgreSQL — egress to user-specified host
     - ports:
         - protocol: TCP
           port: {{ .Values.postgres.external.port | default 5432 }}
@@ -963,57 +681,11 @@ spec:
           port: 5432
     {{- end }}
     {{- end }}
-    # Ollama (LLM inference)
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    # Qdrant (vector retrieval)
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
-    # Tika (document extraction)
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    # SearXNG (web search tools)
-    {{- if .Values.searxng.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: searxng
-      ports:
-        - protocol: TCP
-          port: 8080
-    {{- end }}
-    # Pipelines
-    {{- if .Values.pipelines.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
-      ports:
-        - protocol: TCP
-          port: 9099
-    {{- end }}
-    # Internet (agentic tool calls, external APIs)
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
     - ports:
         - protocol: TCP
           port: 443
@@ -1153,16 +825,7 @@ spec:
         - protocol: TCP
           port: 9091
   egress:
-    # Valkey (session storage)
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
     # PostgreSQL (if storage=postgres)
     {{- if and .Values.postgres.enabled (eq .Values.authelia.storage "postgres") }}
     {{- if eq .Values.postgres.mode "external" }}
@@ -1203,42 +866,10 @@ spec:
   policyTypes:
     - Egress
   egress:
-    {{- if .Values.valkey.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: valkey
-      ports:
-        - protocol: TCP
-          port: 6379
-    {{- end }}
-    {{- if .Values.tika.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: tika
-      ports:
-        - protocol: TCP
-          port: 9998
-    {{- end }}
-    {{- if .Values.ollama.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-    {{- end }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
     {{- if .Values.postgres.enabled }}
     {{- if eq .Values.postgres.mode "external" }}
     - ports:

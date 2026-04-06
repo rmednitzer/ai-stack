@@ -10,7 +10,7 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
 spec:
-  {{- if not (and (hasKey .Values.langgraph "autoscaling") .Values.langgraph.autoscaling.enabled) }}
+  {{- if not (include "ai-stack.autoscalingEnabled" .Values.langgraph) }}
   replicas: {{ .Values.langgraph.replicaCount }}
   {{- end }}
   selector:
@@ -36,7 +36,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       terminationGracePeriodSeconds: 60
-      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "langgraph" "replicaCount" .Values.langgraph.replicaCount "autoscaling" (and (hasKey .Values.langgraph "autoscaling") .Values.langgraph.autoscaling.enabled)) | nindent 6 }}
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "langgraph" "replicaCount" .Values.langgraph.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.langgraph)) | nindent 6 }}
       initContainers:
         {{- if .Values.postgres.enabled }}
         {{- include "ai-stack.waitFor" (dict "name" "postgres" "host" (include "ai-stack.postgresHost" .) "port" (include "ai-stack.postgresPort" .)) | nindent 8 }}

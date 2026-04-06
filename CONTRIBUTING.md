@@ -2,6 +2,23 @@
 
 Thank you for considering contributing to the ai-stack Helm chart.
 
+## Project Overview
+
+This is a **Helm chart** (`ai-stack`) for deploying a comprehensive AI inference
+and tooling stack targeting EU-regulated on-premises and hybrid Kubernetes
+environments. All source files are Helm templates (Go template + YAML), values
+files, and CI workflows.
+
+**Tech stack:** Helm 3 (apiVersion v2), Kubernetes 1.32+, Go templates + Sprig,
+GitHub Actions CI (lint, chart-testing, kubeconform, Syft SBOM, Grype CVE scan).
+
+**Components:** Open WebUI, Ollama, Qdrant, Tika, SearXNG, Workbench, Valkey,
+Pipelines, Open Terminal, MCPO, LangGraph (with PostgreSQL), ingestion worker,
+and optional Authelia OIDC. Each lives under `templates/<component>/`.
+
+**Values profiles:** `lab` (default, single-node) and `prod` (`values-prod.yaml`).
+Tiering: T0 = safety/integrity, T1 = operational, T2 = productivity.
+
 ## Development Setup
 
 1. Install prerequisites:

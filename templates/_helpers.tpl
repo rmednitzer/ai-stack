@@ -56,6 +56,50 @@ Usage: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Cha
 {{- end }}
 
 {{/*
+Check if autoscaling is enabled for a component spec.
+Usage: {{ include "ai-stack.autoscalingEnabled" .Values.openwebui }}
+Returns "true" or "".
+*/}}
+{{- define "ai-stack.autoscalingEnabled" -}}
+{{- if and (hasKey . "autoscaling") .autoscaling.enabled -}}true{{- end -}}
+{{- end }}
+
+{{/*
+Resolve component enabled state for components with non-standard value paths.
+Usage: {{ include "ai-stack.componentEnabled" (dict "Values" .Values "component" "otel-collector") }}
+*/}}
+{{- define "ai-stack.componentEnabled" -}}
+{{- $component := .component -}}
+{{- if eq $component "otel-collector" -}}
+  {{- .Values.global.otel.enabled -}}
+{{- else if eq $component "ingestion-worker" -}}
+  {{- .Values.ingestionWorker.enabled -}}
+{{- else if eq $component "open-terminal" -}}
+  {{- .Values.openTerminal.enabled -}}
+{{- else if eq $component "postgres" -}}
+  {{- and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") -}}
+{{- else -}}
+  {{- (index .Values $component).enabled -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Network policy egress rule for a component.
+Usage: {{ include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) }}
+*/}}
+{{- define "ai-stack.netpolEgress" -}}
+{{- if .enabled }}
+- to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: {{ .name }}
+  ports:
+    - protocol: TCP
+      port: {{ .port }}
+{{- end }}
+{{- end }}
+
+{{/*
 OTel environment variables (injected into all pods when otel.enabled=true).
 */}}
 {{- define "ai-stack.otelEnv" -}}
