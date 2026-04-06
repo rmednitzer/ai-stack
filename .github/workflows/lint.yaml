@@ -8,6 +8,7 @@ on:
       - "values*.yaml"
       - "templates/**"
       - "sbom.cdx.json"
+      - "ct.yaml"
       - ".github/workflows/lint.yaml"
   push:
     branches: [main]
