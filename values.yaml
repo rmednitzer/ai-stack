@@ -793,11 +793,11 @@ postgres:
     port: 5432
 
   # -- TLS mode for client connections: disable | require | verify-ca | verify-full
-  #    standalone: passed as PGSSLMODE to clients (server-side TLS not managed)
-  #    cnpg: operator provisions certificates automatically when not "disable"
+  #    standalone: "disable" (server-side TLS not managed by chart)
+  #    cnpg: set to "require" — operator provisions certificates automatically
   #    external: passed as sslmode in connection URI
   tls:
-    mode: require
+    mode: disable
 
   # ---------------------------------------------------------------------------
   # Standalone mode settings (mode: standalone)

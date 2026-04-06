@@ -55,9 +55,9 @@ alignment with governance, security, observability, and operational requirements
 - **Pod Disruption Budgets** for stateful components (Ollama, Qdrant)
 - **Topology spread constraints** in prod profile for HA
 - **HPA autoscaling** for stateless components (Open WebUI, Tika)
-- **Backup CronJobs** for Qdrant snapshots and Ollama model data
+- **Disaster recovery** via external tooling (Velero + CSI volume snapshots, CNPG barman for PostgreSQL)
 - CI pipeline: Helm lint → chart-testing → kubeconform schema validation
-- Chart version 1.0.0 with semver compliance
+- Chart version 2.0.0 with semver compliance
 
 ### 5. Architecture
 

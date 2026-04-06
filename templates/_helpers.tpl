@@ -66,21 +66,24 @@ Returns "true" or "".
 
 {{/*
 Resolve component enabled state for components with non-standard value paths.
-Usage: {{ include "ai-stack.componentEnabled" (dict "Values" .Values "component" "otel-collector") }}
+Returns "true" or "".
+Usage: {{ if include "ai-stack.componentEnabled" (dict "Values" .Values "component" "otel-collector") }}
 */}}
 {{- define "ai-stack.componentEnabled" -}}
 {{- $component := .component -}}
+{{- $enabled := false -}}
 {{- if eq $component "otel-collector" -}}
-  {{- .Values.global.otel.enabled -}}
+  {{- $enabled = .Values.global.otel.enabled -}}
 {{- else if eq $component "ingestion-worker" -}}
-  {{- .Values.ingestionWorker.enabled -}}
+  {{- $enabled = .Values.ingestionWorker.enabled -}}
 {{- else if eq $component "open-terminal" -}}
-  {{- .Values.openTerminal.enabled -}}
+  {{- $enabled = .Values.openTerminal.enabled -}}
 {{- else if eq $component "postgres" -}}
-  {{- and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") -}}
+  {{- $enabled = and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") -}}
 {{- else -}}
-  {{- (index .Values $component).enabled -}}
+  {{- $enabled = (index .Values $component).enabled -}}
 {{- end -}}
+{{- if $enabled -}}true{{- end -}}
 {{- end }}
 
 {{/*
