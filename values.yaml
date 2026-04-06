@@ -912,7 +912,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "8.1.1"
+    tag: "9.0.3"
   service:
     type: ClusterIP
     port: 6379
