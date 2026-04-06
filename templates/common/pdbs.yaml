@@ -6,7 +6,7 @@ PodDisruptionBudgets — ensures availability during voluntary disruptions.
 */}}
 
 {{/* Scalable components — PDB only when multi-replica or HPA */}}
-{{- $scalable := dict "openwebui" .Values.openwebui "pipelines" .Values.pipelines "tika" .Values.tika "langgraph" .Values.langgraph "ingestion-worker" .Values.ingestionWorker }}
+{{- $scalable := dict "openwebui" .Values.openwebui "tika" .Values.tika "langgraph" .Values.langgraph "ingestion-worker" .Values.ingestionWorker }}
 {{- range $component, $spec := $scalable }}
 {{- $multiReplica := gt (int $spec.replicaCount) 1 }}
 {{- $hpaActive := and (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}

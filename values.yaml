@@ -53,19 +53,6 @@ global:
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
     labels: {}
 
-  # -- Backup configuration for stateful components
-  backup:
-    enabled: false
-    # -- Cron schedule (default: daily at 02:00 UTC)
-    schedule: "0 2 * * *"
-    # -- Number of successful/failed jobs to retain
-    successfulJobsHistoryLimit: 3
-    failedJobsHistoryLimit: 3
-    # -- Backup storage PVC size
-    storageSize: 50Gi
-    # -- TTL for completed backup jobs (24h)
-    ttlSecondsAfterFinished: 86400
-
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
   podAnnotations:
@@ -220,8 +207,8 @@ openwebui:
   env:
     # -- Ollama backend URL (internal service DNS)
     OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    # -- Open WebUI Pipelines URL
-    OPENAI_API_BASE_URLS: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:9099;http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    # -- OpenAI-compatible API base URLs (Ollama serves /v1 natively)
+    OPENAI_API_BASE_URLS: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
 
     # --- RAG configuration ---
     # -- Web search via SearXNG
@@ -917,63 +904,6 @@ postgres:
     existingSecret:
       name: ""
       key: "password"
-
-# =============================================================================
-# Open WebUI Pipelines — Function/filter pipeline server
-# Tier: T1 (operational) | Boundary: decision (pre/post-processing)
-#
-# NOTE: Open WebUI v0.8+ includes native pipeline support. This separate
-# Pipelines component is optional and may be deprecated in a future release.
-# Disable unless you need external pipeline orchestration or isolation.
-# =============================================================================
-pipelines:
-  enabled: false
-  replicaCount: 1
-  autoscaling:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  image:
-    repository: ghcr.io/open-webui/pipelines
-    tag: "0.1.2"
-  service:
-    type: ClusterIP
-    port: 9099
-  env:
-    PIPELINES_DIR: "/app/pipelines"
-    # -- Backend URLs for pipeline functions that need to call stack services
-    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
-    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
-    # QDRANT_API_KEY injected from Secret in deployment template
-    TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
-  persistence:
-    enabled: true
-    size: 5Gi
-    accessMode: ReadWriteOnce
-    mountPath: /app/pipelines
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 4Gi
-  probes:
-    liveness:
-      httpGet:
-        path: /health
-        port: http
-      initialDelaySeconds: 15
-      periodSeconds: 30
-    readiness:
-      httpGet:
-        path: /health
-        port: http
-      initialDelaySeconds: 5
-      periodSeconds: 10
 
 # =============================================================================
 # Valkey — Session cache / rate limiting backend

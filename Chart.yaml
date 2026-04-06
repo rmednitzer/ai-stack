@@ -1,22 +1,12 @@
 apiVersion: v2
 name: ai-stack
 description: >-
-  Comprehensive AI inference and tooling stack for EU-regulated on-premises
-  and hybrid platform operations. Includes Open WebUI, Ollama, Qdrant,
-  Apache Tika, SearXNG, Workbench, Valkey, and Open WebUI Pipelines.
-  Includes Open Terminal for AI-agent sandboxed command execution.
-  Includes MCPO for MCP-to-OpenAPI tool server proxying.
-  Includes LangGraph for stateful agentic workflows with checkpoint
-  persistence via PostgreSQL.
-  Includes async document ingestion worker using Valkey Streams for
-  non-blocking Tika→Ollama→Qdrant RAG pipeline processing.
-  Includes optional Authelia OIDC identity provider for SSO, MFA,
-  and federated authentication (Apache 2.0 licensed).
-  Designed for deployment into governance-as-code environments with
-  PSA restricted baseline, NetworkPolicy default-deny, and OTel
-  instrumentation hooks.
+  EU-regulated AI inference stack: Open WebUI, Ollama, Qdrant, Tika,
+  SearXNG, Valkey. Optional: LangGraph (agentic), Workbench (GPU/Jupyter),
+  MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async ingestion
+  worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
-version: 1.1.0
+version: 2.0.0
 appVersion: "2026.1"
 home: https://github.com/rmednitzer/platform-assurance
 maintainers:
@@ -34,7 +24,6 @@ keywords:
   - tika
   - workbench
   - valkey
-  - pipelines
   - open-terminal
   - mcpo
   - langgraph

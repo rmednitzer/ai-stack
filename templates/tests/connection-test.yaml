@@ -95,10 +95,6 @@ spec:
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "SearXNG"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}" "{{ .Values.searxng.service.port }}" "/healthz" "SearXNG health"
           {{- end }}
-          {{- if .Values.pipelines.enabled }}
-          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "Pipelines"
-          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}" "{{ .Values.pipelines.service.port }}" "/health" "Pipelines health"
-          {{- end }}
           {{- if .Values.valkey.enabled }}
           check_redis "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
           {{- end }}

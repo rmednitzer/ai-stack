@@ -24,11 +24,6 @@ global:
     assurance.platform/profile: "prod"
     assurance.platform/control-refs: "CTL-002"
 
-  # -- Enable backup CronJobs for stateful data
-  backup:
-    enabled: true
-    schedule: "0 2 * * *"
-    storageSize: 100Gi
 
 # External inference API providers: see HOWTO.md §6 for configuration examples.
 # Use existingSecret references (ESO / Vault) in production — never inline apiKey.
@@ -141,22 +136,6 @@ valkey:
 
 openTerminal:
   enabled: false  # Disable in prod by default; enable per-request
-
-pipelines:
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: "4"
-      memory: 8Gi
-  persistence:
-    size: 20Gi
 
 ingestionWorker:
   enabled: false  # Opt-in; enable when async document ingestion is needed

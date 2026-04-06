@@ -61,7 +61,6 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" .Values.qdrant.service.httpPort) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" .Values.tika.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" .Values.searxng.service.port) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" .Values.pipelines.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" .Values.valkey.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.workbench.enabled "name" "workbench" "port" .Values.workbench.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" .Values.openTerminal.service.port) | nindent 4 }}
@@ -225,7 +224,6 @@ spec:
           port: 8080
   egress:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
@@ -266,9 +264,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
@@ -278,9 +273,6 @@ spec:
             matchLabels:
               app.kubernetes.io/name: ingestion-worker
         {{- end }}
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama-backup
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: connection-test
@@ -317,9 +309,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
@@ -332,9 +321,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: otel-collector
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant-backup
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: connection-test
@@ -367,9 +353,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: workbench
@@ -414,9 +397,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
@@ -434,52 +414,6 @@ spec:
           port: 443
         - protocol: TCP
           port: 80
-{{- end }}
-
-# =============================================================================
-# Pipelines
-# =============================================================================
-{{- if .Values.pipelines.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-pipelines
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "pipelines") | nindent 6 }}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langgraph
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: connection-test
-      ports:
-        - protocol: TCP
-          port: 9099
-  egress:
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
-    - ports:
-        - protocol: TCP
-          port: 443
 {{- end }}
 
 # =============================================================================
@@ -526,7 +460,6 @@ spec:
         - protocol: TCP
           port: 6334
     {{- end }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" 8000) | nindent 4 }}
@@ -646,9 +579,6 @@ spec:
               app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: pipelines
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: connection-test
       ports:
         - protocol: TCP
@@ -669,8 +599,6 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
-        - podSelector:
-            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}
@@ -685,7 +613,6 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pipelines.enabled "name" "pipelines" "port" 9099) | nindent 4 }}
     - ports:
         - protocol: TCP
           port: 443
@@ -760,9 +687,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: searxng
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: pipelines
         {{- if $.Values.ingestionWorker.enabled }}
         - podSelector:
             matchLabels:
@@ -834,8 +758,6 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
-        - podSelector:
-            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}
@@ -877,8 +799,6 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
-        - podSelector:
-            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}
@@ -891,55 +811,4 @@ spec:
     {{- end }}
 {{- end }}
 
-# =============================================================================
-# Backup CronJob pods — egress to Qdrant and Ollama APIs
-# =============================================================================
-{{- if .Values.global.backup.enabled }}
-{{- if .Values.qdrant.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-qdrant-backup
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: qdrant-backup
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-{{- end }}
-{{- if .Values.ollama.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-ollama-backup
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: ollama-backup
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ollama
-      ports:
-        - protocol: TCP
-          port: 11434
-{{- end }}
-{{- end }}
 {{- end }}
