@@ -9,7 +9,7 @@ and tooling stack targeting EU-regulated on-premises and hybrid Kubernetes
 environments. All source files are Helm templates (Go template + YAML), values
 files, and CI workflows.
 
-**Tech stack:** Helm 3 (apiVersion v2), Kubernetes 1.32+, Go templates + Sprig,
+**Tech stack:** Helm 3 (apiVersion v2), Kubernetes 1.27+ (tested against 1.32), Go templates + Sprig,
 GitHub Actions CI (lint, chart-testing, kubeconform, Syft SBOM, Grype CVE scan).
 
 **Components:** Open WebUI, Ollama, Qdrant, Tika, SearXNG, Workbench, Valkey,

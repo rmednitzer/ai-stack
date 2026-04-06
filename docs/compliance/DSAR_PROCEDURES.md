@@ -292,4 +292,4 @@ not triggered.
 
 ---
 
-*Template version: 1.0 | Based on GDPR Art. 12–22 and EDPB Guidelines on data subject rights.*
+*Template version: 2.0 | Based on GDPR Art. 12–22 and EDPB Guidelines on data subject rights.*
