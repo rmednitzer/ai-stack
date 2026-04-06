@@ -26,6 +26,42 @@ spec:
 {{- end }}
 
 {{/*
+Authelia: T0 authentication — always PDB to prevent auth outages
+*/}}
+{{- if .Values.authelia.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 6 }}
+{{- end }}
+
+{{/*
+SearXNG: search service — PDB to prevent search disruption
+*/}}
+{{- if .Values.searxng.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 6 }}
+{{- end }}
+
+{{/*
 Ollama: always PDB with maxUnavailable=1 (GPU workload — never double-evict)
 */}}
 {{- if .Values.ollama.enabled }}

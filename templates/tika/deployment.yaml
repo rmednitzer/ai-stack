@@ -32,6 +32,7 @@ spec:
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: false
+        fsGroup: 35002
         seccompProfile:
           type: RuntimeDefault
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (and (hasKey .Values.tika "autoscaling") .Values.tika.autoscaling.enabled)) | nindent 6 }}

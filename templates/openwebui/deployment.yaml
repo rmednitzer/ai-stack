@@ -35,6 +35,7 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount "autoscaling" (and (hasKey .Values.openwebui "autoscaling") .Values.openwebui.autoscaling.enabled)) | nindent 6 }}
       initContainers:
         {{- if .Values.ollama.enabled }}

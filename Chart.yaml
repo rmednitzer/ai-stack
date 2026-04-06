@@ -16,7 +16,7 @@ description: >-
   PSA restricted baseline, NetworkPolicy default-deny, and OTel
   instrumentation hooks.
 type: application
-version: 1.0.1
+version: 1.1.0
 appVersion: "2026.1"
 home: https://github.com/rmednitzer/platform-assurance
 maintainers:

@@ -273,12 +273,12 @@ openwebui:
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
-    # -- Overlap between chunks
-    RAG_CHUNK_OVERLAP: "100"
+    # -- Overlap between chunks (10% of chunk size for coherent context boundaries)
+    RAG_CHUNK_OVERLAP: "150"
     # -- Number of top chunks to retrieve
     RAG_TOP_K: "5"
-    # -- Minimum relevance score (0.0 = no filter)
-    RAG_RELEVANCE_THRESHOLD: "0.0"
+    # -- Minimum relevance score (filter low-quality chunks to reduce noise)
+    RAG_RELEVANCE_THRESHOLD: "0.2"
     # -- Verify TLS when loading web content for RAG
     ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION: "true"
 
@@ -375,8 +375,8 @@ ollama:
       cpu: "1"
       memory: 4Gi
     limits:
-      cpu: "8"
-      memory: 32Gi
+      cpu: "4"
+      memory: 16Gi
   probes:
     liveness:
       httpGet:
@@ -603,8 +603,8 @@ workbench:
       cpu: "2"
       memory: 16Gi
     limits:
-      cpu: "16"
-      memory: 64Gi
+      cpu: "8"
+      memory: 32Gi
   probes:
     liveness:
       httpGet:
@@ -856,7 +856,7 @@ postgres:
   #    cnpg: operator provisions certificates automatically when not "disable"
   #    external: passed as sslmode in connection URI
   tls:
-    mode: disable
+    mode: require
 
   # ---------------------------------------------------------------------------
   # Standalone mode settings (mode: standalone)
@@ -942,9 +942,9 @@ postgres:
       #       key: ACCESS_SECRET_KEY
       retentionPolicy: "30d"
       schedule: "0 0 2 * * *"  # Daily at 02:00
-    # -- PgBouncer connection pooler
+    # -- PgBouncer connection pooler (recommended for multi-instance deployments)
     pooler:
-      enabled: false
+      enabled: true
       instances: 2
       type: rw  # rw = read-write, ro = read-only
       pgbouncer:
@@ -1034,7 +1034,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "8.1"
+    tag: "8.1.1"
   service:
     type: ClusterIP
     port: 6379
@@ -1090,7 +1090,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.13-slim"
+    tag: "3.12-slim"
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
@@ -1102,8 +1102,8 @@ ingestionWorker:
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
-    # -- Overlap between chunks
-    RAG_CHUNK_OVERLAP: "100"
+    # -- Overlap between chunks (10% of chunk size)
+    RAG_CHUNK_OVERLAP: "150"
     # -- Valkey Stream name for ingestion tasks
     INGESTION_STREAM: "ingestion:documents"
     # -- Consumer group name
@@ -1113,9 +1113,9 @@ ingestionWorker:
     # -- TTL for status keys in seconds (24h)
     INGESTION_STATUS_TTL: "86400"
     # -- Number of messages to read per batch
-    INGESTION_BATCH_SIZE: "5"
+    INGESTION_BATCH_SIZE: "10"
     # -- Block timeout in ms when waiting for new messages
-    INGESTION_BLOCK_MS: "5000"
+    INGESTION_BLOCK_MS: "2000"
     # -- Max retries per task before marking as failed
     INGESTION_MAX_RETRIES: "3"
     # -- Qdrant collection name for ingested documents
@@ -1156,8 +1156,8 @@ otelCollector:
     repository: otel/opentelemetry-collector-contrib
     tag: "0.148.0"
   logLevel: info
-  memoryLimitMiB: 400
-  spikeMemoryLimitMiB: 100
+  memoryLimitMiB: 450
+  spikeMemoryLimitMiB: 128
   resources:
     requests:
       cpu: 100m
