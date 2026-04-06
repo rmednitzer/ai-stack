@@ -921,9 +921,13 @@ postgres:
 # =============================================================================
 # Open WebUI Pipelines — Function/filter pipeline server
 # Tier: T1 (operational) | Boundary: decision (pre/post-processing)
+#
+# NOTE: Open WebUI v0.8+ includes native pipeline support. This separate
+# Pipelines component is optional and may be deprecated in a future release.
+# Disable unless you need external pipeline orchestration or isolation.
 # =============================================================================
 pipelines:
-  enabled: true
+  enabled: false
   replicaCount: 1
   autoscaling:
     enabled: false

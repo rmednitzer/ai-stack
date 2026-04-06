@@ -104,10 +104,6 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        {{- if .Values.valkey.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "valkey" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) "port" .Values.valkey.service.port) | nindent 8 }}
-        {{- end }}
       containers:
         - name: authelia
           image: "{{ .Values.authelia.image.repository }}:{{ .Values.authelia.image.tag }}"

@@ -1442,7 +1442,7 @@ The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resou
 ## 19. EU Compliance
 
 This section covers EU regulatory compliance tasks. For the full compliance
-framework analysis, see [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md). For
+framework analysis, see [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md). For
 detailed templates and procedures, see [docs/compliance/](docs/compliance/).
 
 ### 19.1 AI Transparency Disclosure
@@ -1503,7 +1503,7 @@ Complete the following before production deployment:
 | Data Subject Rights Procedures | [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) | Template — establish intake channels |
 | EU Operations Guide | [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) | Reference — review all sections |
 | Security Policy / CVD | [SECURITY.md](SECURITY.md) | Template — set security contact email |
-| EU Compliance Check | [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md) | Complete — review and track gaps |
+| EU Compliance Check | [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md) | Complete — review and track gaps |
 
 ---
 

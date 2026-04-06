@@ -83,5 +83,5 @@ The ai-stack implements the following security controls by default:
 - **PII redaction:** OTel Collector strips email, SSN, and credit card patterns
 - **Telemetry opt-out:** `DO_NOT_TRACK=true`, `ANONYMIZED_TELEMETRY=false`
 
-For details, see [ENTERPRISE_EVALUATION.md](ENTERPRISE_EVALUATION.md) and
-[LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md).
+For details, see [ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) and
+[LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md).

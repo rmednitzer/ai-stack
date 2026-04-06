@@ -234,7 +234,7 @@ NIS2 Art. 20(2) requires management bodies to:
 - Undergo training to identify risks and assess practices
 
 **Action:** Ensure management has reviewed and approved the ai-stack security
-controls documented in [ENTERPRISE_EVALUATION.md](../../ENTERPRISE_EVALUATION.md).
+controls documented in [ENTERPRISE_EVALUATION.md](../enterprise/ENTERPRISE_EVALUATION.md).
 
 ---
 

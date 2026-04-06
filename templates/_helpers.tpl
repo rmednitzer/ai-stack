@@ -443,29 +443,3 @@ spec:
 {{- end }}
 {{- end }}
 
-{{/*
-Init container: wait for a TCP service to become reachable.
-Uses busybox nc; no external dependencies.
-*/}}
-{{- define "ai-stack.waitFor" -}}
-- name: wait-for-{{ .name }}
-  image: busybox:1.37
-  command: ['sh', '-c', 'until nc -z {{ .host }} {{ .port }} ; do echo "waiting for {{ .name }}..."; sleep 2; done']
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 65534
-    capabilities:
-      drop:
-        - ALL
-    seccompProfile:
-      type: RuntimeDefault
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 50m
-      memory: 32Mi
-{{- end }}

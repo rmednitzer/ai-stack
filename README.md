@@ -452,7 +452,7 @@ The chart includes a machine-readable Software Bill of Materials and license com
 | File | Format | Purpose |
 |------|--------|---------|
 | [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 JSON | Machine-readable SBOM with all container images, licenses, purls, and dependency graph |
-| [LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md) | Markdown | Human-readable license matrix, copyleft analysis, and enterprise compliance checklist |
+| [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md) | Markdown | Human-readable license matrix, copyleft analysis, and enterprise compliance checklist |
 
 All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-Clause). Notable exceptions:
 
@@ -541,7 +541,7 @@ The chart ships with templates and guidance for EU-regulated deployments:
 | Document | Purpose |
 |----------|---------|
 | [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md) | Authoritative registry of all CTL and POL identifiers with descriptions and regulatory basis |
-| [EU_COMPLIANCE_CHECK.md](EU_COMPLIANCE_CHECK.md) | Gap analysis against GDPR, AI Act, NIS2, CRA, ePrivacy |
+| [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md) | Gap analysis against GDPR, AI Act, NIS2, CRA, ePrivacy |
 | [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure (CVD) policy |
 | [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) | Data Protection Impact Assessment template (GDPR Art. 35 + AI Act Art. 27) |
 | [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) | Records of Processing Activities template (GDPR Art. 30) |
