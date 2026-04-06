@@ -238,4 +238,4 @@ This playbook should be tested:
 
 ---
 
-*Template version: 1.0 | Based on GDPR Art. 33/34, NIS2 Art. 23, AI Act Art. 73, and ENISA incident handling guidelines.*
+*Template version: 2.0 | Based on GDPR Art. 33/34, NIS2 Art. 23, AI Act Art. 73, and ENISA incident handling guidelines.*

@@ -1,7 +1,7 @@
 # Enterprise Readiness Evaluation — ai-stack
 
 **Date:** 2026-03-17
-**Chart version:** 1.0.0 | **appVersion:** 2026.1
+**Chart version:** 2.0.0 | **appVersion:** 2026.1
 
 ---
 
@@ -36,7 +36,7 @@ alignment with governance, security, observability, and operational requirements
 - PII redaction in telemetry pipeline (email, SSN, credit card patterns)
 - Governance-as-code annotations (`assurance.platform/*`) on all resources
 - Control reference traceability (CTL-001, CTL-002, POL-001) — defined in [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md)
-- Tier classification system (T0–T3) with clear boundary labels
+- Tier classification system (T0–T2) with clear boundary labels
 
 ### 3. Observability — Production-Grade
 

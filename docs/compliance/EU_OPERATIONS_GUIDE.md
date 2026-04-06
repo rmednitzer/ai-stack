@@ -171,7 +171,7 @@ embedded in exported content.
 |-------|--------|----------|
 | 1 | Monitor AI Office codes of practice for Art. 50(2) implementation guidance | Ongoing |
 | 2 | Evaluate C2PA (Coalition for Content Provenance and Authenticity) integration for exported content | When C2PA tooling matures for text |
-| 4 | Add `ai-generated: true` metadata to any content exported from the platform | Near-term (low effort) |
+| 3 | Add `ai-generated: true` metadata to any content exported from the platform | Near-term (low effort) |
 
 ### 4.3 Interim Measure
 
@@ -280,4 +280,4 @@ a per-deployment audit is still recommended.
 
 ---
 
-*Guide version: 1.0 | Based on GDPR, AI Act, NIS2, ePrivacy, and Austrian TKG 2021.*
+*Guide version: 2.0 | Based on GDPR, AI Act, NIS2, ePrivacy, and Austrian TKG 2021.*

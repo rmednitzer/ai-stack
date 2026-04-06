@@ -90,16 +90,16 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
     - [External API provider governance](#183-external-api-provider-governance)
     - [Encryption at rest](#184-encryption-at-rest)
     - [Compliance documentation](#185-compliance-documentation)
-20. [Troubleshooting](#20-troubleshooting)
-    - [Pods stuck in Pending](#201-pods-stuck-in-pending)
-    - [Ollama out of memory](#202-ollama-out-of-memory)
-    - [Open WebUI cannot reach Ollama](#203-open-webui-cannot-reach-ollama)
-    - [NetworkPolicy blocking traffic](#204-networkpolicy-blocking-traffic)
-    - [PVC stuck in Pending](#205-pvc-stuck-in-pending)
-    - [Secrets not generated](#206-secrets-not-generated)
-    - [Helm test failures](#207-helm-test-failures)
-    - [GPU not detected](#208-gpu-not-detected)
-21. [Uninstall](#21-uninstall)
+19. [Troubleshooting](#19-troubleshooting)
+    - [Pods stuck in Pending](#191-pods-stuck-in-pending)
+    - [Ollama out of memory](#192-ollama-out-of-memory)
+    - [Open WebUI cannot reach Ollama](#193-open-webui-cannot-reach-ollama)
+    - [NetworkPolicy blocking traffic](#194-networkpolicy-blocking-traffic)
+    - [PVC stuck in Pending](#195-pvc-stuck-in-pending)
+    - [Secrets not generated](#196-secrets-not-generated)
+    - [Helm test failures](#197-helm-test-failures)
+    - [GPU not detected](#198-gpu-not-detected)
+20. [Uninstall](#20-uninstall)
 
 ---
 
@@ -186,7 +186,7 @@ openwebui:
 ollama:
   image:
     repository: registry.internal/ollama
-    tag: "0.18.1"
+    tag: "0.18.2"
 # ... repeat for all components
 ```
 
@@ -1192,7 +1192,7 @@ ollama:
 
 ## 16. Upgrading
 
-### 15.1 Upgrade the Chart
+### 16.1 Upgrade the Chart
 
 ```bash
 # Review what will change
@@ -1207,7 +1207,7 @@ helm upgrade ai-stack . -n ai-stack -f values.yaml -f values-prod.yaml
 
 Secrets annotated with `helm.sh/resource-policy: keep` survive upgrades. PVCs are also retained.
 
-### 15.2 Upgrade Individual Component Images
+### 16.2 Upgrade Individual Component Images
 
 To update a single component without changing the chart:
 
@@ -1218,7 +1218,7 @@ helm upgrade ai-stack . -n ai-stack \
 
 Or update the tag in your values file and run `helm upgrade`.
 
-### 15.3 Upgrade with Zero Downtime
+### 16.3 Upgrade with Zero Downtime
 
 For stateless components with multiple replicas, rolling updates happen automatically. Ensure:
 
@@ -1242,7 +1242,7 @@ Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Appli
 - ArgoCD installed in the cluster (namespace `argocd`)
 - Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
 
-### 16.1 Deploy the Lab Application
+### 17.1 Deploy the Lab Application
 
 The lab application enables **automated sync** with self-healing and pruning — changes pushed to `main` are applied automatically.
 
@@ -1269,7 +1269,7 @@ argocd app get ai-stack-lab
 kubectl get application ai-stack-lab -n argocd -o jsonpath='{.status.sync.status}'
 ```
 
-### 16.2 Deploy the Production Application
+### 17.2 Deploy the Production Application
 
 The production application uses **manual sync** for change-control compliance. ArgoCD detects when the repo is out-of-sync, but an operator must explicitly trigger the sync.
 
@@ -1307,7 +1307,7 @@ notifications.argoproj.io/subscribe.on-sync-failed.slack: ai-stack-alerts
 notifications.argoproj.io/subscribe.on-health-degraded.slack: ai-stack-alerts
 ```
 
-### 16.3 Customizing the Application Manifests
+### 17.3 Customizing the Application Manifests
 
 **Change the target branch or repo:**
 
@@ -1350,7 +1350,7 @@ argocd proj create ai-stack \
   --allow-cluster-resource /Namespace
 ```
 
-### 16.4 Ignore Differences
+### 17.4 Ignore Differences
 
 Both manifests ignore diffs on:
 
@@ -1367,7 +1367,7 @@ ignoreDifferences:
       - /data/custom-key
 ```
 
-### 16.5 Disaster Recovery
+### 17.5 Disaster Recovery
 
 Both applications set `revisionHistoryLimit` (5 for lab, 10 for production) so you can roll back to a previous sync:
 
@@ -1389,7 +1389,7 @@ This section covers EU regulatory compliance tasks. For the full compliance
 framework analysis, see [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md). For
 detailed templates and procedures, see [docs/compliance/](docs/compliance/).
 
-### 17.1 AI Transparency Disclosure
+### 18.1 AI Transparency Disclosure
 
 AI Act Art. 50(1) requires informing users when they interact with an AI
 system. The chart includes a configurable banner:
@@ -1404,14 +1404,14 @@ openwebui:
 
 Customise the text for your deployment. Set `WEBUI_BANNER_TEXT: ""` to disable.
 
-### 17.2 Data Retention
+### 18.2 Data Retention
 
 GDPR Art. 5(1)(e) requires storage limitation. Define and enforce retention
 periods for all personal data categories. See
 [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1
 for recommended retention periods and automated purge scripts.
 
-### 17.3 External API Provider Governance
+### 18.3 External API Provider Governance
 
 When enabling external LLM providers (`externalAPIs.enabled=true`), complete
 the pre-enablement checklist in
@@ -1423,7 +1423,7 @@ including:
 - ROPA update (PA-06 in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md))
 - Privacy notice update
 
-### 17.4 Encryption at Rest
+### 18.4 Encryption at Rest
 
 NIS2 Art. 21(2)(h) requires cryptography policies. Ensure PVCs containing
 personal data use an encrypted StorageClass. See
@@ -1435,7 +1435,7 @@ global:
   storageClass: "gp3-encrypted"  # or "zfs-encrypted", etc.
 ```
 
-### 17.5 Compliance Documentation
+### 18.5 Compliance Documentation
 
 Complete the following before production deployment:
 
@@ -1453,7 +1453,7 @@ Complete the following before production deployment:
 
 ## 19. Troubleshooting
 
-### 18.1 Pods Stuck in Pending
+### 19.1 Pods Stuck in Pending
 
 ```bash
 kubectl describe pod -n ai-stack <pod-name>
@@ -1465,7 +1465,7 @@ Common causes:
 - **No matching node selector/tolerations:** Check `global.nodeSelector` and `global.tolerations`
 - **GPU requested but unavailable:** Ensure the NVIDIA GPU Operator is installed and GPUs are free
 
-### 18.2 Ollama Out of Memory
+### 19.2 Ollama Out of Memory
 
 Ollama may OOM when loading large models. Solutions:
 
@@ -1488,7 +1488,7 @@ ollama:
     OLLAMA_KEEP_ALIVE: "1m"
 ```
 
-### 18.3 Open WebUI Cannot Reach Ollama
+### 19.3 Open WebUI Cannot Reach Ollama
 
 1. Check Ollama is running: `kubectl get pods -n ai-stack -l app.kubernetes.io/component=ollama`
 2. Check the service exists: `kubectl get svc -n ai-stack -l app.kubernetes.io/component=ollama`
@@ -1505,7 +1505,7 @@ kubectl exec -n ai-stack deploy/ai-stack-openwebui -- \
 kubectl describe networkpolicy -n ai-stack | grep -A 5 ollama
 ```
 
-### 18.4 NetworkPolicy Blocking Traffic
+### 19.4 NetworkPolicy Blocking Traffic
 
 Symptom: Components cannot communicate even though services exist.
 
@@ -1523,7 +1523,7 @@ helm upgrade ai-stack . -n ai-stack --set global.networkPolicy.enabled=false
 
 3. If traffic works with policies disabled, check the specific component's policy rules in `templates/common/networkpolicies.yaml`.
 
-### 18.5 PVC Stuck in Pending
+### 19.5 PVC Stuck in Pending
 
 ```bash
 kubectl describe pvc -n ai-stack <pvc-name>
@@ -1535,7 +1535,7 @@ Common causes:
 - **Insufficient storage capacity:** Check available storage in the cluster
 - **Access mode mismatch:** Ensure the StorageClass supports `ReadWriteOnce`
 
-### 18.6 Secrets Not Generated
+### 19.6 Secrets Not Generated
 
 Secrets are only generated on `helm install`, not on `helm upgrade`. If secrets are missing:
 
@@ -1551,7 +1551,7 @@ helm install ai-stack . -n ai-stack
 
 **Important:** PVCs with `helm.sh/resource-policy: keep` are not deleted on uninstall.
 
-### 18.7 Helm Test Failures
+### 19.7 Helm Test Failures
 
 ```bash
 # Run tests with verbose output
@@ -1563,7 +1563,7 @@ kubectl logs -n ai-stack ai-stack-connection-test
 
 Tests verify TCP and HTTP connectivity to all enabled services.
 
-### 18.8 GPU Not Detected
+### 19.8 GPU Not Detected
 
 ```bash
 # Check NVIDIA device plugin is running

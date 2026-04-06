@@ -20,11 +20,12 @@ templates/common/networkpolicies.yaml @rmednitzer
 templates/common/secrets.yaml @rmednitzer
 templates/common/serviceaccounts.yaml @rmednitzer
 
-# EU compliance documentation
-EU_COMPLIANCE_CHECK.md @rmednitzer
-docs/compliance/ @rmednitzer
+# EU compliance and governance documentation
+docs/ @rmednitzer
 
 # CI/CD and dependency management
 .github/dependabot.yml @rmednitzer
+.github/release.yml @rmednitzer
 ct.yaml @rmednitzer
 sbom.cdx.json @rmednitzer
+zarf.yaml @rmednitzer

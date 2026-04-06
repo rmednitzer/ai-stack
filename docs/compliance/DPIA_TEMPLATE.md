@@ -259,4 +259,4 @@ This DPIA must be reviewed:
 
 ---
 
-*Template version: 1.0 | Based on GDPR Art. 35, AI Act Art. 27, and EDPB Guidelines on DPIAs (WP 248 rev.01)*
+*Template version: 2.0 | Based on GDPR Art. 35, AI Act Art. 27, and EDPB Guidelines on DPIAs (WP 248 rev.01)*

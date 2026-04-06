@@ -1,0 +1,31 @@
+# Auto-detect text files and enforce LF line endings
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.md text diff=markdown
+*.yaml text
+*.yml text
+*.json text
+*.txt text
+*.sh text eol=lf
+*.py text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+LICENSE text
+
+# Helm templates are Go templates in YAML
+templates/**/*.yaml text linguist-language=Helm
+
+# Binary files — do not diff or merge
+*.tgz binary
+*.tar.gz binary
+*.tar.zst binary
+*.png binary
+*.jpg binary
+*.ico binary
+
+# Lock files — generated, show diffs but don't merge
+*.lock text -merge
+
+# Large SBOM — show in diffs but mark as generated
+sbom.cdx.json linguist-generated=true

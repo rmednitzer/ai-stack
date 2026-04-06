@@ -1,5 +1,5 @@
 # Dependabot configuration for ai-stack Helm chart
-# Replaces renovate.json5 — keeps GitHub Actions up to date.
+# Keeps GitHub Actions up to date with SHA-pinned references.
 #
 # NOTE: Dependabot does not support Helm values.yaml image tracking or
 # custom regex version extraction (kubeconform, syft, grype, etc.).
@@ -33,4 +33,18 @@ updates:
           - "minor"
           - "patch"
     # Keep major updates as individual PRs for careful review
+    open-pull-requests-limit: 5
+
+  # --- Docker (container images in Dockerfile / docker-compose) ---
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      timezone: "Europe/Vienna"
+    labels:
+      - "dependencies"
+      - "container-images"
+    reviewers:
+      - "rmednitzer"
     open-pull-requests-limit: 5

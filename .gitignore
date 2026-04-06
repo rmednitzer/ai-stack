@@ -5,17 +5,36 @@ charts/*.tgz
 # IDE
 .idea/
 .vscode/
+*.code-workspace
+
+# Editor temps
 *.swp
 *.swo
 *~
+\#*\#
+.#*
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+._*
 
 # Secrets — never commit real credentials
 secrets/
 *.key
 *.pem
+*.crt
+*.p12
+*.jks
 .env
 .env.*
+kubeconfig
+kubeconfig.*
+
+# Build artefacts
+syft-sbom-output/
+grype-reports/
+
+# Zarf packages (large binaries)
+zarf-package-*.tar.zst
