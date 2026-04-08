@@ -968,7 +968,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.12-slim"
+    tag: "3.14-slim"
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
