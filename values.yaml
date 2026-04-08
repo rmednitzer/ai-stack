@@ -807,7 +807,7 @@ postgres:
     replicaCount: 1
     image:
       repository: docker.io/library/postgres
-      tag: "17-alpine"
+      tag: "18-alpine"
     env: {}
     persistence:
       enabled: true
