@@ -38,15 +38,15 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.8.12
       # Ollama
-      - ollama/ollama:0.20.2
+      - ollama/ollama:0.20.5
       # Qdrant
       - qdrant/qdrant:v1.17.1
       # Apache Tika
       - apache/tika:3.3.0.0
       # SearXNG
-      - searxng/searxng:2026.4.5-474b0a55b
+      - searxng/searxng:2026.4.11-9e08a6771
       # Open Terminal
-      - ghcr.io/open-webui/open-terminal:0.11.32
+      - ghcr.io/open-webui/open-terminal:0.11.34
       # Valkey
       - valkey/valkey:8.1.6
       # Ingestion worker
@@ -94,7 +94,7 @@ components:
             default: "true"
     images:
       - docker.io/langchain/langgraph-server:0.7-py3.12
-      - docker.io/library/postgres:17-alpine
+      - docker.io/library/postgres:18-alpine
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)

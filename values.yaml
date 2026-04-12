@@ -303,7 +303,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.20.3"
+    tag: "0.20.5"
   service:
     type: ClusterIP
     port: 11434
@@ -445,7 +445,7 @@ searxng:
   secretKey: ""
   image:
     repository: searxng/searxng
-    tag: "2026.4.5-474b0a55b"
+    tag: "2026.4.11-9e08a6771"
   service:
     type: ClusterIP
     port: 8080
@@ -584,7 +584,7 @@ openTerminal:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
-    tag: "0.11.32"
+    tag: "0.11.34"
   service:
     type: ClusterIP
     port: 8000
