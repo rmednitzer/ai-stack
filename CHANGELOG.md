@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated SBOM ai-stack chart metadata version from 1.0.0 to 2.1.1
 - Refreshed SBOM timestamp to 2026-04-12
 - Updated supported version in SECURITY.md to 2.1.x
+- Bumped Zarf package metadata.version and all charts[].version from 1.0.0 to 2.1.1
+- Regenerated SBOM serialNumber for the new BOM instance
 
 ## [2.1.0] - 2026-04-06
 
