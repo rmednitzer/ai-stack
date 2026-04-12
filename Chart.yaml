@@ -6,7 +6,7 @@ description: >-
   MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async ingestion
   worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
-version: 2.1.0
+version: 2.1.1
 appVersion: "2026.2"
 home: https://github.com/rmednitzer/ai-stack
 maintainers:

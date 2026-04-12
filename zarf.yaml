@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-1.0.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.1.1.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 1.0.0
+  version: 2.1.1
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -31,22 +31,22 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 1.0.0
+        version: 2.1.1
         valuesFiles:
           - values.yaml
     images:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.8.12
       # Ollama
-      - ollama/ollama:0.20.2
+      - ollama/ollama:0.20.5
       # Qdrant
       - qdrant/qdrant:v1.17.1
       # Apache Tika
       - apache/tika:3.3.0.0
       # SearXNG
-      - searxng/searxng:2026.4.5-474b0a55b
+      - searxng/searxng:2026.4.11-9e08a6771
       # Open Terminal
-      - ghcr.io/open-webui/open-terminal:0.11.32
+      - ghcr.io/open-webui/open-terminal:0.11.34
       # Valkey
       - valkey/valkey:8.1.6
       # Ingestion worker
@@ -62,7 +62,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 1.0.0
+        version: 2.1.1
         valuesFiles:
           - values.yaml
         variables:
@@ -82,7 +82,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 1.0.0
+        version: 2.1.1
         valuesFiles:
           - values.yaml
         variables:
@@ -94,7 +94,7 @@ components:
             default: "true"
     images:
       - docker.io/langchain/langgraph-server:0.7-py3.12
-      - docker.io/library/postgres:17-alpine
+      - docker.io/library/postgres:18-alpine
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
@@ -106,7 +106,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 1.0.0
+        version: 2.1.1
         valuesFiles:
           - values.yaml
         variables:
@@ -126,7 +126,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 1.0.0
+        version: 2.1.1
         valuesFiles:
           - values.yaml
         variables:

@@ -5,6 +5,26 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-04-12
+
+### Changed
+
+- Updated Ollama image tag from 0.20.3 to 0.20.5
+- Updated SearXNG image tag from 2026.4.5-474b0a55b to 2026.4.11-9e08a6771
+- Updated Open Terminal image tag from 0.11.32 to 0.11.34
+- Bumped chart version from 2.1.0 to 2.1.1
+
+### Fixed
+
+- Synced zarf.yaml Ollama image from 0.20.2 to 0.20.5 to match values.yaml
+- Synced SBOM Ollama version from 0.20.2 to 0.20.5 to match values.yaml
+- Synced SBOM and zarf.yaml PostgreSQL version from 17-alpine to 18-alpine to match values.yaml
+- Updated SBOM ai-stack chart metadata version from 1.0.0 to 2.1.1
+- Refreshed SBOM timestamp to 2026-04-12
+- Updated supported version in SECURITY.md to 2.1.x
+- Bumped Zarf package metadata.version and all charts[].version from 1.0.0 to 2.1.1
+- Regenerated SBOM serialNumber for the new BOM instance
+
 ## [2.1.0] - 2026-04-06
 
 ### Changed
@@ -63,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
+[2.1.1]: https://github.com/rmednitzer/ai-stack/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/rmednitzer/ai-stack/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rmednitzer/ai-stack/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/rmednitzer/ai-stack/releases/tag/v1.0.0
