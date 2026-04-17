@@ -2,7 +2,9 @@
 
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.0.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.1.1-blue.svg)](Chart.yaml)
+[![App Version](https://img.shields.io/badge/appVersion-2026.2-informational.svg)](Chart.yaml)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
@@ -386,7 +388,7 @@ When `global.otel.enabled=true`, the chart:
 
 ### Disaster Recovery
 
-For production DR, use [Velero](https://velero.io/) with CSI volume snapshots for PVC-backed data (Qdrant, Ollama models, Open WebUI). PostgreSQL in CNPG mode supports automated backups via Barman to S3-compatible storage — see [HOWTO.md](HOWTO.md) §10 for configuration.
+For production DR, use [Velero](https://velero.io/) with CSI volume snapshots for PVC-backed data (Qdrant, Ollama models, Open WebUI). PostgreSQL in CNPG mode supports automated backups via Barman to S3-compatible storage — see [HOWTO.md §10 PostgreSQL Modes](HOWTO.md#10-postgresql-modes) for configuration.
 
 ## Security
 
@@ -503,11 +505,18 @@ helm install ai-stack . --dry-run --debug -n ai-stack
 ct lint --config ct.yaml --charts .
 ```
 
-See [HOWTO.md](HOWTO.md) for a comprehensive task-oriented guide covering installation, day-1 setup, RAG configuration, GPU acceleration, scaling, EU compliance, and troubleshooting.
+## Documentation
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, security contexts, and governance labels.
-
-See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes in each release.
+| Document | Purpose |
+|----------|---------|
+| [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
+| [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
+| [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |
+| [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure policy and supported versions |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
+| [docs/enterprise/ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) | Enterprise readiness evaluation checklist |
+| [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 Software Bill of Materials |
 
 ## EU Compliance
 

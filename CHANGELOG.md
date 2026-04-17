@@ -5,6 +5,22 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- New `appVersion` and `Kubernetes` badges in README header
+- Consolidated `Documentation` navigation table in README, linking HOWTO, component docs index, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, Enterprise Evaluation, and SBOM
+- New per-component reference pages under `docs/components/` (openwebui, ollama, qdrant, tika, searxng, valkey, otel, authelia, langgraph, workbench, mcpo, open-terminal, postgres, ingestion-worker) plus an index (`docs/components/README.md`)
+- `values.schema.json` — JSON Schema Draft 2020-12 validation for user overrides. Catches typos in `global.profile`, `postgres.mode`, `global.podSecurityStandard`, image pull policies, and non-boolean `enabled` values at `helm install`/`helm template` time
+- Quick-reference "Symptom → Diagnosis" decision table at the top of HOWTO §19 Troubleshooting
+
+### Fixed
+
+- Corrected README Helm Chart badge from v2.0.0 to v2.1.1 to match `Chart.yaml`
+- Replaced plain-text section reference (`HOWTO.md §10`) in README Disaster Recovery with a proper markdown anchor link
+- Converted the three `§1`/`§2`/`§3` plain-text references to `EU_OPERATIONS_GUIDE.md` in HOWTO §18 (EU Compliance) into markdown anchor links
+
 ## [2.1.1] - 2026-04-12
 
 ### Changed
@@ -83,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...HEAD
 [2.1.1]: https://github.com/rmednitzer/ai-stack/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/rmednitzer/ai-stack/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rmednitzer/ai-stack/compare/v1.0.0...v2.0.0
