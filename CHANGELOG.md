@@ -5,6 +5,18 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Corrected README Helm Chart badge from v2.0.0 to v2.1.1 to match `Chart.yaml`
+- Replaced plain-text section reference (`HOWTO.md §10`) in README Disaster Recovery with a proper markdown anchor link
+
+### Added
+
+- New `appVersion` and `Kubernetes` badges in README header
+- Consolidated `Documentation` navigation table in README, linking HOWTO, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, Enterprise Evaluation, and SBOM
+
 ## [2.1.1] - 2026-04-12
 
 ### Changed
