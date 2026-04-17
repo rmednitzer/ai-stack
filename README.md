@@ -510,6 +510,7 @@ ct lint --config ct.yaml --charts .
 | Document | Purpose |
 |----------|---------|
 | [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
+| [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |
 | [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure policy and supported versions |

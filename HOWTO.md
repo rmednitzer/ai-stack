@@ -1408,14 +1408,14 @@ Customise the text for your deployment. Set `WEBUI_BANNER_TEXT: ""` to disable.
 
 GDPR Art. 5(1)(e) requires storage limitation. Define and enforce retention
 periods for all personal data categories. See
-[docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1
+[EU_OPERATIONS_GUIDE §1 Data Retention Policy](docs/compliance/EU_OPERATIONS_GUIDE.md#1-data-retention-policy-gdpr-art-51e)
 for recommended retention periods and automated purge scripts.
 
 ### 18.3 External API Provider Governance
 
 When enabling external LLM providers (`externalAPIs.enabled=true`), complete
 the pre-enablement checklist in
-[docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2,
+[EU_OPERATIONS_GUIDE §2 External API Provider Governance](docs/compliance/EU_OPERATIONS_GUIDE.md#2-external-api-provider-governance-gdpr-art-28-art-4449),
 including:
 
 - Data Processing Agreement (DPA) with each provider
@@ -1427,7 +1427,7 @@ including:
 
 NIS2 Art. 21(2)(h) requires cryptography policies. Ensure PVCs containing
 personal data use an encrypted StorageClass. See
-[docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §3.
+[EU_OPERATIONS_GUIDE §3 Encryption at Rest](docs/compliance/EU_OPERATIONS_GUIDE.md#3-encryption-at-rest-nis2-art-212h).
 
 ```yaml
 # Use an encrypted storage class
@@ -1452,6 +1452,21 @@ Complete the following before production deployment:
 ---
 
 ## 19. Troubleshooting
+
+### Quick Reference — Symptom → Diagnosis
+
+Start with the first-line command below, then jump to the linked subsection for the full treatment.
+
+| Symptom | Most likely cause | First-line command | See |
+|---------|------------------|--------------------|-----|
+| Pod stuck in `Pending` | Insufficient resources, GPU unavailable, unschedulable | `kubectl describe pod -n ai-stack <pod>` | [§19.1](#191-pods-stuck-in-pending) |
+| Ollama pod OOMKilled | Model larger than memory limit | `kubectl describe pod -n ai-stack -l app.kubernetes.io/component=ollama \| grep -A2 OOM` | [§19.2](#192-ollama-out-of-memory) |
+| Open WebUI returns "model not found" / connection refused | Ollama pod not ready or DNS / NetworkPolicy blocking | `kubectl exec -n ai-stack deploy/ai-stack-openwebui -- wget -qO- http://ai-stack-ollama:11434/` | [§19.3](#193-open-webui-cannot-reach-ollama) |
+| Cross-component traffic fails with services present | NetworkPolicy default-deny allowlist too strict | `kubectl get networkpolicies -n ai-stack -o wide` | [§19.4](#194-networkpolicy-blocking-traffic) |
+| PVC stuck in `Pending` | Missing StorageClass, no capacity, access-mode mismatch | `kubectl describe pvc -n ai-stack <pvc>` | [§19.5](#195-pvc-stuck-in-pending) |
+| Secret missing after upgrade | Secrets are only generated on install | `kubectl get secrets -n ai-stack -l app.kubernetes.io/part-of=ai-stack` | [§19.6](#196-secrets-not-generated) |
+| `helm test` failing | Enabled service unreachable over TCP/HTTP | `helm test ai-stack -n ai-stack --logs` | [§19.7](#197-helm-test-failures) |
+| Ollama running on CPU despite GPU enabled | NVIDIA device plugin missing or resource not advertised | `kubectl describe node <node> \| grep nvidia` | [§19.8](#198-gpu-not-detected) |
 
 ### 19.1 Pods Stuck in Pending
 
