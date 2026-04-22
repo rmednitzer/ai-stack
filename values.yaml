@@ -701,7 +701,7 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.7-py3.12"
+    tag: "0.8-py3.12"
   service:
     type: ClusterIP
     port: 8000
