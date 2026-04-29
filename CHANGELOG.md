@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Reference architecture document (`docs/architecture/REFERENCE.md`) codifying the
+  best-practice patterns for the conversational + RAG flow (Open WebUI) and the
+  agentic flow (LangGraph), including design principles, anti-patterns, and a
+  production hardening checklist. Linked from `README.md`, `HOWTO.md` (§4, §8, §9),
+  and the Open WebUI / LangGraph / MCPO component pages.
+
+### Changed
+
+- README architecture diagram: clarified legend (default-enabled vs opt-in vs
+  conditional edges) and marked Authelia → Valkey / Postgres edges as conditional
+  to match the chart's storage/session toggles.
+
 ## [2.2.0] - 2026-04-29
 
 ### Added

@@ -390,7 +390,7 @@ In Open WebUI, go to **Admin Panel > Settings > Models** and configure the defau
 
 ## 4. RAG (Retrieval-Augmented Generation)
 
-RAG allows the AI to answer questions using your own documents. The stack includes all components needed: Tika (document parsing), Qdrant (vector storage), and Ollama (embeddings).
+RAG allows the AI to answer questions using your own documents. The stack includes all components needed: Tika (document parsing), Qdrant (vector storage), and Ollama (embeddings). For the conversational + RAG flow at a glance, see [docs/architecture/REFERENCE.md §2](docs/architecture/REFERENCE.md#2-conversational--rag-flow-open-webui).
 
 ### 4.1 Upload Documents via the UI
 
@@ -633,7 +633,7 @@ kubectl exec -n ai-stack deploy/ai-stack-workbench -- python3 -c \
 
 ## 8. Agentic Workloads (LangGraph)
 
-LangGraph enables stateful, multi-step agentic workflows with tool calling and checkpoint persistence.
+LangGraph enables stateful, multi-step agentic workflows with tool calling and checkpoint persistence. For the design rationale, recommended integration patterns, and anti-patterns, see [docs/architecture/REFERENCE.md §3 Agentic flow](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph).
 
 ### 8.1 Enable LangGraph with PostgreSQL
 
@@ -698,7 +698,7 @@ curl http://localhost:8000/assistants \
 
 ## 9. MCP Tool Integration (MCPO)
 
-MCPO bridges Model Context Protocol (MCP) servers to OpenAPI endpoints that Open WebUI can consume as tools.
+MCPO bridges Model Context Protocol (MCP) servers to OpenAPI endpoints that Open WebUI can consume as tools. The same MCPO instance is the recommended tool surface for LangGraph agents — see [docs/architecture/REFERENCE.md §3](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph).
 
 ### 9.1 Enable MCPO
 

@@ -39,9 +39,22 @@ Open WebUI talks to every T1/T2 service over in-cluster DNS:
 - Telemetry opt-out env vars (`DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false`) set by default
 - AI Act Art. 50(1) transparency banner via `WEBUI_BANNER_TEXT`
 
+## Reference architecture
+
+Open WebUI is the entry point for the **conversational + RAG flow** described
+in [docs/architecture/REFERENCE.md §2](../architecture/REFERENCE.md#2-conversational--rag-flow-open-webui).
+Best-practice patterns:
+
+- Treat all inference (Ollama, External APIs, LangGraph) as one OpenAI-compatible surface so the model picker handles routing.
+- Use the bundled MCPO as the single tool gateway; do not let Open WebUI call internal services directly.
+- Enable async ingestion (`ingestionWorker.enabled=true`) for bulk uploads so the chat path stays non-blocking.
+- Front Open WebUI with Authelia OIDC and put MFA on the production policy.
+
 ## Related HOWTO sections
 
 - [§2 Day-1 Setup](../../HOWTO.md#2-day-1-setup)
 - [§4 RAG](../../HOWTO.md#4-rag-retrieval-augmented-generation)
+- [§5 Async Document Ingestion](../../HOWTO.md#5-async-document-ingestion)
+- [§9 MCP Tool Integration](../../HOWTO.md#9-mcp-tool-integration-mcpo)
 - [§11 Ingress and TLS](../../HOWTO.md#11-ingress-and-tls)
 - [§12 Authelia SSO/OIDC](../../HOWTO.md#12-authentication-with-authelia-sso--oidc)

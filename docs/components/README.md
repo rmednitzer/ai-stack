@@ -2,7 +2,7 @@
 
 Short reference pages for every component in the ai-stack chart. Each page summarises the component's purpose, tier, default image, key `values.yaml` knobs, NetworkPolicy allowlist, and links to upstream documentation. Full operational tasks live in [HOWTO.md](../../HOWTO.md); this directory is a navigation aid, not a replacement.
 
-For the authoritative list of tiers and control references, see [../governance/CONTROLS.md](../governance/CONTROLS.md).
+For the authoritative list of tiers and control references, see [../governance/CONTROLS.md](../governance/CONTROLS.md). For how the components compose into the conversational + RAG and agentic flows, see [../architecture/REFERENCE.md](../architecture/REFERENCE.md).
 
 ## Components by Tier
 
