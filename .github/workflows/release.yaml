@@ -39,11 +39,36 @@ jobs:
         with:
           version: v3.20.0
 
-      - name: Verify Chart.yaml version matches tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Resolve effective release tag
+        id: ref
+        # Computes a single is_release flag and effective tag name that work
+        # consistently for both `push` (refs/tags/v*) and `workflow_dispatch`
+        # (where github.ref is a branch ref but inputs.tag may name a tag).
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ -n "${INPUT_TAG:-}" ]; then
+            EFFECTIVE_TAG="${INPUT_TAG}"
+            IS_RELEASE=true
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            EFFECTIVE_TAG="${GITHUB_REF_NAME}"
+            IS_RELEASE=true
+          else
+            EFFECTIVE_TAG=""
+            IS_RELEASE=false
+          fi
+          echo "tag=${EFFECTIVE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "Effective tag: ${EFFECTIVE_TAG:-<none>} (is_release=${IS_RELEASE})"
+
+      - name: Verify Chart.yaml version matches tag
+        if: steps.ref.outputs.is_release == 'true'
+        env:
+          EFFECTIVE_TAG: ${{ steps.ref.outputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${EFFECTIVE_TAG#v}"
           CHART_VERSION=$(awk '/^version:/ { print $2 }' Chart.yaml | tr -d '"')
           echo "Tag: ${TAG_VERSION}"
           echo "Chart.yaml: ${CHART_VERSION}"
@@ -66,18 +91,19 @@ jobs:
           echo "version=$(basename "${PKG}" .tgz | sed 's/^ai-stack-//')" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
+        if: steps.ref.outputs.is_release == 'true'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
             --username "${{ github.actor }}" --password-stdin
 
       - name: Push chart to OCI registry
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.ref.outputs.is_release == 'true'
         run: |
           helm push "${{ steps.package.outputs.package }}" \
             "oci://ghcr.io/${{ github.repository_owner }}/charts"
 
       - name: Generate provenance attestation
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.ref.outputs.is_release == 'true'
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: ${{ steps.package.outputs.package }}
@@ -90,14 +116,15 @@ jobs:
           retention-days: 90
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.ref.outputs.is_release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EFFECTIVE_TAG: ${{ steps.ref.outputs.tag }}
         run: |
           set -euo pipefail
           NOTES_FILE=$(mktemp)
           {
-            echo "## ai-stack ${GITHUB_REF_NAME}"
+            echo "## ai-stack ${EFFECTIVE_TAG}"
             echo ""
             echo "Helm chart published as OCI artifact:"
             echo ""
@@ -107,11 +134,11 @@ jobs:
             echo "  --namespace ai-stack --create-namespace"
             echo '```'
             echo ""
-            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${GITHUB_REF_NAME}/CHANGELOG.md) for full release notes."
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${EFFECTIVE_TAG}/CHANGELOG.md) for full release notes."
           } > "$NOTES_FILE"
 
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "ai-stack ${GITHUB_REF_NAME}" \
+          gh release create "${EFFECTIVE_TAG}" \
+            --title "ai-stack ${EFFECTIVE_TAG}" \
             --notes-file "$NOTES_FILE" \
             "${{ steps.package.outputs.package }}" \
             sbom.cdx.json

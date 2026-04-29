@@ -70,7 +70,7 @@ global:
       podHealth: true       # Pod restarts, OOMKills, image pull errors
       availability: true    # Deployment / StatefulSet availability
       slo: true             # Component-specific SLO burn alerts
-      security: true        # PSA / NetworkPolicy / Secret rotation
+      security: true        # NetworkPolicy default-deny presence + Secret/ConfigMap mount failures
 
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
