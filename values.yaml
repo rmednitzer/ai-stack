@@ -303,7 +303,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.20.7"
+    tag: "0.22.0"
   service:
     type: ClusterIP
     port: 11434
