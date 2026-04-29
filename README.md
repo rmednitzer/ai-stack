@@ -16,9 +16,22 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 
 ## Architecture
 
-The chart composes seven logical planes behind a single ingress. Solid borders are
+The chart composes seven logical planes behind a single ingress, modelled as a
+best-practice reference for Open WebUI and agentic workloads. Solid borders are
 on by default; dashed borders are opt-in. Tiering (T0/T1/T2) follows the
 [Component Tiers](#component-tiers) table.
+
+Two flows drive the design:
+
+- **Conversational + RAG** — Open WebUI consumes any OpenAI-compatible model
+  (Ollama for local inference, External APIs for hosted), retrieves with Qdrant
+  (with web fallback via SearXNG), and exposes tools through MCPO so any MCP
+  server is reachable as an OpenAPI tool.
+- **Agentic** — LangGraph runs stateful, long-horizon agents with PostgreSQL as
+  the checkpointer/store, Qdrant for semantic memory, and the same MCPO tool
+  surface so tool definitions are shared across UI and agent runtimes. Async
+  document ingestion is decoupled via the Valkey-backed Ingestion Worker so the
+  request path stays non-blocking.
 
 ```mermaid
 graph LR
@@ -30,31 +43,31 @@ graph LR
   end
 
   subgraph Experience["Experience (T1)"]
-    OpenWebUI["Open WebUI"]
+    OpenWebUI["Open WebUI<br/>chat · pipelines · RAG"]
     Workbench["Workbench<br/>GPU notebooks"]
   end
 
-  subgraph Inference["Inference (T1)"]
-    Ollama["Ollama<br/>local LLMs"]
+  subgraph Inference["Inference (T1) — OpenAI-compatible"]
+    Ollama["Ollama<br/>local LLM + embeddings"]
     ExternalAPIs["External APIs<br/>OpenAI · Anthropic · Gemini · …"]
   end
 
   subgraph Knowledge["Knowledge & Retrieval"]
-    Qdrant["Qdrant<br/>vector DB (T1)"]
-    Tika["Tika<br/>extract (T2)"]
+    Qdrant["Qdrant<br/>vector DB · hybrid search (T1)"]
+    Tika["Tika<br/>extract · OCR (T2)"]
     SearXNG["SearXNG<br/>web search (T2)"]
   end
 
-  subgraph Agentic["Agentic & Tools"]
-    LangGraph["LangGraph<br/>stateful agents (T1)"]
-    MCPO["MCPO<br/>MCP→OpenAPI (T2)"]
+  subgraph Agentic["Agentic Runtime & Tools"]
+    LangGraph["LangGraph<br/>stateful agents · HITL (T1)"]
+    MCPO["MCPO<br/>MCP → OpenAPI gateway (T2)"]
     OpenTerminal["Open Terminal<br/>sandboxed shell (T2)"]
   end
 
-  subgraph Async["Async & State"]
-    IngestionWorker["Ingestion Worker (T2)"]
-    Valkey["Valkey<br/>cache · streams (T2)"]
-    Postgres["PostgreSQL<br/>standalone · CNPG · external (T2)"]
+  subgraph Async["Async, Memory & State"]
+    IngestionWorker["Ingestion Worker<br/>extract → embed → upsert (T2)"]
+    Valkey["Valkey<br/>cache · session · streams (T2)"]
+    Postgres["PostgreSQL<br/>checkpointer · store (T2)"]
   end
 
   subgraph Telemetry["Observability (T0)"]
@@ -69,35 +82,46 @@ graph LR
   Authelia --> Valkey
   Authelia --> Postgres
 
-  OpenWebUI --> Ollama
-  OpenWebUI --> ExternalAPIs
-  OpenWebUI --> Qdrant
-  OpenWebUI --> Tika
-  OpenWebUI --> SearXNG
-  OpenWebUI --> Valkey
-  OpenWebUI --> LangGraph
-  OpenWebUI --> MCPO
-  OpenWebUI --> OpenTerminal
+  %% Open WebUI: conversational + RAG path
+  OpenWebUI -->|OpenAI API| Ollama
+  OpenWebUI -->|OpenAI API| ExternalAPIs
+  OpenWebUI -->|OpenAI API| LangGraph
+  OpenWebUI -->|retrieve| Qdrant
+  OpenWebUI -->|extract on upload| Tika
+  OpenWebUI -->|web fallback| SearXNG
+  OpenWebUI -->|tool calls| MCPO
+  OpenWebUI -->|sessions| Valkey
+  OpenWebUI -.->|sandbox exec| OpenTerminal
 
   Workbench --> Ollama
   Workbench --> Qdrant
   Workbench --> Tika
   Workbench --> SearXNG
 
-  LangGraph --> Ollama
-  LangGraph --> Qdrant
-  LangGraph --> Tika
-  LangGraph --> SearXNG
-  LangGraph --> Postgres
+  %% Agentic path: shared tool surface, persistent memory
+  LangGraph -->|inference| Ollama
+  LangGraph -->|inference| ExternalAPIs
+  LangGraph -->|semantic memory| Qdrant
+  LangGraph -->|web| SearXNG
+  LangGraph -->|tools| MCPO
+  LangGraph -->|checkpointer · store| Postgres
+  LangGraph -.->|sandbox exec| OpenTerminal
 
-  IngestionWorker --> Valkey
-  IngestionWorker --> Tika
-  IngestionWorker --> Ollama
-  IngestionWorker --> Qdrant
+  %% Async ingestion (non-blocking)
+  OpenWebUI -.->|enqueue| Valkey
+  IngestionWorker -->|XREAD| Valkey
+  IngestionWorker -->|extract| Tika
+  IngestionWorker -->|embed| Ollama
+  IngestionWorker -->|upsert| Qdrant
 
+  %% MCPO fans out to MCP servers (any tool)
+  MCPO -.->|stdio · http| OpenTerminal
+
+  %% Telemetry
   OpenWebUI -.->|OTLP| OTel
   Workbench -.->|OTLP| OTel
   LangGraph -.->|OTLP| OTel
+  MCPO -.->|OTLP| OTel
   Ollama -.->|OTLP| OTel
   Qdrant -.->|OTLP| OTel
   IngestionWorker -.->|OTLP| OTel
@@ -106,6 +130,24 @@ graph LR
   classDef optIn stroke-dasharray: 5 5
   class Authelia,Workbench,LangGraph,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
 ```
+
+### Best-practice notes
+
+- **One model abstraction.** Local (Ollama), hosted (External APIs), and agentic
+  (LangGraph) all expose an OpenAI-compatible interface so Open WebUI can route
+  to any of them from the model picker without bespoke adapters.
+- **MCP as the universal tool layer.** MCPO is the single tool gateway shared by
+  Open WebUI and LangGraph, so a tool authored once (filesystem, search,
+  sandbox shell, internal APIs) is usable by both chat and agents.
+- **Persistent agent state.** LangGraph uses PostgreSQL as the checkpointer and
+  long-term store; semantic memory lives in Qdrant. CloudNativePG is the
+  recommended production mode for HA and PITR.
+- **Async ingestion off the request path.** Document upload returns immediately;
+  the Ingestion Worker performs extract → embed → upsert through Valkey
+  Streams, with retries and status tracking.
+- **Defence in depth.** Authelia gates the edge with OIDC/MFA, NetworkPolicies
+  default-deny per-component, and the OTel collector applies PII redaction
+  before telemetry leaves the cluster.
 
 ### Component Tiers
 
