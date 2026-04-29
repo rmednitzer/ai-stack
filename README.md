@@ -17,9 +17,16 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 ## Architecture
 
 The chart composes seven logical planes behind a single ingress, modelled as a
-best-practice reference for Open WebUI and agentic workloads. Solid borders are
-on by default; dashed borders are opt-in. Tiering (T0/T1/T2) follows the
-[Component Tiers](#component-tiers) table.
+best-practice reference for Open WebUI and agentic workloads. For chart-managed
+application components, **solid borders mark default-enabled components** and
+**dashed borders mark opt-in components**; edge concerns such as ingress
+exposure vary by deployment and are shown solid for layout reasons. Edges drawn
+dashed indicate **conditional or optional** dependencies (e.g., Authelia uses
+Valkey only when enabled and Postgres only when `authelia.storage=postgres`).
+Tiering (T0/T1/T2) follows the [Component Tiers](#component-tiers) table.
+
+For the long-form rationale, integration patterns, and production hardening
+checklist, see [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md).
 
 Two flows drive the design:
 
@@ -79,8 +86,8 @@ graph LR
   Ingress --> OpenWebUI
   Ingress --> Workbench
   Authelia -.->|OIDC| OpenWebUI
-  Authelia --> Valkey
-  Authelia --> Postgres
+  Authelia -.->|sessions, if enabled| Valkey
+  Authelia -.->|storage=postgres| Postgres
 
   %% Open WebUI: conversational + RAG path
   OpenWebUI -->|OpenAI API| Ollama
@@ -596,6 +603,7 @@ ct lint --config ct.yaml --charts .
 | Document | Purpose |
 |----------|---------|
 | [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
+| [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md) | Reference architecture — design principles, conversational + RAG flow, agentic flow, hardening checklist |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |

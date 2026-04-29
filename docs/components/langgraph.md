@@ -31,7 +31,20 @@ LangGraph Platform runtime for stateful agentic workflows. Requires PostgreSQL f
 - `postgres.enabled: true` (any of `standalone`, `cnpg`, `external`)
 - Ollama, Qdrant, Tika, SearXNG — all standard T1/T2 services the chart already wires up
 
+## Reference architecture
+
+LangGraph is the **agentic runtime** described in
+[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph).
+Best-practice patterns:
+
+- Always run with a Postgres checkpointer/store; do not run agents stateless.
+- Reuse the chat tool catalog by routing tool calls through MCPO instead of bespoke clients.
+- Use Qdrant for semantic memory and Postgres for structured agent state.
+- Front LangGraph with Open WebUI (or your own UI) for auth and audit; do not expose it directly to end users.
+- In production, use `postgres.mode: cnpg` for HA + PITR.
+
 ## Related HOWTO sections
 
 - [§8 Agentic Workloads (LangGraph)](../../HOWTO.md#8-agentic-workloads-langgraph)
+- [§9 MCP Tool Integration](../../HOWTO.md#9-mcp-tool-integration-mcpo)
 - [§10 PostgreSQL Modes](../../HOWTO.md#10-postgresql-modes)

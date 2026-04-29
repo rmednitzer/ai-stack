@@ -25,6 +25,18 @@ MCP-to-OpenAPI proxy. Exposes Model Context Protocol (MCP) servers as standard O
 - NetworkPolicy egress allowlist must cover any remote MCP endpoints
 - Per-tool auth handled by MCPO; require an API key on every request
 
+## Reference architecture
+
+MCPO is the **shared tool surface** for both Open WebUI chat and LangGraph
+agents — see
+[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph).
+Best-practice patterns:
+
+- Author tools once as MCP servers; let MCPO surface them as OpenAPI for both the chat and agent paths.
+- Treat `mcpo.servers` as privileged config — review like RBAC.
+- Keep network egress for remote MCP endpoints in the NetworkPolicy allowlist.
+- Require an API key on every request (auto-generated into `mcpo-secret` if not supplied).
+
 ## Related HOWTO sections
 
 - [§9 MCP Tool Integration (MCPO)](../../HOWTO.md#9-mcp-tool-integration-mcpo)
