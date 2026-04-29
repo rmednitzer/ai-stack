@@ -16,52 +16,95 @@ Designed for governance-as-code environments with PSA restricted baseline, Netwo
 
 ## Architecture
 
+The chart composes seven logical planes behind a single ingress. Solid borders are
+on by default; dashed borders are opt-in. Tiering (T0/T1/T2) follows the
+[Component Tiers](#component-tiers) table.
+
 ```mermaid
-graph TD
-  Ingress --> Authelia["Authelia (T0, opt-in OIDC)"]
-  Ingress --> OpenWebUI["Open WebUI (T1)"]
-  Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
+graph LR
+  Client([User / Client])
 
-  Authelia --> Valkey["Valkey (T2)"]
+  subgraph Edge["Edge & Identity (T0)"]
+    Ingress[Ingress / Envoy Gateway]
+    Authelia["Authelia<br/>OIDC · MFA"]
+  end
+
+  subgraph Experience["Experience (T1)"]
+    OpenWebUI["Open WebUI"]
+    Workbench["Workbench<br/>GPU notebooks"]
+  end
+
+  subgraph Inference["Inference (T1)"]
+    Ollama["Ollama<br/>local LLMs"]
+    ExternalAPIs["External APIs<br/>OpenAI · Anthropic · Gemini · …"]
+  end
+
+  subgraph Knowledge["Knowledge & Retrieval"]
+    Qdrant["Qdrant<br/>vector DB (T1)"]
+    Tika["Tika<br/>extract (T2)"]
+    SearXNG["SearXNG<br/>web search (T2)"]
+  end
+
+  subgraph Agentic["Agentic & Tools"]
+    LangGraph["LangGraph<br/>stateful agents (T1)"]
+    MCPO["MCPO<br/>MCP→OpenAPI (T2)"]
+    OpenTerminal["Open Terminal<br/>sandboxed shell (T2)"]
+  end
+
+  subgraph Async["Async & State"]
+    IngestionWorker["Ingestion Worker (T2)"]
+    Valkey["Valkey<br/>cache · streams (T2)"]
+    Postgres["PostgreSQL<br/>standalone · CNPG · external (T2)"]
+  end
+
+  subgraph Telemetry["Observability (T0)"]
+    OTel["OTel Collector<br/>GenAI semconv · PII redaction"]
+  end
+
+  Client --> Ingress
+  Ingress --> Authelia
+  Ingress --> OpenWebUI
+  Ingress --> Workbench
   Authelia -.->|OIDC| OpenWebUI
+  Authelia --> Valkey
+  Authelia --> Postgres
 
-  OpenWebUI --> Ollama["Ollama (T1)"]
-  OpenWebUI --> Qdrant["Qdrant (T1)"]
-  OpenWebUI --> Tika["Tika (T2)"]
-  OpenWebUI --> SearXNG["SearXNG (T2)"]
+  OpenWebUI --> Ollama
+  OpenWebUI --> ExternalAPIs
+  OpenWebUI --> Qdrant
+  OpenWebUI --> Tika
+  OpenWebUI --> SearXNG
   OpenWebUI --> Valkey
+  OpenWebUI --> LangGraph
+  OpenWebUI --> MCPO
+  OpenWebUI --> OpenTerminal
 
   Workbench --> Ollama
   Workbench --> Qdrant
   Workbench --> Tika
   Workbench --> SearXNG
 
-  OpenWebUI --> OpenTerminal["Open Terminal (T2, opt-in)"]
-  OpenWebUI --> MCPO["MCPO (T2, opt-in)"]
-  OpenWebUI --> LangGraph["LangGraph (T1, opt-in)"]
-  OpenWebUI --> ExternalAPIs["External APIs (T1, opt-in)"]
-
   LangGraph --> Ollama
   LangGraph --> Qdrant
   LangGraph --> Tika
   LangGraph --> SearXNG
-  LangGraph --> Postgres["PostgreSQL (T2, opt-in)"]
+  LangGraph --> Postgres
 
-  IngestionWorker["Ingestion Worker (T2, opt-in)"] --> Valkey
+  IngestionWorker --> Valkey
   IngestionWorker --> Tika
   IngestionWorker --> Ollama
   IngestionWorker --> Qdrant
 
-  OTel["OTel Collector (T0)"]
+  OpenWebUI -.->|OTLP| OTel
+  Workbench -.->|OTLP| OTel
+  LangGraph -.->|OTLP| OTel
+  Ollama -.->|OTLP| OTel
+  Qdrant -.->|OTLP| OTel
+  IngestionWorker -.->|OTLP| OTel
+  Authelia -.->|OTLP| OTel
 
-  style OTel stroke-dasharray: 5 5
-  style Authelia stroke-dasharray: 5 5
-  style OpenTerminal stroke-dasharray: 5 5
-  style MCPO stroke-dasharray: 5 5
-  style LangGraph stroke-dasharray: 5 5
-  style Postgres stroke-dasharray: 5 5
-  style ExternalAPIs stroke-dasharray: 5 5
-  style IngestionWorker stroke-dasharray: 5 5
+  classDef optIn stroke-dasharray: 5 5
+  class Authelia,Workbench,LangGraph,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
 ```
 
 ### Component Tiers
