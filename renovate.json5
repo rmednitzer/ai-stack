@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":semanticCommits",
+    ":timezone(Europe/Vienna)"
+  ],
+  "labels": ["dependencies"],
+  "enabledManagers": ["github-actions", "helm-values", "dockerfile"],
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions non-major",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    },
+    {
+      "matchManagers": ["helm-values"],
+      "groupName": "helm values image updates",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    }
+  ]
+}

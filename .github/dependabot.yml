@@ -1,13 +1,8 @@
 # Dependabot configuration for ai-stack Helm chart
 # Keeps GitHub Actions up to date with SHA-pinned references.
 #
-# NOTE: Dependabot does not support Helm values.yaml image tracking or
-# custom regex version extraction (kubeconform, syft, grype, etc.).
-# Container image updates in values.yaml must be managed manually or
-# via a dedicated workflow (e.g. Renovate's helm-values manager had
-# this capability). Consider a scheduled GitHub Actions workflow with
-# tools like Skopeo or Renovate's standalone Docker image for image
-# version bumps if automation is needed.
+# NOTE: Dependabot is used for GitHub Actions and Dockerfile dependencies.
+# Helm `values.yaml` image updates are handled by Renovate (`renovate.json5`).
 
 version: 2
 

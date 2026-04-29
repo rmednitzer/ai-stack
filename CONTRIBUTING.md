@@ -42,11 +42,26 @@ Tiering: T0 = safety/integrity, T1 = operational, T2 = productivity.
    helm lint . -f values.yaml -f values-prod.yaml
    ```
 
+Or use the convenience targets:
+
+```bash
+make lint
+make lint-prod
+```
+
 4. Dry-run to verify rendering:
 
    ```bash
    helm template ai-stack . --debug
    ```
+
+
+You can also render with make targets:
+
+```bash
+make template
+make template-prod
+```
 
 5. Validate rendered manifests against Kubernetes schemas:
 
