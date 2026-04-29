@@ -321,7 +321,7 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule
 
       - name: Validate manifests (prod profile)
         env:
@@ -331,4 +331,4 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule

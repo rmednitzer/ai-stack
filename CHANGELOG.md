@@ -7,19 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-04-29
+
 ### Added
 
-- New `appVersion` and `Kubernetes` badges in README header
-- Consolidated `Documentation` navigation table in README, linking HOWTO, component docs index, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, Enterprise Evaluation, and SBOM
-- New per-component reference pages under `docs/components/` (openwebui, ollama, qdrant, tika, searxng, valkey, otel, authelia, langgraph, workbench, mcpo, open-terminal, postgres, ingestion-worker) plus an index (`docs/components/README.md`)
-- `values.schema.json` — JSON Schema Draft 2020-12 validation for user overrides. Catches typos in `global.profile`, `postgres.mode`, `global.podSecurityStandard`, image pull policies, and non-boolean `enabled` values at `helm install`/`helm template` time
-- Quick-reference "Symptom → Diagnosis" decision table at the top of HOWTO §19 Troubleshooting
+- **PrometheusRule template** (`templates/otel/prometheusrules.yaml`) shipping curated alerting rules
+  for pod health (CrashLoop, OOMKilled, ImagePullBackOff), deployment/statefulset availability,
+  component SLOs (Open WebUI 5xx rate, Ollama/Qdrant scrape liveness), and security posture
+  (NetworkPolicy default-deny, privileged container detection). Opt-in via
+  `global.prometheusRule.enabled`, with per-group toggles, configurable alert prefix, severity
+  routing labels, and PrometheusRule selector labels.
+- **Helm OCI release workflow** (`.github/workflows/release.yaml`) that publishes the chart to
+  `oci://ghcr.io/<owner>/charts/ai-stack` on `v*.*.*` tags, verifies that the tag matches
+  `Chart.yaml`, generates a signed build-provenance attestation, attaches the packaged chart and
+  `sbom.cdx.json` to a GitHub Release, and exposes a `workflow_dispatch` dry-run mode.
+- Authelia component added to the Zarf air-gap package (previously missing) so OIDC/SSO can be
+  installed offline alongside the rest of the stack.
+- `prometheusRule` block in `values.schema.json` so Draft 2020-12 validation catches typos in
+  the new alerting configuration.
+- New `appVersion` and `Kubernetes` badges in README header.
+- Consolidated `Documentation` navigation table in README, linking HOWTO, component docs index,
+  CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, Enterprise Evaluation, and SBOM.
+- Per-component reference pages under `docs/components/` (openwebui, ollama, qdrant, tika, searxng,
+  valkey, otel, authelia, langgraph, workbench, mcpo, open-terminal, postgres, ingestion-worker)
+  plus an index (`docs/components/README.md`).
+- `values.schema.json` — JSON Schema Draft 2020-12 validation for user overrides. Catches typos in
+  `global.profile`, `postgres.mode`, `global.podSecurityStandard`, image pull policies, and
+  non-boolean `enabled` values at `helm install`/`helm template` time.
+- Quick-reference "Symptom → Diagnosis" decision table at the top of HOWTO §19 Troubleshooting.
+
+### Changed
+
+- Bumped chart version 2.1.1 → 2.2.0 and `appVersion` 2026.2 → 2026.4.
+- `kubeconform` step in CI now also skips the `PrometheusRule` CRD (ships with the Prometheus
+  Operator, not stock Kubernetes).
 
 ### Fixed
 
-- Corrected README Helm Chart badge from v2.0.0 to v2.1.1 to match `Chart.yaml`
-- Replaced plain-text section reference (`HOWTO.md §10`) in README Disaster Recovery with a proper markdown anchor link
-- Converted the three `§1`/`§2`/`§3` plain-text references to `EU_OPERATIONS_GUIDE.md` in HOWTO §18 (EU Compliance) into markdown anchor links
+- **SBOM drift fixed** — `sbom.cdx.json` was lagging behind `values.yaml` for five components.
+  Re-synced versions to match the live chart: open-webui v0.8.12 → v0.9.2, ollama 0.20.5 → 0.22.0,
+  opentelemetry-collector-contrib 0.149.0 → 0.151.0, langgraph-server 0.7-py3.12 → 0.8-py3.12,
+  python (ingestion-worker base) 3.12-slim → 3.14-slim. Refreshed BOM `serialNumber`,
+  `metadata.timestamp`, and chart self-reference version.
+- **Zarf package drift fixed** — `zarf.yaml` had the same five stale image references and a stale
+  `version: 2.1.1` on every chart entry. All synchronised with `values.yaml` and bumped to 2.2.0.
+- Corrected README Helm Chart badge from v2.0.0 to v2.1.1 to match `Chart.yaml`.
+- Replaced plain-text section reference (`HOWTO.md §10`) in README Disaster Recovery with a proper
+  markdown anchor link.
+- Converted the three `§1`/`§2`/`§3` plain-text references to `EU_OPERATIONS_GUIDE.md` in
+  HOWTO §18 (EU Compliance) into markdown anchor links.
 
 ## [2.1.1] - 2026-04-12
 
@@ -99,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/rmednitzer/ai-stack/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/rmednitzer/ai-stack/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rmednitzer/ai-stack/compare/v1.0.0...v2.0.0

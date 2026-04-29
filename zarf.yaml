@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.1.1.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.2.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.1.1
+  version: 2.2.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -31,14 +31,14 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.1.1
+        version: 2.2.0
         valuesFiles:
           - values.yaml
     images:
       # Open WebUI
-      - ghcr.io/open-webui/open-webui:v0.8.12
+      - ghcr.io/open-webui/open-webui:v0.9.2
       # Ollama
-      - ollama/ollama:0.20.5
+      - ollama/ollama:0.22.0
       # Qdrant
       - qdrant/qdrant:v1.17.1
       # Apache Tika
@@ -50,7 +50,7 @@ components:
       # Valkey
       - valkey/valkey:8.1.6
       # Ingestion worker
-      - python:3.12-slim
+      - python:3.14-slim
 
   # ---------------------------------------------------------------------------
   # Optional: GPU Workbench
@@ -62,7 +62,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.1.1
+        version: 2.2.0
         valuesFiles:
           - values.yaml
         variables:
@@ -82,7 +82,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.1.1
+        version: 2.2.0
         valuesFiles:
           - values.yaml
         variables:
@@ -93,7 +93,7 @@ components:
             path: postgres.enabled
             default: "true"
     images:
-      - docker.io/langchain/langgraph-server:0.7-py3.12
+      - docker.io/langchain/langgraph-server:0.8-py3.12
       - docker.io/library/postgres:18-alpine
 
   # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.1.1
+        version: 2.2.0
         valuesFiles:
           - values.yaml
         variables:
@@ -126,7 +126,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.1.1
+        version: 2.2.0
         valuesFiles:
           - values.yaml
         variables:
@@ -134,4 +134,24 @@ components:
             path: global.otel.enabled
             default: "true"
     images:
-      - otel/opentelemetry-collector-contrib:0.149.0
+      - otel/opentelemetry-collector-contrib:0.151.0
+
+  # ---------------------------------------------------------------------------
+  # Optional: Authelia (OIDC/SSO/MFA)
+  # ---------------------------------------------------------------------------
+  - name: authelia
+    required: false
+    description: "Authelia identity provider for OIDC/SSO/MFA"
+    charts:
+      - name: ai-stack
+        localPath: "."
+        namespace: ai-stack
+        version: 2.2.0
+        valuesFiles:
+          - values.yaml
+        variables:
+          - name: AUTHELIA_ENABLED
+            path: authelia.enabled
+            default: "true"
+    images:
+      - ghcr.io/authelia/authelia:4.39

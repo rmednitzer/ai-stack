@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:af785f72-21d7-476f-a4ea-bc2c76ecbcaa",
+  "serialNumber": "urn:uuid:f94ffd2d-9547-47bf-9e90-67609ca4dd6b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-12T00:00:00Z",
+    "timestamp": "2026-04-29T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.1.1",
+      "version": "2.2.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -59,9 +59,9 @@
       "type": "container",
       "bom-ref": "open-webui",
       "name": "open-webui",
-      "version": "v0.8.12",
+      "version": "v0.9.2",
       "description": "Primary user interface for LLM interaction",
-      "purl": "pkg:docker/open-webui/open-webui@v0.8.12?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-webui@v0.9.2?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -94,9 +94,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.20.5",
+      "version": "0.22.0",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.20.5",
+      "purl": "pkg:docker/ollama/ollama@0.22.0",
       "licenses": [
         {
           "license": {
@@ -273,9 +273,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.149.0",
+      "version": "0.151.0",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.149.0",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.151.0",
       "licenses": [
         {
           "license": {
@@ -308,9 +308,9 @@
       "type": "container",
       "bom-ref": "langgraph-api",
       "name": "langgraph-server",
-      "version": "0.7-py3.12",
+      "version": "0.8-py3.12",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-server@0.7-py3.12?repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.8-py3.12?repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -523,9 +523,9 @@
       "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
-      "version": "3.12-slim",
+      "version": "3.14-slim",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.12-slim?repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.14-slim?repository_url=docker.io",
       "licenses": [
         {
           "license": {
