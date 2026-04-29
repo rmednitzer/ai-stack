@@ -1,0 +1,197 @@
+{{- if .Values.global.prometheusRule.enabled }}
+{{- $prefix := .Values.global.prometheusRule.alertPrefix | default "AIStack" -}}
+{{- $rules := .Values.global.prometheusRule.rules | default (dict "podHealth" true "availability" true "slo" true "security" true) -}}
+{{- $sev := .Values.global.prometheusRule.severityLabels | default dict -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-alerts
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/name: prometheus-rules
+    {{- with .Values.global.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    assurance.platform/control-refs: "CTL-002"
+spec:
+  groups:
+    {{- if $rules.podHealth }}
+    - name: ai-stack.pod-health
+      interval: 30s
+      rules:
+        - alert: {{ $prefix }}PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="{{ .Release.Namespace }}", pod=~"{{ .Release.Name }}-.*"}[15m]) > 3
+          for: 10m
+          labels:
+            severity: warning
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Pod {{`{{ $labels.pod }}`}} is crash-looping"
+            description: "Container {{`{{ $labels.container }}`}} in {{`{{ $labels.pod }}`}} has restarted more than 3 times in the last 15 minutes."
+            runbook_url: "https://github.com/{{ .Values.global.repoSlug | default "rmednitzer/ai-stack" }}/blob/main/HOWTO.md#troubleshooting"
+        - alert: {{ $prefix }}PodOOMKilled
+          # kube_pod_container_status_last_terminated_reason is a 0/1 gauge,
+          # so use max_over_time(...) == 1 rather than increase(...)
+          expr: |
+            max_over_time(kube_pod_container_status_last_terminated_reason{namespace="{{ .Release.Namespace }}", pod=~"{{ .Release.Name }}-.*", reason="OOMKilled"}[10m]) == 1
+          for: 1m
+          labels:
+            severity: critical
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Pod {{`{{ $labels.pod }}`}} OOMKilled"
+            description: "Container {{`{{ $labels.container }}`}} in {{`{{ $labels.pod }}`}} was OOMKilled. Increase memory limits or investigate leaks."
+        - alert: {{ $prefix }}ImagePullFailing
+          expr: |
+            kube_pod_container_status_waiting_reason{namespace="{{ .Release.Namespace }}", pod=~"{{ .Release.Name }}-.*", reason=~"ImagePullBackOff|ErrImagePull"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Image pull failing for {{`{{ $labels.pod }}`}}"
+            description: "Container {{`{{ $labels.container }}`}} cannot pull its image (reason {{`{{ $labels.reason }}`}})."
+    {{- end }}
+
+    {{- if $rules.availability }}
+    - name: ai-stack.availability
+      interval: 30s
+      rules:
+        - alert: {{ $prefix }}DeploymentNotAvailable
+          expr: |
+            (kube_deployment_status_replicas_available{namespace="{{ .Release.Namespace }}", deployment=~"{{ .Release.Name }}-.*"}
+              < kube_deployment_spec_replicas{namespace="{{ .Release.Namespace }}", deployment=~"{{ .Release.Name }}-.*"})
+          for: 10m
+          labels:
+            severity: warning
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Deployment {{`{{ $labels.deployment }}`}} below desired replicas"
+            description: "{{`{{ $labels.deployment }}`}} has fewer available replicas than desired for 10m."
+        - alert: {{ $prefix }}StatefulSetNotAvailable
+          expr: |
+            (kube_statefulset_status_replicas_ready{namespace="{{ .Release.Namespace }}", statefulset=~"{{ .Release.Name }}-.*"}
+              < kube_statefulset_replicas{namespace="{{ .Release.Namespace }}", statefulset=~"{{ .Release.Name }}-.*"})
+          for: 10m
+          labels:
+            severity: warning
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "StatefulSet {{`{{ $labels.statefulset }}`}} below desired replicas"
+            description: "{{`{{ $labels.statefulset }}`}} has fewer ready replicas than desired for 10m."
+        - alert: {{ $prefix }}PodPending
+          expr: |
+            kube_pod_status_phase{namespace="{{ .Release.Namespace }}", pod=~"{{ .Release.Name }}-.*", phase="Pending"} == 1
+          for: 15m
+          labels:
+            severity: warning
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Pod {{`{{ $labels.pod }}`}} stuck Pending"
+            description: "Pod has been Pending for over 15 minutes — likely insufficient resources, GPU unavailable, or PVC unbound."
+    {{- end }}
+
+    {{- if $rules.slo }}
+    - name: ai-stack.slo
+      interval: 30s
+      rules:
+        {{- if .Values.openwebui.enabled }}
+        - alert: {{ $prefix }}OpenWebUIHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ .Release.Namespace }}", service=~"{{ .Release.Name }}-openwebui", status=~"5.."}[5m]))
+              /
+            sum(rate(http_requests_total{namespace="{{ .Release.Namespace }}", service=~"{{ .Release.Name }}-openwebui"}[5m]))
+              > 0.05
+          for: 10m
+          labels:
+            severity: warning
+            component: openwebui
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Open WebUI 5xx error rate above 5%"
+            description: "Open WebUI is returning more than 5% server errors over 10 minutes. Check upstream Ollama/Qdrant connectivity."
+        {{- end }}
+        {{- if .Values.ollama.enabled }}
+        - alert: {{ $prefix }}OllamaUnreachable
+          expr: |
+            up{namespace="{{ .Release.Namespace }}", service=~"{{ .Release.Name }}-ollama"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: ollama
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Ollama scrape target down"
+            description: "Prometheus cannot scrape Ollama for 5 minutes — inference will fail."
+        {{- end }}
+        {{- if .Values.qdrant.enabled }}
+        - alert: {{ $prefix }}QdrantUnreachable
+          expr: |
+            up{namespace="{{ .Release.Namespace }}", service=~"{{ .Release.Name }}-qdrant"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: qdrant
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Qdrant scrape target down"
+            description: "Prometheus cannot scrape Qdrant for 5 minutes — RAG retrieval will fail."
+        {{- end }}
+    {{- end }}
+
+    {{- if $rules.security }}
+    - name: ai-stack.security
+      interval: 60s
+      rules:
+        {{- if .Values.global.networkPolicy.enabled }}
+        - alert: {{ $prefix }}NetworkPolicyMissing
+          expr: |
+            count(kube_networkpolicy_created{namespace="{{ .Release.Namespace }}"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "No NetworkPolicies in namespace {{ .Release.Namespace }}"
+            description: "Default-deny NetworkPolicy is missing — pods may have unrestricted egress. Investigate immediately."
+        {{- end }}
+        - alert: {{ $prefix }}SecretMountFailing
+          # Detects pods stuck in CreateContainerConfigError / CreateContainerError,
+          # the typical signal that a referenced Secret/ConfigMap was rotated, deleted,
+          # or has a key mismatch. This is the most actionable secret-rotation alert
+          # available without the optional kube-state-metrics securityContext exporter.
+          expr: |
+            kube_pod_container_status_waiting_reason{namespace="{{ .Release.Namespace }}", pod=~"{{ .Release.Name }}-.*", reason=~"CreateContainerConfigError|CreateContainerError|InvalidImageName"} == 1
+          for: 5m
+          labels:
+            severity: critical
+            {{- range $k, $v := $sev }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: "Container start failing for {{`{{ $labels.pod }}`}} (reason {{`{{ $labels.reason }}`}})"
+            description: "Container {{`{{ $labels.container }}`}} cannot start — typically a missing/rotated Secret reference, ConfigMap key mismatch, or invalid image reference. Verify chart-managed Secrets exist and have the expected keys."
+    {{- end }}
+{{- end }}

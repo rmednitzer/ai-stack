@@ -46,6 +46,26 @@
           "properties": {
             "enabled": { "type": "boolean" }
           }
+        },
+        "prometheusRule": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "labels": { "type": "object" },
+            "alertPrefix": { "type": "string" },
+            "severityLabels": { "type": "object" },
+            "rules": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "podHealth":    { "type": "boolean" },
+                "availability": { "type": "boolean" },
+                "slo":          { "type": "boolean" },
+                "security":     { "type": "boolean" }
+              }
+            }
+          }
         }
       }
     },

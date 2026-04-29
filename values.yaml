@@ -53,6 +53,25 @@ global:
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
     labels: {}
 
+  # -- Prometheus alerting rules (PrometheusRule). Requires Prometheus Operator CRDs.
+  # Pre-bundled rules cover pod restarts, image pull errors, deployment availability,
+  # OOMKills, NetworkPolicy default-deny breaches, and Ollama/Qdrant/Open WebUI SLOs.
+  prometheusRule:
+    enabled: false
+    # -- Additional labels for the PrometheusRule resource (match your Prometheus rule selector)
+    labels: {}
+    # -- Prefix prepended to every alert name (helps multi-tenant routing)
+    alertPrefix: "AIStack"
+    # -- Default severity routing labels merged into every rule
+    severityLabels:
+      team: ai-platform
+    # -- Toggle individual rule groups
+    rules:
+      podHealth: true       # Pod restarts, OOMKills, image pull errors
+      availability: true    # Deployment / StatefulSet availability
+      slo: true             # Component-specific SLO burn alerts
+      security: true        # NetworkPolicy default-deny presence + Secret/ConfigMap mount failures
+
   # -- Annotations added to all pods for evidence pipeline integration
   # Note: assurance.platform/version is injected automatically from Chart.AppVersion
   podAnnotations:
