@@ -1,4 +1,4 @@
-# ai-stack
+# AI Stack
 
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
@@ -7,6 +7,8 @@
 [![App Version](https://img.shields.io/badge/appVersion-2026.4-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rmednitzer/ai-stack)
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
