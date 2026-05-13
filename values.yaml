@@ -505,8 +505,8 @@ searxng:
     readiness:
       httpGet:
         path: /healthz
-    tag: "latest"  # Used by default; may be overridden by setting digest explicitly
-    digest: ""    # Optional; set to pin by digest. Leave empty so tag-only overrides remain effective
+        port: http
+      initialDelaySeconds: 5
       periodSeconds: 10
 
 # =============================================================================
@@ -604,7 +604,7 @@ openTerminal:
   image:
     repository: ghcr.io/open-webui/open-terminal
     tag: "0.11.34"  # Fallback when digest is not set
-    digest: "sha256:2684ac1e1f3bfae4f6cc77482872c9152200540299fb7842de7e6e897412c1d0"
+    digest: ""      # Optional; set to pin by digest. Leave empty so tag-only overrides remain effective
   service:
     type: ClusterIP
     port: 8000
