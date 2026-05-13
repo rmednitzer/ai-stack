@@ -36,7 +36,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "open-terminal" "replicaCount" .Values.openTerminal.replicaCount) | nindent 6 }}
       containers:
         - name: open-terminal
-          image: "{{ .Values.openTerminal.image.repository }}:{{ .Values.openTerminal.image.tag }}"
+          image: "{{ .Values.openTerminal.image.repository }}{{- if .Values.openTerminal.image.digest }}@{{ .Values.openTerminal.image.digest }}{{- else }}:{{ .Values.openTerminal.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
