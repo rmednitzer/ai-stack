@@ -505,8 +505,8 @@ searxng:
     readiness:
       httpGet:
         path: /healthz
-        port: http
-      initialDelaySeconds: 5
+    tag: "latest"  # Used by default; may be overridden by setting digest explicitly
+    digest: ""    # Optional; set to pin by digest. Leave empty so tag-only overrides remain effective
       periodSeconds: 10
 
 # =============================================================================
