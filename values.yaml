@@ -505,7 +505,8 @@ openTerminal:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
-    tag: "latest"  # No versioned releases; Renovate tracks via digest
+    tag: "latest"  # Fallback when digest is not set
+    digest: "sha256:2684ac1e1f3bfae4f6cc77482872c9152200540299fb7842de7e6e897412c1d0"
   service:
     type: ClusterIP
     port: 8000
