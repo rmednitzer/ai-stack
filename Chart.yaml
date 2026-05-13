@@ -1,18 +1,14 @@
 apiVersion: v2
 name: ai-stack
 description: >-
-  Comprehensive AI inference and tooling stack for EU-regulated on-premises
-  and hybrid platform operations. Includes Open WebUI, Ollama, Qdrant,
-  Apache Tika, SearXNG, Jupyter, Workbench, Valkey, and Open WebUI Pipelines.
-  Includes Open Terminal for AI-agent sandboxed command execution.
-  Includes MCPO for MCP-to-OpenAPI tool server proxying.
-  Designed for deployment into governance-as-code environments with
-  PSA restricted baseline, NetworkPolicy default-deny, and OTel
-  instrumentation hooks.
+  EU-regulated AI inference stack: Open WebUI, Ollama, Qdrant, Tika,
+  SearXNG, Valkey. Optional: LangGraph (agentic), Workbench (GPU/Jupyter),
+  MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async ingestion
+  worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
-version: 0.1.0
-appVersion: "2026.1"
-home: https://github.com/rmednitzer/platform-assurance
+version: 2.2.0
+appVersion: "2026.4"
+home: https://github.com/rmednitzer/ai-stack
 maintainers:
   - name: Roman Mednitzer
     email: r.mednitzer@outlook.com
@@ -24,18 +20,23 @@ keywords:
   - open-webui
   - ollama
   - qdrant
-  - jupyter
   - searxng
   - tika
   - workbench
   - valkey
-  - pipelines
   - open-terminal
   - mcpo
+  - langgraph
+  - ingestion-worker
+  - agentic
+  - postgres
+  - authelia
+  - oidc
+  - sso
 annotations:
-  # platform-assurance tier classification
+  # Tier classification (see docs/governance/CONTROLS.md)
   assurance.platform/tier: "T1"
   assurance.platform/boundary: "decision"
-  assurance.platform/control-refs: "CTL-0009"
+  assurance.platform/control-refs: "CTL-002"
   # Regulatory scope markers
   assurance.platform/frameworks: "NIS2,GDPR,AI-Act"

@@ -1,0 +1,66 @@
+name: Feature Request
+description: Suggest a new component, value, or improvement for the ai-stack Helm chart
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement! Please fill out the sections below.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Feature Type
+      description: What kind of change are you proposing?
+      options:
+        - New component (new Deployment/Service/etc.)
+        - New configurable value for an existing component
+        - Security hardening improvement
+        - Observability / monitoring improvement
+        - Documentation improvement
+        - CI/CD pipeline improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Is your feature request related to a specific limitation?
+      placeholder: "Currently, there is no way to configure..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you would like. Include example values.yaml changes if applicable.
+      placeholder: |
+        Add a new `myComponent.enabled` flag to values.yaml that deploys...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you have considered.
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security Considerations
+      description: For new components, confirm the following are included in the proposal.
+      options:
+        - label: SecurityContext (runAsNonRoot, drop ALL, seccompProfile RuntimeDefault)
+        - label: Dedicated ServiceAccount with automountServiceAccountToken false
+        - label: NetworkPolicy with explicit ingress/egress rules
+        - label: No plaintext secrets (auto-generated or existingSecret reference)
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, links to upstream projects, or screenshots.

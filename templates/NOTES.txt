@@ -21,12 +21,6 @@ COMPONENTS:
 {{- if .Values.searxng.enabled }}
   ✓ SearXNG           {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:{{ .Values.searxng.service.port }}
 {{- end }}
-{{- if .Values.jupyter.enabled }}
-  ✓ Jupyter           {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "jupyter") }}:{{ .Values.jupyter.service.port }}
-{{- end }}
-{{- if .Values.pipelines.enabled }}
-  ✓ Pipelines         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pipelines") }}:{{ .Values.pipelines.service.port }}
-{{- end }}
 {{- if .Values.workbench.enabled }}
   ✓ Workbench         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}:{{ .Values.workbench.service.port }}  GPU={{ .Values.workbench.gpu.enabled }}
 {{- end }}
@@ -35,6 +29,15 @@ COMPONENTS:
 {{- end }}
 {{- if .Values.valkey.enabled }}
   ✓ Valkey            {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}
+{{- end }}
+{{- if .Values.langgraph.enabled }}
+  ✓ LangGraph         {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}:{{ .Values.langgraph.service.port }}
+{{- end }}
+{{- if .Values.postgres.enabled }}
+  ✓ PostgreSQL        {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}:{{ .Values.postgres.service.port }}
+{{- end }}
+{{- if .Values.authelia.enabled }}
+  ✓ Authelia          {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}:{{ .Values.authelia.service.port }}  OIDC issuer={{ .Values.authelia.oidc.issuerUrl }}
 {{- end }}
 {{- if .Values.global.otel.enabled }}
   ✓ OTel Collector    {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "otel-collector") }}:4317/4318
@@ -46,7 +49,7 @@ GOVERNANCE:
   ServiceMonitors:  {{ if .Values.global.serviceMonitor.enabled }}ENABLED{{ else }}DISABLED{{ end }}
   ServiceAccounts:  per-component (automountServiceAccountToken: false)
   PDBs:             ollama, qdrant{{ if gt (int .Values.openwebui.replicaCount) 1 }}, openwebui{{ end }}
-  Secrets:          auto-generated (qdrant API key, searxng key, jupyter token, workbench token, open-terminal API key)
+  Secrets:          auto-generated (qdrant API key, searxng key, workbench token, open-terminal API key{{ if .Values.authelia.enabled }}, authelia OIDC/JWT/session secrets{{ end }})
 
 VERIFY:
   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/part-of=ai-stack
@@ -64,4 +67,13 @@ FIRST MODEL:
   kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }} -- ollama pull llama3.2
   kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }} -- ollama pull nomic-embed-text
 
-CONTROL MAPPING: CTL-0009 (AI gateway policy, provenance, kill switch)
+{{- if .Values.authelia.enabled }}
+AUTHELIA (OIDC):
+  Issuer URL:       {{ .Values.authelia.oidc.issuerUrl }}
+  OIDC Client ID:   {{ .Values.authelia.oidc.clientId }}
+  NOTE: The issuer URL must be browser-reachable (configure Ingress or port-forward).
+  NOTE: Create users in Authelia's users_database.yml or configure LDAP backend.
+  Generate password hashes: kubectl exec deploy/{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }} -- authelia crypto hash generate argon2
+{{- end }}
+
+CONTROL MAPPING: CTL-002 (AI gateway policy, network boundaries, OTel instrumentation)

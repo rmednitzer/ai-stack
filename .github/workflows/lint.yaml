@@ -7,21 +7,33 @@ on:
       - "Chart.yaml"
       - "values*.yaml"
       - "templates/**"
+      - "sbom.cdx.json"
+      - "ct.yaml"
       - ".github/workflows/lint.yaml"
   push:
     branches: [main]
 
+# Cancel any in-progress run for the same branch/PR to avoid wasted minutes on stale commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   helm-lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
-          version: v3.20.0  # renovate: depName=helm/helm
+          version: v3.20.0  # helm/helm
 
       - name: Helm lint (lab profile)
         run: helm lint .
@@ -37,45 +49,286 @@ jobs:
 
   chart-testing:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
-          version: v3.20.0  # renovate: depName=helm/helm
+          version: v3.20.0  # helm/helm
 
       - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
 
       - name: Lint with chart-testing
         run: ct lint --config ct.yaml --charts .
 
-  kubeconform:
+  sbom-validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+
+      - name: Install check-jsonschema
+        run: pip install --quiet check-jsonschema
+
+      - name: Validate SBOM against CycloneDX 1.6 schema
+        run: |
+          check-jsonschema \
+            --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
+            sbom.cdx.json
+
+      - name: Verify SBOM component count matches values.yaml images
+        run: |
+          # Count unique image repositories in values.yaml
+          VALUES_IMAGES=$(grep -cE '^\s+repository:' values.yaml)
+          # Count components in SBOM
+          SBOM_COMPONENTS=$(python3 -c "import json; print(len(json.load(open('sbom.cdx.json'))['components']))")
+          echo "values.yaml images: $VALUES_IMAGES"
+          echo "SBOM components: $SBOM_COMPONENTS"
+          if [ "$VALUES_IMAGES" -ne "$SBOM_COMPONENTS" ]; then
+            echo "::error::SBOM component count ($SBOM_COMPONENTS) does not match values.yaml image count ($VALUES_IMAGES). Update sbom.cdx.json."
+            exit 1
+          fi
+
+  syft-sbom:
+    # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Cache Syft binary
+        id: cache-syft
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /usr/local/bin/syft
+          key: syft-v1.42.3
+
+      - name: Install Syft
+        if: steps.cache-syft.outputs.cache-hit != 'true'
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin v1.42.3  # anchore/syft
+          syft version
+
+      - name: Extract image references from values.yaml
+        id: images
+        run: |
+          python3 -c "
+          import yaml
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          for key, section in vals.items():
+              if isinstance(section, dict) and 'image' in section:
+                  img = section['image']
+                  repo = img.get('repository', '')
+                  tag = img.get('tag', 'latest')
+                  if repo:
+                      print(f'{repo}:{tag}')
+          " | tee /tmp/images.txt
+          echo "count=$(wc -l < /tmp/images.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate deep SBOMs with Syft
+        run: |
+          set -euo pipefail
+          mkdir -p syft-sbom-output
+          FAILED=0
+          TOTAL=0
+          while IFS= read -r IMAGE; do
+            TOTAL=$((TOTAL + 1))
+            SAFE_NAME=$(echo "$IMAGE" | tr '/:' '__')
+            echo "::group::Scanning ${IMAGE}"
+            if syft "registry:${IMAGE}" \
+                -o "cyclonedx-json=syft-sbom-output/${SAFE_NAME}.cdx.json" \
+                --quiet; then
+              COMPONENTS=$(python3 -c "
+          import json
+          bom = json.load(open('syft-sbom-output/${SAFE_NAME}.cdx.json'))
+          print(len(bom.get('components', [])))
+          ")
+              echo "OK ${IMAGE}: ${COMPONENTS} components"
+            else
+              FAILED=$((FAILED + 1))
+              rm -f "syft-sbom-output/${SAFE_NAME}.cdx.json"
+              echo "::error::Syft scan failed for ${IMAGE}"
+            fi
+            echo "::endgroup::"
+          done < /tmp/images.txt
+
+          echo ""
+          echo "=== Summary: $((TOTAL - FAILED))/${TOTAL} images scanned ==="
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::warning::${FAILED}/${TOTAL} image(s) could not be scanned (registry auth, rate-limit, or missing manifest)"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+
+      - name: Validate generated SBOMs against CycloneDX schema
+        run: |
+          pip install --quiet check-jsonschema
+          FAILED=0
+          for f in syft-sbom-output/*.cdx.json; do
+            echo "Validating $(basename "$f")"
+            if ! check-jsonschema \
+              --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
+              "$f"; then
+              FAILED=$((FAILED + 1))
+            fi
+          done
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::${FAILED} SBOM(s) failed CycloneDX schema validation"
+            exit 1
+          fi
+
+      - name: Upload deep SBOMs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: syft-deep-sboms
+          path: syft-sbom-output/
+          retention-days: 90
+
+  cve-scan:
+    # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Cache Grype binary
+        id: cache-grype
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /usr/local/bin/grype
+          key: grype-v0.110.0
+
+      - name: Install Grype
+        if: steps.cache-grype.outputs.cache-hit != 'true'
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
+            | sh -s -- -b /usr/local/bin v0.110.0  # anchore/grype
+          grype version
+
+      - name: Extract image references from values.yaml
+        run: |
+          python3 -c "
+          import yaml
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          for key, section in vals.items():
+              if isinstance(section, dict) and 'image' in section:
+                  img = section['image']
+                  repo = img.get('repository', '')
+                  tag = img.get('tag', 'latest')
+                  if repo:
+                      print(f'{repo}:{tag}')
+          " | tee /tmp/images.txt
+
+      - name: Scan images for CVEs with Grype
+        run: |
+          set -euo pipefail
+          mkdir -p grype-reports
+          CRITICAL=0
+          TOTAL=0
+          while IFS= read -r IMAGE; do
+            TOTAL=$((TOTAL + 1))
+            SAFE_NAME=$(echo "$IMAGE" | tr '/:' '__')
+            echo "::group::Scanning ${IMAGE}"
+            if grype "registry:${IMAGE}" \
+                --output json \
+                --file "grype-reports/${SAFE_NAME}.json" \
+                --fail-on critical 2>&1; then
+              echo "OK ${IMAGE}: no critical CVEs"
+            else
+              EXIT_CODE=$?
+              if [ "$EXIT_CODE" -eq 1 ]; then
+                CRITICAL=$((CRITICAL + 1))
+                echo "::warning::Critical CVE(s) found in ${IMAGE} — review grype-reports artifacts"
+              else
+                echo "::warning::Grype scan issue for ${IMAGE} (exit code ${EXIT_CODE})"
+              fi
+            fi
+            echo "::endgroup::"
+          done < /tmp/images.txt
+
+          echo ""
+          echo "=== CVE Scan Summary: ${TOTAL} images scanned ==="
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::${CRITICAL} image(s) have critical CVEs — review grype-reports artifacts and update affected images"
+          fi
+
+      - name: Upload Grype reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: grype-cve-reports
+          path: grype-reports/
+          retention-days: 90
+
+  kubeconform:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
-          version: v3.20.0  # renovate: depName=helm/helm
+          version: v3.20.0  # helm/helm
+
+      - name: Cache kubeconform binary
+        id: cache-kubeconform
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /usr/local/bin/kubeconform
+          key: kubeconform-v0.7.0
 
       - name: Install kubeconform
+        if: steps.cache-kubeconform.outputs.cache-hit != 'true'
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
 
-      - name: Validate manifests against Kubernetes schemas
+      - name: Validate manifests (lab profile)
         env:
-          KUBERNETES_VERSION: "1.32.0"  # renovate: depName=kubernetes/kubernetes
+          KUBERNETES_VERSION: "1.32.0"  # kubernetes/kubernetes
         run: |
           helm template ai-stack . | kubeconform \
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule
+
+      - name: Validate manifests (prod profile)
+        env:
+          KUBERNETES_VERSION: "1.32.0"  # kubernetes/kubernetes
+        run: |
+          helm template ai-stack . -f values.yaml -f values-prod.yaml | kubeconform \
+            -strict \
+            -summary \
+            -kubernetes-version "$KUBERNETES_VERSION" \
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule

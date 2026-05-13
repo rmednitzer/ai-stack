@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How-To Guide
+    url: https://github.com/rmednitzer/ai-stack/blob/main/HOWTO.md
+    about: Task-oriented guide for installation, configuration, and operations
+  - name: Security Vulnerability
+    url: https://github.com/rmednitzer/ai-stack/security/advisories/new
+    about: Report security vulnerabilities privately via GitHub Security Advisories

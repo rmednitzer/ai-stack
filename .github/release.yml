@@ -1,0 +1,32 @@
+# Automated release notes — categorises PRs by label.
+# https://docs.github.com/en/repositories/releasing-projects/automatically-generated-release-notes
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking-change
+    - title: Security
+      labels:
+        - security
+    - title: New Components
+      labels:
+        - new-component
+    - title: Enhancements
+      labels:
+        - enhancement
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: Dependencies
+      labels:
+        - dependencies
+        - github-actions
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Other Changes
+      labels:
+        - "*"

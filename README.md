@@ -1,70 +1,194 @@
-# ai-stack
+# AI Stack
 
-Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations.
+[![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
+[![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.2.0-blue.svg)](Chart.yaml)
+[![App Version](https://img.shields.io/badge/appVersion-2026.4-informational.svg)](Chart.yaml)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-Deploys [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Jupyter](https://jupyter.org/), [Valkey](https://valkey.io/), [Open WebUI Pipelines](https://github.com/open-webui/pipelines), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), and supporting infrastructure as a single Helm chart.
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rmednitzer/ai-stack)
+
+Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
+
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
 ## Architecture
 
+The chart composes seven logical planes behind a single ingress, modelled as a
+best-practice reference for Open WebUI and agentic workloads. For chart-managed
+application components, **solid borders mark default-enabled components** and
+**dashed borders mark opt-in components**; edge concerns such as ingress
+exposure vary by deployment and are shown solid for layout reasons. Edges drawn
+dashed indicate **conditional or optional** dependencies (e.g., Authelia uses
+Valkey only when enabled and Postgres only when `authelia.storage=postgres`).
+Tiering (T0/T1/T2) follows the [Component Tiers](#component-tiers) table.
+
+For the long-form rationale, integration patterns, and production hardening
+checklist, see [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md).
+
+Two flows drive the design:
+
+- **Conversational + RAG** — Open WebUI consumes any OpenAI-compatible model
+  (Ollama for local inference, External APIs for hosted), retrieves with Qdrant
+  (with web fallback via SearXNG), and exposes tools through MCPO so any MCP
+  server is reachable as an OpenAPI tool.
+- **Agentic** — LangGraph runs stateful, long-horizon agents with PostgreSQL as
+  the checkpointer/store, Qdrant for semantic memory, and the same MCPO tool
+  surface so tool definitions are shared across UI and agent runtimes. Async
+  document ingestion is decoupled via the Valkey-backed Ingestion Worker so the
+  request path stays non-blocking.
+
 ```mermaid
-graph TD
-  Ingress --> OpenWebUI["Open WebUI (T1)"]
-  Ingress --> Jupyter["Jupyter (T2)"]
-  Ingress --> Workbench["Workbench (T1, opt-in GPU)"]
+graph LR
+  Client([User / Client])
 
-  OpenWebUI --> Ollama["Ollama (T1)"]
-  OpenWebUI --> Qdrant["Qdrant (T1)"]
-  OpenWebUI --> Tika["Tika (T2)"]
-  OpenWebUI --> SearXNG["SearXNG (T2)"]
-  OpenWebUI --> Valkey["Valkey (T2)"]
-  OpenWebUI --> Pipelines["Pipelines (T1)"]
+  subgraph Edge["Edge & Identity (T0)"]
+    Ingress[Ingress / Envoy Gateway]
+    Authelia["Authelia<br/>OIDC · MFA"]
+  end
 
-  Jupyter --> Ollama
-  Jupyter --> Qdrant
-  Jupyter --> Pipelines
+  subgraph Experience["Experience (T1)"]
+    OpenWebUI["Open WebUI<br/>chat · pipelines · RAG"]
+    Workbench["Workbench<br/>GPU notebooks"]
+  end
+
+  subgraph Inference["Inference (T1) — OpenAI-compatible"]
+    Ollama["Ollama<br/>local LLM + embeddings"]
+    ExternalAPIs["External APIs<br/>OpenAI · Anthropic · Gemini · …"]
+  end
+
+  subgraph Knowledge["Knowledge & Retrieval"]
+    Qdrant["Qdrant<br/>vector DB · hybrid search (T1)"]
+    Tika["Tika<br/>extract · OCR (T2)"]
+    SearXNG["SearXNG<br/>web search (T2)"]
+  end
+
+  subgraph Agentic["Agentic Runtime & Tools"]
+    LangGraph["LangGraph<br/>stateful agents · HITL (T1)"]
+    MCPO["MCPO<br/>MCP → OpenAPI gateway (T2)"]
+    OpenTerminal["Open Terminal<br/>sandboxed shell (T2)"]
+  end
+
+  subgraph Async["Async, Memory & State"]
+    IngestionWorker["Ingestion Worker<br/>extract → embed → upsert (T2)"]
+    Valkey["Valkey<br/>cache · session · streams (T2)"]
+    Postgres["PostgreSQL<br/>checkpointer · store (T2)"]
+  end
+
+  subgraph Telemetry["Observability (T0)"]
+    OTel["OTel Collector<br/>GenAI semconv · PII redaction"]
+  end
+
+  Client --> Ingress
+  Ingress --> Authelia
+  Ingress --> OpenWebUI
+  Ingress --> Workbench
+  Authelia -.->|OIDC| OpenWebUI
+  Authelia -.->|sessions, if enabled| Valkey
+  Authelia -.->|storage=postgres| Postgres
+
+  %% Open WebUI: conversational + RAG path
+  OpenWebUI -->|OpenAI API| Ollama
+  OpenWebUI -->|OpenAI API| ExternalAPIs
+  OpenWebUI -->|OpenAI API| LangGraph
+  OpenWebUI -->|retrieve| Qdrant
+  OpenWebUI -->|extract on upload| Tika
+  OpenWebUI -->|web fallback| SearXNG
+  OpenWebUI -->|tool calls| MCPO
+  OpenWebUI -->|sessions| Valkey
+  OpenWebUI -.->|sandbox exec| OpenTerminal
 
   Workbench --> Ollama
   Workbench --> Qdrant
-  Workbench --> Pipelines
   Workbench --> Tika
   Workbench --> SearXNG
 
-  OpenWebUI --> OpenTerminal["Open Terminal (T2, opt-in)"]
-  OpenWebUI --> MCPO["MCPO (T2, opt-in)"]
+  %% Agentic path: shared tool surface, persistent memory
+  LangGraph -->|inference| Ollama
+  LangGraph -->|inference| ExternalAPIs
+  LangGraph -->|semantic memory| Qdrant
+  LangGraph -->|web| SearXNG
+  LangGraph -->|tools| MCPO
+  LangGraph -->|checkpointer · store| Postgres
+  LangGraph -.->|sandbox exec| OpenTerminal
 
-  OTel["OTel Collector (T0)"]
+  %% Async ingestion (non-blocking)
+  OpenWebUI -.->|enqueue| Valkey
+  IngestionWorker -->|XREAD| Valkey
+  IngestionWorker -->|extract| Tika
+  IngestionWorker -->|embed| Ollama
+  IngestionWorker -->|upsert| Qdrant
 
-  style OTel stroke-dasharray: 5 5
-  style OpenTerminal stroke-dasharray: 5 5
-  style MCPO stroke-dasharray: 5 5
+  %% MCPO fans out to MCP servers (any tool)
+  MCPO -.->|stdio · http| OpenTerminal
+
+  %% Telemetry
+  OpenWebUI -.->|OTLP| OTel
+  Workbench -.->|OTLP| OTel
+  LangGraph -.->|OTLP| OTel
+  MCPO -.->|OTLP| OTel
+  Ollama -.->|OTLP| OTel
+  Qdrant -.->|OTLP| OTel
+  IngestionWorker -.->|OTLP| OTel
+  Authelia -.->|OTLP| OTel
+
+  classDef optIn stroke-dasharray: 5 5
+  class Authelia,Workbench,LangGraph,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
 ```
 
-Tiering follows the platform-assurance stack-bom classification:
+### Best-practice notes
+
+- **One model abstraction.** Local (Ollama), hosted (External APIs), and agentic
+  (LangGraph) all expose an OpenAI-compatible interface so Open WebUI can route
+  to any of them from the model picker without bespoke adapters.
+- **MCP as the universal tool layer.** MCPO is the single tool gateway shared by
+  Open WebUI and LangGraph, so a tool authored once (filesystem, search,
+  sandbox shell, internal APIs) is usable by both chat and agents.
+- **Persistent agent state.** LangGraph uses PostgreSQL as the checkpointer and
+  long-term store; semantic memory lives in Qdrant. CloudNativePG is the
+  recommended production mode for HA and PITR.
+- **Async ingestion off the request path.** Document upload returns immediately;
+  the Ingestion Worker performs extract → embed → upsert through Valkey
+  Streams, with retries and status tracking.
+- **Defence in depth.** Authelia gates the edge with OIDC/MFA, NetworkPolicies
+  default-deny per-component, and the OTel collector applies PII redaction
+  before telemetry leaves the cluster.
+
+### Component Tiers
+
+Components are classified by operational criticality:
 
 | Tier | Meaning | Components |
 |------|---------|------------|
-| T0 | Safety / Integrity | OTel Collector |
-| T1 | Operational | Open WebUI, Ollama, Qdrant, Pipelines, Workbench |
-| T2 | Productivity | Tika, SearXNG, Jupyter, Valkey, Open Terminal, MCPO |
+| T0 | Safety / Integrity — non-negotiable for security and compliance | OTel Collector, Authelia |
+| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, Workbench, LangGraph |
+| T2 | Productivity — supporting services and optional tooling | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
+
+### Default Images
+
+Image versions are defined in [`values.yaml`](values.yaml) per component. For a full software bill of materials including licenses and dependency graph, see [`sbom.cdx.json`](sbom.cdx.json).
 
 ## Prerequisites
 
 - Kubernetes 1.27+
 - Helm 3.12+
-- A storage class for PersistentVolumeClaims (or use `emptyDir` for lab)
+- A StorageClass for PersistentVolumeClaims (or use `emptyDir` for lab)
 - (Optional) NVIDIA GPU Operator for Ollama / Workbench GPU acceleration
 - (Optional) Prometheus Operator CRDs for ServiceMonitor resources
 - (Optional) cert-manager for automated TLS certificate provisioning
+- (Optional) CloudNativePG operator v1.25+ for HA PostgreSQL (`postgres.mode: cnpg`)
 
 ## Quick Start
 
 ```bash
-# Add and install (from local checkout)
+# Install with lab defaults
 helm install ai-stack . -n ai-stack --create-namespace
 
-# Lab profile (default) with GPU enabled for Ollama
+# Lab with GPU enabled for Ollama
 helm install ai-stack . -n ai-stack --create-namespace \
   --set ollama.gpu.enabled=true
 
@@ -73,7 +197,7 @@ helm install ai-stack . -n ai-stack --create-namespace \
   -f values.yaml -f values-prod.yaml
 ```
 
-After installation, pull your first model:
+Pull your first models:
 
 ```bash
 kubectl exec -n ai-stack deploy/ai-stack-ollama -- ollama pull llama3.2
@@ -94,7 +218,7 @@ The chart ships two value files:
 | File | Purpose |
 |------|---------|
 | `values.yaml` | Full reference with all defaults (lab profile) |
-| `values-prod.yaml` | Production overlay with HA, TLS ingress, GPU, and stricter resources |
+| `values-prod.yaml` | Production overlay — HA, TLS ingress, GPU, stricter resources, OTel |
 
 ### Global Settings
 
@@ -125,18 +249,22 @@ tika:
   enabled: true     # Document extraction (default: true)
 searxng:
   enabled: true     # Web search (default: true)
-jupyter:
-  enabled: true     # Notebook environment (default: true)
-workbench:
-  enabled: false    # GPU ML workbench (default: false, opt-in)
-pipelines:
-  enabled: true     # Function pipelines (default: true)
 valkey:
-  enabled: true     # Valkey session cache (default: true)
+  enabled: true     # Session cache (default: true)
+workbench:
+  enabled: false    # GPU ML workbench (opt-in)
 openTerminal:
-  enabled: false    # Sandboxed terminal for AI agents (default: false, opt-in)
+  enabled: false    # Sandboxed terminal for AI agents (opt-in)
 mcpo:
-  enabled: false    # MCP-to-OpenAPI proxy (default: false, opt-in)
+  enabled: false    # MCP-to-OpenAPI proxy (opt-in)
+langgraph:
+  enabled: false    # LangGraph agentic runtime (opt-in)
+postgres:
+  enabled: false    # PostgreSQL for LangGraph checkpoints (opt-in)
+ingestionWorker:
+  enabled: false    # Async document ingestion worker (opt-in)
+authelia:
+  enabled: false    # OIDC identity provider for SSO/MFA (opt-in)
 ```
 
 ### Secrets
@@ -145,10 +273,12 @@ The chart auto-generates secrets on first install for:
 
 - **Qdrant API key** (`qdrant-secret`)
 - **SearXNG secret key** (`searxng-secret`)
-- **Jupyter token** (`jupyter-secret`)
 - **Workbench token** (`workbench-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
+- **LangGraph API key** (`langgraph-secret`)
+- **PostgreSQL password** (`postgres-secret`)
+- **Authelia secrets** (`authelia-secret`) — JWT secret, session secret, storage encryption key, OIDC client secret
 
 Secrets are annotated with `helm.sh/resource-policy: keep` so they survive `helm upgrade`. To use an external secret manager (e.g., ESO or Vault), set the corresponding value:
 
@@ -157,12 +287,14 @@ qdrant:
   apiKey: "your-external-key"
 searxng:
   secretKey: "your-external-key"
-jupyter:
-  token: "your-external-token"
 openTerminal:
   apiKey: "your-external-key"
 mcpo:
   apiKey: "your-external-key"
+langgraph:
+  apiKey: "your-external-key"
+postgres:
+  password: "your-external-password"
 ```
 
 ### GPU Support
@@ -188,7 +320,7 @@ workbench:
 openwebui:
   ingress:
     enabled: true
-    className: "nginx"
+    className: "envoy"
     hosts:
       - host: ai.example.com
         paths:
@@ -200,6 +332,147 @@ openwebui:
           - ai.example.com
 ```
 
+### External Inference APIs
+
+Add cloud-hosted LLM providers (OpenAI, Azure OpenAI, Anthropic, Gemini, Mistral, etc.) alongside local Ollama inference:
+
+```yaml
+externalAPIs:
+  enabled: true
+  providers:
+    - name: openai
+      baseUrl: "https://api.openai.com/v1"
+      apiKey: "sk-..."
+    - name: gemini
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai"
+      apiKey: "AIza..."
+```
+
+API keys are stored in Kubernetes Secrets. For production, use an external secret manager:
+
+```yaml
+externalAPIs:
+  enabled: true
+  providers:
+    - name: openai
+      baseUrl: "https://api.openai.com/v1"
+      existingSecret:
+        name: "my-openai-secret"
+        key: "api-key"
+```
+
+When enabled, Open WebUI users can select external models from the model picker alongside locally-served Ollama models. HTTPS egress (port 443) is automatically added to the Open WebUI NetworkPolicy.
+
+### LangGraph (Agentic Workloads)
+
+Enable stateful agentic workflows with LangGraph Platform. Requires PostgreSQL for checkpoint persistence:
+
+```yaml
+langgraph:
+  enabled: true
+postgres:
+  enabled: true
+```
+
+LangGraph connects to Ollama for LLM inference, Qdrant for vector retrieval, Tika for document extraction, and SearXNG for web search. Deploy custom graphs by either:
+
+1. **Custom image** (recommended): Build with `langgraph build -t my-graphs` and override `langgraph.image.repository`/`tag`
+2. **Volume mount**: Place graph code in the `/deps/graphs` persistent volume
+
+### PostgreSQL Modes
+
+The chart supports three PostgreSQL provisioning modes:
+
+| Mode | Use case | HA | Managed by |
+|------|----------|----|------------|
+| `standalone` | Lab / dev — single-instance Deployment | No | Helm chart |
+| `cnpg` | Production — CloudNativePG operator cluster | Yes (3 instances, streaming replication, automated failover) | CNPG operator |
+| `external` | Bring-your-own managed PostgreSQL (RDS, Cloud SQL, etc.) | Depends on provider | External |
+
+```yaml
+# Production HA with CloudNativePG
+postgres:
+  enabled: true
+  mode: cnpg
+  tls:
+    mode: require
+  cnpg:
+    instances: 3
+    pooler:
+      enabled: true  # PgBouncer connection pooling
+
+# External managed database
+postgres:
+  enabled: true
+  mode: external
+  database: "langgraph"
+  user: "langgraph"
+  external:
+    host: "my-rds-instance.abc123.us-east-1.rds.amazonaws.com"
+    port: 5432
+    existingSecret:
+      name: "rds-password"
+      key: "password"
+```
+
+### Async Document Ingestion
+
+The ingestion worker consumes tasks from a Valkey Stream and orchestrates: Tika extract, chunk, Ollama embed, Qdrant upsert. Enables non-blocking document uploads with automatic retry and status tracking.
+
+```yaml
+ingestionWorker:
+  enabled: true
+valkey:
+  persistence:
+    enabled: true  # Recommended: persist Valkey Streams across restarts
+```
+
+Producers enqueue tasks via `XADD`:
+
+```
+XADD ingestion:documents * task_id <id> file_url <url> filename <name>
+```
+
+Track status via `HGETALL ingestion:status:<task_id>`.
+
+### Authelia (SSO / OIDC)
+
+Enable Authelia as an OpenID Connect identity provider for Open WebUI. When enabled, Open WebUI is automatically configured as an OIDC client (`OAUTH_*` environment variables are injected). Authelia uses Valkey for session storage (when available) and supports SQLite (lab) or PostgreSQL (prod) as its storage backend.
+
+```yaml
+authelia:
+  enabled: true
+  domain: "example.local"
+  defaultPolicy: "one_factor"  # or "two_factor" for MFA
+  oidc:
+    clientId: "openwebui"
+    issuerUrl: "https://auth.example.local"
+  ingress:
+    enabled: true
+    className: "envoy"
+    hosts:
+      - host: auth.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: auth-tls
+        hosts:
+          - auth.example.local
+```
+
+For production with PostgreSQL storage:
+
+```yaml
+authelia:
+  enabled: true
+  storage: "postgres"  # Uses the shared postgres component
+postgres:
+  enabled: true
+```
+
+Users are managed via a file-based backend (`users_database.yml`). Override by mounting a custom ConfigMap or configure LDAP. Generate password hashes with `authelia crypto hash generate argon2`.
+
 ### OpenTelemetry
 
 When `global.otel.enabled=true`, the chart:
@@ -208,29 +481,81 @@ When `global.otel.enabled=true`, the chart:
 2. Injects `OTEL_*` environment variables into all component pods
 3. Optionally creates ServiceMonitor resources for Prometheus scraping
 
+### Disaster Recovery
+
+For production DR, use [Velero](https://velero.io/) with CSI volume snapshots for PVC-backed data (Qdrant, Ollama models, Open WebUI). PostgreSQL in CNPG mode supports automated backups via Barman to S3-compatible storage — see [HOWTO.md §10 PostgreSQL Modes](HOWTO.md#10-postgresql-modes) for configuration.
+
 ## Security
 
 This chart is designed for regulated environments:
 
 - **Network isolation**: Default-deny ingress and egress with per-component allowlists
-- **Pod Security**: PSA restricted baseline, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, capabilities `drop: [ALL]`
+- **Pod Security**: PSA restricted baseline — `runAsNonRoot`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, capabilities `drop: [ALL]`
+- **Read-only root filesystem**: Enforced for Qdrant, Valkey, Tika, SearXNG, OTel Collector
 - **Identity isolation**: Per-component ServiceAccounts with `automountServiceAccountToken: false`
-- **Secret management**: Auto-generated credentials with support for external secret stores
+- **Secret management**: Auto-generated 64-byte credentials with support for external secret stores
 - **PII redaction**: OTel Collector strips email addresses, SSNs, and credit card numbers from telemetry (GDPR Art 5(1)(c))
 - **Telemetry opt-out**: `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false` set by default
+- **Rate limiting**: Envoy Gateway rate-limit annotations in production profile
+- **Ollama root exception**: Upstream GPU access requirement; documented with `assurance.platform/security-exception` annotation
 
 ## Governance and Compliance
 
-The chart aligns with the platform-assurance governance framework:
+Control and policy identifiers used in this chart are defined in
+[docs/governance/CONTROLS.md](docs/governance/CONTROLS.md).
 
 | Control | Description | Implementation |
 |---------|-------------|----------------|
-| CTL-0006 | Observability | OTel Collector, ServiceMonitors |
-| CTL-0009 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
-| POL-03 | Least-privilege | Per-component ServiceAccounts, no automount |
+| CTL-001 | Observability | OTel Collector, ServiceMonitors |
+| CTL-002 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
+| POL-001 | Least-privilege | Per-component ServiceAccounts, no automount |
 | GDPR Art 5(1)(c) | Data minimisation | PII redaction in OTel pipeline |
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |
+
+All pods carry `assurance.platform/*` annotations for evidence pipeline integration and audit traceability.
+
+## SBOM and License Compliance
+
+The chart includes a machine-readable Software Bill of Materials and license compliance documentation:
+
+| File | Format | Purpose |
+|------|--------|---------|
+| [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 JSON | Machine-readable SBOM with all container images, licenses, purls, and dependency graph |
+| [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md) | Markdown | Human-readable license matrix, copyleft analysis, and enterprise compliance checklist |
+
+All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-Clause). Notable exceptions:
+
+- **SearXNG** (AGPL-3.0): Low risk when using the upstream container unmodified. See compliance doc for details.
+- **LangGraph API** (Elastic License 2.0): Opt-in only. Permits self-hosted use but prohibits offering as a managed service.
+
+The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness. Deep per-image SBOMs are generated via Syft and uploaded as CI artifacts.
+
+## CI Pipeline
+
+The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
+
+| Job | What it does |
+|-----|--------------|
+| **helm-lint** | `helm lint` and `helm template` for both lab and prod profiles |
+| **chart-testing** | `ct lint` with chart-testing for standards compliance |
+| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml` |
+| **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
+| **cve-scan** | Scans all container images for CVEs using Grype; emits warnings on critical vulnerabilities |
+| **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
+
+## GitOps / ArgoCD
+
+Pre-built ArgoCD Application manifests are provided in `argocd/`:
+
+| File | Profile | Notes |
+|------|---------|-------|
+| `argocd/application-lab.yaml` | Lab | Auto-sync disabled — suitable for development |
+| `argocd/application-prod.yaml` | Production | Manual sync — change-control compliance |
+
+## Dependency Management
+
+GitHub Actions versions are managed by [Dependabot](https://docs.github.com/en/code-security/dependabot). Container image versions in `values.yaml` are managed manually. Configuration is in `.github/dependabot.yml`.
 
 ## Verification
 
@@ -251,11 +576,12 @@ kubectl get serviceaccounts -n ai-stack
 
 # Check PodDisruptionBudgets
 kubectl get pdb -n ai-stack
+
+# Run Helm tests
+helm test ai-stack -n ai-stack
 ```
 
 ## Development
-
-### Linting
 
 ```bash
 # Lint the chart
@@ -266,17 +592,44 @@ helm lint . -f values.yaml -f values-prod.yaml
 
 # Template rendering check
 helm template ai-stack . --debug
-```
 
-### Testing
-
-```bash
 # Dry-run install
 helm install ai-stack . --dry-run --debug -n ai-stack
 
-# Use chart-testing (ct)
-ct lint --charts .
+# Chart-testing
+ct lint --config ct.yaml --charts .
 ```
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
+| [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md) | Reference architecture — design principles, conversational + RAG flow, agentic flow, hardening checklist |
+| [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
+| [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |
+| [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure policy and supported versions |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
+| [docs/enterprise/ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) | Enterprise readiness evaluation checklist |
+| [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 Software Bill of Materials |
+
+## EU Compliance
+
+The chart ships with templates and guidance for EU-regulated deployments:
+
+| Document | Purpose |
+|----------|---------|
+| [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md) | Authoritative registry of all CTL and POL identifiers with descriptions and regulatory basis |
+| [EU_COMPLIANCE_CHECK.md](docs/compliance/EU_COMPLIANCE_CHECK.md) | Gap analysis against GDPR, AI Act, NIS2, CRA, ePrivacy |
+| [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure (CVD) policy |
+| [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) | Data Protection Impact Assessment template (GDPR Art. 35 + AI Act Art. 27) |
+| [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) | Records of Processing Activities template (GDPR Art. 30) |
+| [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) | Incident response playbook (GDPR Art. 33/34, NIS2 Art. 23, AI Act Art. 73) |
+| [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) | Data subject rights procedures (GDPR Art. 15–22) |
+| [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) | Data retention, DPA guidance, encryption, content marking, training |
+
+AI Act Art. 50(1) transparency is implemented via a configurable `WEBUI_BANNER_TEXT` environment variable that informs users they are interacting with an AI system.
 
 ## License
 
