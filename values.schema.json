@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rmednitzer/ai-stack/blob/main/values.schema.json",
+  "title": "ai-stack Helm values",
+  "description": "Top-level validation for user-supplied overrides. Covers global settings and each component's `enabled` toggle. Does not enumerate every field in values.yaml — additional properties are allowed everywhere so that in-chart defaults and future additions continue to render. The goal is to catch typos in common override paths, not to replace the inline documentation in values.yaml.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "global": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": ["lab", "prod"],
+          "description": "Deployment profile. `lab` = single replica, relaxed resources. `prod` = HA, strict resources."
+        },
+        "namespace": { "type": "string" },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        },
+        "storageClass": { "type": "string" },
+        "podSecurityStandard": {
+          "type": "string",
+          "enum": ["privileged", "baseline", "restricted"]
+        },
+        "networkPolicy": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" }
+          }
+        },
+        "otel": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "endpoint": { "type": "string" }
+          }
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" }
+          }
+        },
+        "prometheusRule": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "labels": { "type": "object" },
+            "alertPrefix": { "type": "string" },
+            "severityLabels": { "type": "object" },
+            "rules": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "podHealth":    { "type": "boolean" },
+                "availability": { "type": "boolean" },
+                "slo":          { "type": "boolean" },
+                "security":     { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "externalAPIs": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["name", "baseUrl"],
+            "properties": {
+              "name": { "type": "string" },
+              "baseUrl": { "type": "string", "format": "uri" },
+              "apiKey": { "type": "string" },
+              "existingSecret": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["name", "key"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "key": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "authelia":        { "$ref": "#/$defs/component" },
+    "openwebui":       { "$ref": "#/$defs/component" },
+    "ollama":          { "$ref": "#/$defs/componentWithGpu" },
+    "qdrant":          { "$ref": "#/$defs/component" },
+    "tika":            { "$ref": "#/$defs/component" },
+    "searxng":         { "$ref": "#/$defs/component" },
+    "workbench":       { "$ref": "#/$defs/componentWithGpu" },
+    "openTerminal":    { "$ref": "#/$defs/component" },
+    "mcpo":            { "$ref": "#/$defs/component" },
+    "langgraph":       { "$ref": "#/$defs/component" },
+    "valkey":          { "$ref": "#/$defs/component" },
+    "ingestionWorker": { "$ref": "#/$defs/component" },
+    "otelCollector":   { "$ref": "#/$defs/component" },
+    "postgres": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": {
+          "type": "string",
+          "enum": ["standalone", "cnpg", "external"],
+          "description": "Provisioning mode. See docs/components/postgres.md."
+        },
+        "database": { "type": "string" },
+        "user": { "type": "string" },
+        "password": { "type": "string" },
+        "tls": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["disable", "prefer", "require", "verify-ca", "verify-full"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "image": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "repository": { "type": "string" },
+        "tag": { "type": ["string", "number"] },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/$defs/image" }
+      }
+    },
+    "componentWithGpu": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/$defs/image" },
+        "gpu": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "count": { "type": "integer", "minimum": 0 },
+            "resourceName": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

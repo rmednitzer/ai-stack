@@ -10,7 +10,9 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
 spec:
+  {{- if not (include "ai-stack.autoscalingEnabled" .Values.openwebui) }}
   replicas: {{ .Values.openwebui.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 6 }}
@@ -33,44 +35,51 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount) | nindent 6 }}
-      initContainers:
-        {{- if .Values.ollama.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.qdrant.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "qdrant" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant")) "port" .Values.qdrant.service.httpPort) | nindent 8 }}
-        {{- end }}
+      terminationGracePeriodSeconds: 60
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.openwebui)) | nindent 6 }}
       containers:
         - name: openwebui
           image: "{{ .Values.openwebui.image.repository }}:{{ .Values.openwebui.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
           env:
             {{- range $key, $value := .Values.openwebui.env }}
+            {{- if and (eq $key "OPENAI_API_BASE_URLS") ($.Values.externalAPIs.enabled) }}
+            {{- /* Skip static OPENAI_API_BASE_URLS when externalAPIs are enabled — overridden below */ -}}
+            {{- else }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
-            {{- if .Values.qdrant.enabled }}
-            - name: QDRANT_API_KEY
+            {{- end }}
+            {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
+            {{- /* --- External API provider configuration --- */ -}}
+            {{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers }}
+            {{- /* Inject per-provider API key env vars from Secrets (used via variable substitution) */ -}}
+            {{- range $i, $provider := .Values.externalAPIs.providers }}
+            - name: _EXTAPI_KEY_{{ $i }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
+                  {{- if and $provider.existingSecret $provider.existingSecret.name }}
+                  name: {{ $provider.existingSecret.name | quote }}
+                  key: {{ $provider.existingSecret.key | default "api-key" | quote }}
+                  {{- else }}
+                  name: {{ include "ai-stack.extapiSecretName" (dict "Release" $.Release "Chart" $.Chart "provider" $provider) }}
                   key: api-key
+                  {{- end }}
             {{- end }}
+            {{- /* Override OPENAI_API_BASE_URLS with combined internal + external URLs */ -}}
+            - name: OPENAI_API_BASE_URLS
+              value: {{ include "ai-stack.openaiBaseUrls" . | quote }}
+            {{- /* Set OPENAI_API_KEYS with placeholder keys for internal + secret refs for external */ -}}
+            - name: OPENAI_API_KEYS
+              value: {{ include "ai-stack.openaiApiKeys" . | quote }}
+            {{- end }}
+            {{- include "ai-stack.autheliaOauthEnv" . | nindent 12 }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "openwebui") | nindent 12 }}
           startupProbe:
             httpGet:
@@ -106,14 +115,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 500Mi
-      {{- with .Values.global.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.global.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 ---
 apiVersion: v1
 kind: Service
@@ -152,46 +154,5 @@ spec:
     requests:
       storage: {{ .Values.openwebui.persistence.size }}
 {{- end }}
-{{- if .Values.openwebui.ingress.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-  {{- with .Values.openwebui.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-spec:
-  {{- if .Values.openwebui.ingress.className }}
-  ingressClassName: {{ .Values.openwebui.ingress.className }}
-  {{- end }}
-  {{- if .Values.openwebui.ingress.tls }}
-  tls:
-    {{- range .Values.openwebui.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
-  rules:
-    {{- range .Values.openwebui.ingress.hosts }}
-    - host: {{ .host | quote }}
-      http:
-        paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
-            backend:
-              service:
-                name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" "openwebui") }}
-                port:
-                  name: http
-          {{- end }}
-    {{- end }}
-{{- end }}
+{{- include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
 {{- end }}

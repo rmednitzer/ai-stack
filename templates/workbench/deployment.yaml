@@ -36,9 +36,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        {{- if .Values.ollama.enabled }}
-        {{- include "ai-stack.waitFor" (dict "name" "ollama" "host" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama")) "port" .Values.ollama.service.port) | nindent 8 }}
-        {{- end }}
         # Install additional Python packages at startup
         # For production, bake these into a custom image instead
         {{- if .Values.workbench.env.PIP_PACKAGES }}
@@ -81,15 +78,7 @@ spec:
           image: "{{ .Values.workbench.image.repository }}:{{ .Values.workbench.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
           ports:
             - name: http
               containerPort: 8888
@@ -98,7 +87,7 @@ spec:
             {{- range $key, $value := .Values.workbench.env }}
             {{- if ne $key "PIP_PACKAGES" }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- end }}
             - name: JUPYTER_TOKEN
@@ -106,13 +95,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}-secret
                   key: token
-            {{- if .Values.qdrant.enabled }}
-            - name: QDRANT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}-secret
-                  key: api-key
-            {{- end }}
+            {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "workbench") | nindent 12 }}
           args:
             - start-notebook.py
@@ -143,15 +126,11 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           resources:
-            requests:
-              cpu: {{ .Values.workbench.resources.requests.cpu | quote }}
-              memory: {{ .Values.workbench.resources.requests.memory | quote }}
-            limits:
-              cpu: {{ .Values.workbench.resources.limits.cpu | quote }}
-              memory: {{ .Values.workbench.resources.limits.memory | quote }}
-              {{- if .Values.workbench.gpu.enabled }}
-              {{ .Values.workbench.gpu.resourceName }}: {{ .Values.workbench.gpu.count }}
-              {{- end }}
+            {{- $res := deepCopy .Values.workbench.resources }}
+            {{- if .Values.workbench.gpu.enabled }}
+            {{- $_ := set $res.limits (.Values.workbench.gpu.resourceName) (.Values.workbench.gpu.count | int) }}
+            {{- end }}
+            {{- toYaml $res | nindent 12 }}
       volumes:
         - name: work
           {{- if .Values.workbench.persistence.enabled }}
@@ -171,14 +150,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 10Gi
-      {{- with .Values.global.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.global.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 ---
 apiVersion: v1
 kind: Service
@@ -217,46 +189,5 @@ spec:
     requests:
       storage: {{ .Values.workbench.persistence.size }}
 {{- end }}
-{{- if .Values.workbench.ingress.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-  {{- with .Values.workbench.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-spec:
-  {{- if .Values.workbench.ingress.className }}
-  ingressClassName: {{ .Values.workbench.ingress.className }}
-  {{- end }}
-  {{- if .Values.workbench.ingress.tls }}
-  tls:
-    {{- range .Values.workbench.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
-  rules:
-    {{- range .Values.workbench.ingress.hosts }}
-    - host: {{ .host | quote }}
-      http:
-        paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
-            backend:
-              service:
-                name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" "workbench") }}
-                port:
-                  name: http
-          {{- end }}
-    {{- end }}
-{{- end }}
+{{- include "ai-stack.ingress" (dict "root" . "component" "workbench" "ingress" .Values.workbench.ingress) }}
 {{- end }}

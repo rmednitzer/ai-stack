@@ -10,7 +10,9 @@ metadata:
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "ingestion"
 spec:
+  {{- if not (include "ai-stack.autoscalingEnabled" .Values.tika) }}
   replicas: {{ .Values.tika.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 6 }}
@@ -20,6 +22,8 @@ spec:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        assurance.platform/security-exception: "tika-requires-root"
+        assurance.platform/security-exception-reason: "Upstream Tika image runs as root for Java process management"
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}
@@ -28,8 +32,10 @@ spec:
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
         runAsNonRoot: false
+        fsGroup: 35002
         seccompProfile:
           type: RuntimeDefault
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.tika)) | nindent 6 }}
       containers:
         - name: tika
           image: "{{ .Values.tika.image.repository }}:{{ .Values.tika.image.tag }}"
@@ -46,10 +52,8 @@ spec:
             - name: http
               containerPort: 9998
               protocol: TCP
-          {{- if .Values.global.otel.enabled }}
           env:
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "tika") | nindent 12 }}
-          {{- end }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -75,14 +79,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 2Gi
-      {{- with .Values.global.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.global.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 ---
 apiVersion: v1
 kind: Service

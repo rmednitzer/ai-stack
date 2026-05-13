@@ -1,23 +1,45 @@
 # Patterns to ignore when building packages.
-.git
+# https://helm.sh/docs/chart_template_guide/helm_ignore_file/
+
+# VCS
 .git/
 .gitignore
+.gitattributes
+.editorconfig
+
+# GitHub / CI / CD
 .github/
+ct.yaml
+renovate.json5
+argocd/
+zarf.yaml
+
+# IDE / editor
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Documentation and CI (not needed in packaged chart)
+# Documentation (not needed in packaged chart)
 README.md
+HOWTO.md
 CONTRIBUTING.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+CHANGELOG.md
 LICENSE
-ct.yaml
-.github/
+docs/
+
+# Supply chain artefacts (distributed separately)
+sbom.cdx.json
+syft-sbom-output/
+grype-reports/
+
+# Build artefacts
+zarf-package-*.tar.zst
+*.tgz
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Editor temps
-*.swp
-*.swo
-*~

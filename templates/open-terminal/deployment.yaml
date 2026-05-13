@@ -1,0 +1,130 @@
+{{- if .Values.openTerminal.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
+    assurance.platform/tier: "T2"
+    assurance.platform/boundary: "execution"
+spec:
+  replicas: {{ .Values.openTerminal.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "open-terminal" "replicaCount" .Values.openTerminal.replicaCount) | nindent 6 }}
+      containers:
+        - name: open-terminal
+          image: "{{ .Values.openTerminal.image.repository }}{{- if .Values.openTerminal.image.digest }}@{{ .Values.openTerminal.image.digest }}{{- else }}:{{ .Values.openTerminal.image.tag }}{{- end }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.openTerminal.env }}
+            - name: {{ $key }}
+              value: {{ tpl (toString $value) $ | quote }}
+            {{- end }}
+            - name: OPEN_TERMINAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}-secret
+                  key: api-key
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "open-terminal") | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 20
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.openTerminal.persistence.mountPath }}
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.openTerminal.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.openTerminal.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.openTerminal.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.openTerminal.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
+spec:
+  type: {{ .Values.openTerminal.service.type }}
+  ports:
+    - port: {{ .Values.openTerminal.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
+{{- if .Values.openTerminal.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.openTerminal.persistence.accessMode }}
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.openTerminal.persistence.size }}
+{{- end }}
+{{- end }}

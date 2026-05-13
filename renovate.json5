@@ -1,129 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Renovate config for ai-stack Helm chart — keeps container images and CI actions up to date",
   "extends": [
-    "config:recommended",
-    "docker:enableMajor",
-    ":pinDigestsDisabled",
-    ":separateMultipleMajorReleases",
-    "schedule:earlyMondays"
+    "config:best-practices",
+    ":semanticCommits",
+    ":timezone(Europe/Vienna)"
   ],
-  // Only update files relevant to this Helm chart
-  "enabledManagers": [
-    "helm-values",
-    "github-actions",
-    "regex"
-  ],
-  // Require 1 approval before auto-merge
-  "platformAutomerge": false,
-  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "enabledManagers": ["github-actions", "helm-values", "dockerfile"],
+  "prConcurrentLimit": 8,
   "prHourlyLimit": 2,
-  // Labels for tracking
-  "labels": ["dependencies", "renovate"],
-  // Assignees for review
-  "assignees": ["rmednitzer"],
-  // Package rules — group related updates and control merge strategy
   "packageRules": [
-    // --- GitHub Actions: auto-merge minor/patch ---
     {
-      "description": "GitHub Actions — auto-merge minor and patch updates",
       "matchManagers": ["github-actions"],
-      "automerge": true,
-      "automergeType": "pr",
-      "matchUpdateTypes": ["minor", "patch", "digest"]
-    },
-    // --- Group T1 (operational) images together ---
-    {
-      "description": "T1 operational images (Open WebUI, Ollama, Pipelines)",
-      "groupName": "T1 operational images",
-      "matchPackageNames": [
-        "ghcr.io/open-webui/open-webui",
-        "ollama/ollama",
-        "ghcr.io/open-webui/pipelines"
-      ],
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": false
-    },
-    // --- Group T1 data-plane images ---
-    {
-      "description": "T1 data-plane images (Qdrant)",
-      "groupName": "T1 data-plane images",
-      "matchPackageNames": ["qdrant/qdrant"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": false
-    },
-    // --- Group T2 (productivity) images ---
-    {
-      "description": "T2 productivity images (Tika, SearXNG, Jupyter, Valkey)",
-      "groupName": "T2 productivity images",
-      "matchPackageNames": [
-        "apache/tika",
-        "searxng/searxng",
-        "quay.io/jupyter/scipy-notebook",
-        "quay.io/jupyter/pytorch-notebook",
-        "valkey/valkey"
-      ],
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": false
-    },
-    // --- T0 observability (OTel Collector) — conservative ---
-    {
-      "description": "T0 observability (OTel Collector) — patch only auto-merge",
-      "groupName": "T0 observability",
-      "matchPackageNames": ["otel/opentelemetry-collector-contrib"],
-      "matchUpdateTypes": ["patch"],
-      "automerge": true,
-      "automergeType": "pr"
+      "groupName": "github-actions non-major",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
     },
     {
-      "description": "T0 observability major/minor — manual review",
-      "matchPackageNames": ["otel/opentelemetry-collector-contrib"],
-      "matchUpdateTypes": ["major", "minor"],
-      "automerge": false
-    },
-    // --- Major updates always require manual review ---
-    {
-      "description": "All major updates require manual review",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "labels": ["dependencies", "renovate", "major"]
-    }
-  ],
-  // Custom regex managers for Helm values files where helm-values manager
-  // may not detect the image pattern (e.g. kubeconform version in CI)
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "kubeconform version in CI workflow",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": [
-        "kubeconform/releases/download/v(?<currentValue>[^/]+)/kubeconform"
-      ],
-      "depNameTemplate": "yannh/kubeconform",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "customType": "regex",
-      "description": "Kubernetes version in kubeconform validation",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": [
-        "KUBERNETES_VERSION:\\s*\"?(?<currentValue>[\\d.]+)\"?\\s*#\\s*renovate:\\s*depName=kubernetes/kubernetes"
-      ],
-      "depNameTemplate": "kubernetes/kubernetes",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "customType": "regex",
-      "description": "Helm version in CI workflow",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": [
-        "version:\\s*v(?<currentValue>[\\d.]+)\\s*#\\s*renovate:\\s*depName=helm/helm"
-      ],
-      "depNameTemplate": "helm/helm",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
+      "matchManagers": ["helm-values"],
+      "groupName": "helm values image updates",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
     }
   ]
 }
