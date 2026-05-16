@@ -40,7 +40,7 @@ global:
   otel:
     enabled: false
     endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
-    protocol: grpc  # grpc | http
+    protocol: grpc  # grpc | http/protobuf | http/json
     insecure: true
 
   # -- Network policy: default-deny with explicit allow rules per component

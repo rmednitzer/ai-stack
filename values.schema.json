@@ -40,8 +40,8 @@
             "endpoint": { "type": "string" },
             "protocol": {
               "type": "string",
-              "enum": ["grpc", "http"],
-              "description": "OTLP transport. Mistyped values silently break telemetry export."
+              "enum": ["grpc", "http/protobuf", "http/json"],
+              "description": "OTLP transport token (OTEL_EXPORTER_OTLP_PROTOCOL). Spec values only; mistyped values silently break telemetry export."
             },
             "insecure": { "type": "boolean" }
           }
