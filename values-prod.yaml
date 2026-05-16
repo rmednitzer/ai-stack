@@ -30,8 +30,8 @@ global:
 
 openwebui:
   replicaCount: 2
-  image:
-    tag: "v0.8.10"
+  # Image tag is pinned by the chart (values.yaml) so prod tracks the
+  # tested, SBOM-attested version. Do not re-pin here — it drifts.
   autoscaling:
     enabled: true
     minReplicas: 2
@@ -74,8 +74,7 @@ openwebui:
 
 ollama:
   replicaCount: 1
-  image:
-    tag: "0.18.2"
+  # Image tag is pinned by the chart (values.yaml). Do not re-pin here.
   gpu:
     enabled: true
     count: 1

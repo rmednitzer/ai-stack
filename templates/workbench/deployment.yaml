@@ -97,11 +97,13 @@ spec:
                   key: token
             {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "workbench") | nindent 12 }}
+          # Token is supplied via the JUPYTER_TOKEN env var (from Secret),
+          # which start-notebook.py reads natively. Passing it as a CLI arg
+          # would leak it into the process list.
           args:
             - start-notebook.py
             - "--NotebookApp.base_url=/"
             - "--ServerApp.allow_origin=*"
-            - "--IdentityProvider.token=$(JUPYTER_TOKEN)"
           volumeMounts:
             - name: work
               mountPath: {{ .Values.workbench.persistence.mountPath }}

@@ -37,7 +37,13 @@
           "additionalProperties": true,
           "properties": {
             "enabled": { "type": "boolean" },
-            "endpoint": { "type": "string" }
+            "endpoint": { "type": "string" },
+            "protocol": {
+              "type": "string",
+              "enum": ["grpc", "http/protobuf", "http/json"],
+              "description": "OTLP transport token (OTEL_EXPORTER_OTLP_PROTOCOL). Spec values only; mistyped values silently break telemetry export."
+            },
+            "insecure": { "type": "boolean" }
           }
         },
         "serviceMonitor": {

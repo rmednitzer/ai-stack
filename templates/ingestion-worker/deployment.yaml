@@ -397,10 +397,14 @@ data:
 
     def extract_text(file_url: str) -> str:
         """Send document to Tika and return extracted text."""
+        if file_url.startswith(("http://", "https://")):
+            src = httpx.get(file_url, timeout=60.0, follow_redirects=True).content
+        else:
+            src = Path(file_url).read_bytes()
         resp = http.put(
             urljoin(TIKA_URL, "/tika"),
             headers={"Accept": "text/plain"},
-            content=httpx.get(file_url).content if file_url.startswith("http") else Path(file_url).read_bytes(),
+            content=src,
             timeout=300.0,
         )
         resp.raise_for_status()

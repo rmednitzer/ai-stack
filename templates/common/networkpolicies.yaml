@@ -599,6 +599,8 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
+        - podSelector:
+            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}
@@ -758,6 +760,8 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
+        - podSelector:
+            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}
@@ -792,6 +796,12 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
+    # Internet: install-deps initContainer (PyPI) + source document fetch (file_url)
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
     {{- if .Values.postgres.enabled }}
     {{- if eq .Values.postgres.mode "external" }}
     - ports:
@@ -799,6 +809,8 @@ spec:
           port: {{ .Values.postgres.external.port | default 5432 }}
     {{- else }}
     - to:
+        - podSelector:
+            matchLabels:
               {{- if eq .Values.postgres.mode "cnpg" }}
               cnpg.io/cluster: {{ .Release.Name }}-postgres
               {{- else }}

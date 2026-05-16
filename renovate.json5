@@ -6,15 +6,17 @@
     ":timezone(Europe/Vienna)"
   ],
   "labels": ["dependencies"],
-  "enabledManagers": ["github-actions", "helm-values", "dockerfile"],
+  // Renovate owns ONLY helm-values (values.yaml / values-prod.yaml image
+  // tags). GitHub Actions and Dockerfile/container deps are owned by
+  // Dependabot (.github/dependabot.yml) — do not re-enable those managers
+  // here or both bots will open competing PRs.
+  "enabledManagers": ["helm-values"],
+  "helm-values": {
+    "fileMatch": ["(^|/)values\\.yaml$", "(^|/)values-prod\\.yaml$"]
+  },
   "prConcurrentLimit": 8,
   "prHourlyLimit": 2,
   "packageRules": [
-    {
-      "matchManagers": ["github-actions"],
-      "groupName": "github-actions non-major",
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
-    },
     {
       "matchManagers": ["helm-values"],
       "groupName": "helm values image updates",

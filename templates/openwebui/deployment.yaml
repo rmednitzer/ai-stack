@@ -72,10 +72,10 @@ spec:
                   key: api-key
                   {{- end }}
             {{- end }}
-            {{- /* Override OPENAI_API_BASE_URLS with combined internal + external URLs */ -}}
+            {{- /* Override OPENAI_API_BASE_URLS with combined internal + external URLs */}}
             - name: OPENAI_API_BASE_URLS
               value: {{ include "ai-stack.openaiBaseUrls" . | quote }}
-            {{- /* Set OPENAI_API_KEYS with placeholder keys for internal + secret refs for external */ -}}
+            {{- /* Set OPENAI_API_KEYS with placeholder keys for internal + secret refs for external */}}
             - name: OPENAI_API_KEYS
               value: {{ include "ai-stack.openaiApiKeys" . | quote }}
             {{- end }}

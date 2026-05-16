@@ -1,74 +1,8 @@
 {{- if .Values.authelia.enabled }}
 {{/*
-Authelia configuration rendered as a ConfigMap.
-Secrets (JWT, session, storage encryption, OIDC HMAC) are injected via
-environment variables that Authelia reads at startup using _FILE suffix.
-The OIDC client secret uses the $plaintext$ prefix to avoid hashing in templates.
+Authelia Deployment. The configuration ConfigMap lives in configmap.yaml
+so the checksum annotation below can reference it without self-recursion.
 */}}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}-config
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-data:
-  configuration.yml: |
-    theme: light
-    server:
-      address: tcp://0.0.0.0:9091
-    log:
-      level: info
-    authentication_backend:
-      file:
-        path: /config/users_database.yml
-    session:
-      cookies:
-        - domain: {{ .Values.authelia.domain | quote }}
-          authelia_url: {{ .Values.authelia.oidc.issuerUrl | quote }}
-      {{- if .Values.valkey.enabled }}
-      redis:
-        host: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
-        port: {{ .Values.valkey.service.port }}
-      {{- end }}
-    {{- if eq .Values.authelia.storage "postgres" }}
-    storage:
-      postgres:
-        address: tcp://{{ include "ai-stack.postgresHost" . }}:{{ include "ai-stack.postgresPort" . }}
-        database: {{ .Values.postgres.database }}
-        username: {{ .Values.postgres.user }}
-        schema: authelia
-    {{- else }}
-    storage:
-      local:
-        path: /config/db.sqlite3
-    {{- end }}
-    access_control:
-      default_policy: {{ .Values.authelia.defaultPolicy }}
-    identity_providers:
-      oidc:
-        clients:
-          - client_id: {{ .Values.authelia.oidc.clientId | quote }}
-            client_name: Open WebUI
-            client_secret: $plaintext$${AUTHELIA_OIDC_CLIENT_SECRET}
-            public: false
-            authorization_policy: {{ .Values.authelia.defaultPolicy }}
-            redirect_uris:
-              - {{ printf "%s/oauth/oidc/callback" (trimSuffix "/" (index .Values.openwebui.ingress.hosts 0).host | default "https://ai.example.local") | quote }}
-            scopes:
-              {{- range .Values.authelia.oidc.scopes }}
-              - {{ . }}
-              {{- end }}
-            response_types:
-              - code
-            grant_types:
-              - authorization_code
-            token_endpoint_auth_method: client_secret_post
-  users_database.yml: |
-    # Default empty users database.
-    # Override by mounting a custom users_database.yml or configure LDAP.
-    # Generate password hashes with: authelia crypto hash generate argon2
-    users: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -90,7 +24,7 @@ spec:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/authelia/deployment.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/authelia/configmap.yaml") . | sha256sum }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}

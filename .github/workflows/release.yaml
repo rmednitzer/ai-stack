@@ -92,9 +92,12 @@ jobs:
 
       - name: Login to GHCR
         if: steps.ref.outputs.is_release == 'true'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-            --username "${{ github.actor }}" --password-stdin
+          echo "$GHCR_TOKEN" | helm registry login ghcr.io \
+            --username "$GHCR_USER" --password-stdin
 
       - name: Push chart to OCI registry
         if: steps.ref.outputs.is_release == 'true'
@@ -104,7 +107,7 @@ jobs:
 
       - name: Generate provenance attestation
         if: steps.ref.outputs.is_release == 'true'
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: ${{ steps.package.outputs.package }}
 
