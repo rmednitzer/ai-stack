@@ -1052,7 +1052,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.151.0"
+    tag: "0.152.0"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
