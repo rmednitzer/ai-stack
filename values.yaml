@@ -377,7 +377,7 @@ qdrant:
   apiKey: ""
   image:
     repository: qdrant/qdrant
-    tag: "v1.17.1"
+    tag: "v1.18.0"
   service:
     type: ClusterIP
     httpPort: 6333
