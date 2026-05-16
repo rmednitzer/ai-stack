@@ -37,7 +37,13 @@
           "additionalProperties": true,
           "properties": {
             "enabled": { "type": "boolean" },
-            "endpoint": { "type": "string" }
+            "endpoint": { "type": "string" },
+            "protocol": {
+              "type": "string",
+              "enum": ["grpc", "http"],
+              "description": "OTLP transport. Mistyped values silently break telemetry export."
+            },
+            "insecure": { "type": "boolean" }
           }
         },
         "serviceMonitor": {

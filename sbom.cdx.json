@@ -5,7 +5,7 @@
   "serialNumber": "urn:uuid:f94ffd2d-9547-47bf-9e90-67609ca4dd6b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-29T00:00:00Z",
+    "timestamp": "2026-05-16T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -94,9 +94,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.22.0",
+      "version": "0.23.1",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.22.0",
+      "purl": "pkg:docker/ollama/ollama@0.23.1",
       "licenses": [
         {
           "license": {

@@ -149,19 +149,29 @@ Automatically adds assurance.platform/version from Chart.AppVersion.
 {{- define "ai-stack.podAnnotations" -}}
 {{- $merged := dict "assurance.platform/version" .Chart.AppVersion }}
 {{- with .Values.global.podAnnotations }}
-{{- $merged = merge $merged . }}
+{{- $merged = mergeOverwrite $merged (deepCopy .) }}
 {{- end }}
 {{- with .componentAnnotations }}
-{{- $merged = merge $merged . }}
+{{- $merged = mergeOverwrite $merged (deepCopy .) }}
 {{- end }}
 {{- toYaml $merged }}
 {{- end }}
 
 {{/*
 Topology spread constraints for prod multi-replica deployments.
+"autoscaling" is the string result of "ai-stack.autoscalingEnabled"
+("true" / ""); a map or bool is also tolerated for robustness.
 */}}
 {{- define "ai-stack.topologySpread" -}}
-{{- $multiReplica := or (gt (int .replicaCount) 1) (.autoscaling | default false) -}}
+{{- $asEnabled := false -}}
+{{- if kindIs "string" .autoscaling -}}
+{{- $asEnabled = (ne .autoscaling "") -}}
+{{- else if kindIs "map" .autoscaling -}}
+{{- $asEnabled = (default false (index .autoscaling "enabled")) -}}
+{{- else -}}
+{{- $asEnabled = (.autoscaling | default false) -}}
+{{- end -}}
+{{- $multiReplica := or (gt (int (.replicaCount | default 1)) 1) $asEnabled -}}
 {{- if and (eq .Values.global.profile "prod") $multiReplica }}
 topologySpreadConstraints:
   - maxSkew: 1
@@ -171,6 +181,28 @@ topologySpreadConstraints:
       matchLabels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" .component) | nindent 8 }}
 {{- end }}
+{{- end }}
+
+{{/*
+Resolve a generated credential so it stays stable across `helm upgrade`.
+Precedence: explicit override > value already stored in the live Secret >
+a freshly generated random value (first install / `helm template`).
+Returns a base64-encoded string ready to place under a Secret `data:` key.
+Usage:
+  {{ include "ai-stack.persistentSecret" (dict "ctx" . "name" "<secret-name>" "key" "<data-key>" "override" <override-or-empty> "length" 48) }}
+*/}}
+{{- define "ai-stack.persistentSecret" -}}
+{{- $override := .override | default "" -}}
+{{- if $override -}}
+{{- $override | b64enc -}}
+{{- else -}}
+{{- $existing := (lookup "v1" "Secret" .ctx.Release.Namespace .name) -}}
+{{- if and $existing $existing.data (hasKey $existing.data .key) -}}
+{{- index $existing.data .key -}}
+{{- else -}}
+{{- randAlphaNum (.length | default 48 | int) | b64enc -}}
+{{- end -}}
+{{- end -}}
 {{- end }}
 
 {{/*
