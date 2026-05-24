@@ -14,12 +14,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   agentic flow (LangGraph), including design principles, anti-patterns, and a
   production hardening checklist. Linked from `README.md`, `HOWTO.md` (§4, §8, §9),
   and the Open WebUI / LangGraph / MCPO component pages.
+- **ADR-001** (`docs/architecture/ADR-001-component-version-management.md`) capturing
+  the 2026-05-24 codebase index + upstream validation. Records the recurring
+  SBOM/Zarf-vs-`values.yaml` drift pattern, lists the five resynced components,
+  enumerates upstream patch lag for four images, and sets the policy that
+  documentation referencing image tags is treated as code and refreshed in lockstep
+  with `values.yaml`. Linked from `README.md` documentation table.
 
 ### Changed
 
 - README architecture diagram: clarified legend (default-enabled vs opt-in vs
   conditional edges) and marked Authelia → Valkey / Postgres edges as conditional
   to match the chart's storage/session toggles.
+
+### Fixed
+
+- **SBOM drift fixed (again)** — five image versions in `sbom.cdx.json` were lagging
+  `values.yaml`. Resynced: open-webui `v0.9.2 → v0.9.5`, ollama `0.23.1 → 0.24.0`,
+  qdrant `v1.17.1 → v1.18.0`, valkey `8.1.6 → 9.1.0`, opentelemetry-collector-contrib
+  `0.151.0 → 0.152.0`. Refreshed BOM `serialNumber` and `metadata.timestamp` (2026-05-24).
+- **Zarf drift fixed (again)** — same five stale image references in `zarf.yaml`
+  resynced to match `values.yaml`.
+- **LICENSE_COMPLIANCE.md** — chart-version header updated from 2.0.0 (last reviewed
+  2026-03-26) to 2.2.0 (2026-05-24). Image-version cells refreshed for all 14 components
+  in the license matrix to match `values.yaml`.
+- **EU_COMPLIANCE_CHECK.md** — header updated from chart 2.0.0 / appVersion 2026.1 to
+  2.2.0 / 2026.4; date marked as re-validated on 2026-05-24.
+- **ENTERPRISE_EVALUATION.md** — header and body bumped from chart 2.0.0 / appVersion
+  2026.1 to 2.2.0 / 2026.4.
+- **HOWTO.md §1.3 air-gap example** — stale image references (`v0.8.10`, `0.18.2`,
+  `0.18.0`) replaced with current pins (`v0.9.5`, `0.24.0`).
+- **docs/components/tika.md** — upstream REST API URL repointed from `3.1.1` to `3.3.0`
+  to match the deployed image tag.
+- **docs/governance/CONTROLS.md** — registry version footer bumped from 2.0 to 2.2 to
+  track `Chart.yaml`.
 
 ## [2.2.0] - 2026-04-29
 

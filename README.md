@@ -606,6 +606,7 @@ ct lint --config ct.yaml --charts .
 |----------|---------|
 | [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
 | [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md) | Reference architecture — design principles, conversational + RAG flow, agentic flow, hardening checklist |
+| [docs/architecture/ADR-001-component-version-management.md](docs/architecture/ADR-001-component-version-management.md) | Architecture Decision Record — `values.yaml` as the single source of truth for image tags, with SBOM/Zarf and version-bearing docs kept in lockstep |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |
