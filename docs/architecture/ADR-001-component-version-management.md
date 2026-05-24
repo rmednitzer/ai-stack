@@ -114,11 +114,17 @@ chasing on different cadences.
    `docs/components/` intentionally avoid hardcoding tags ("see `values.yaml`
    for pinned tag") and remain the preferred pattern for new docs.
 
-3. **Upstream-patch lag is acknowledged but not auto-applied.** Bumping image
-   tags is gated by the maintainer's release cadence and the chart's manual
-   image-version policy (see `.github/dependabot.yml` — Dependabot only manages
-   GitHub Actions). Audit-mode lag is recorded in this ADR rather than acted
-   upon automatically so that bumps remain explicit, reviewable changes.
+3. **Upstream-patch lag is acknowledged but not auto-applied.** Image-tag
+   updates are bot-driven but split across two managers:
+   [`renovate.json5`](../../renovate.json5) (`enabledManagers: ["helm-values"]`)
+   bumps `values.yaml` and `values-prod.yaml`;
+   [`.github/dependabot.yml`](../../.github/dependabot.yml) handles
+   `github-actions` and `docker` (Dockerfile / docker-compose) ecosystems
+   only. **Neither bot updates `sbom.cdx.json` or `zarf.yaml`** — these
+   downstream artifacts are the source of the recurring drift documented in
+   the Context above. Audit-mode lag is recorded in this ADR rather than
+   acted upon automatically so that downstream syncs remain explicit,
+   reviewable changes.
 
 4. **Future ADRs** are numbered sequentially in `docs/architecture/` and use the
    `ADR-NNN-short-slug.md` filename pattern. This file is the template.
@@ -137,10 +143,14 @@ chasing on different cadences.
 
 **Negative / accepted trade-offs**
 
-- Manual sync remains a possible failure mode. Mitigation: the SBOM CI job
-  already checks component count; consider extending it to also compare the
-  numeric version per component (out of scope for this ADR — file a follow-up
-  if the next audit finds drift again).
+- Manual sync remains a possible failure mode — and the **primary** failure
+  mode, because Renovate's `helm-values` manager bumps `values.yaml` on its
+  own schedule but does not touch the downstream artifacts. Mitigation: the
+  SBOM CI job already checks component count; the natural follow-up is to
+  extend `sbom-validate` (and add a `zarf-validate` step) to compare each
+  component's `version` / image-tag string against the corresponding
+  `values.yaml` field, failing the build on drift. That extension is out of
+  scope for this ADR — file a follow-up if the next audit finds drift again.
 - Patch-level lag (currently four components) is documented but not closed.
   Mitigation: a future PR can bump these once tested against the chart's
   smoke-test suite (`helm test`) and the kubeconform / chart-testing CI jobs.
