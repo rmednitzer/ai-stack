@@ -170,9 +170,9 @@ For environments without internet access:
 helm template ai-stack . | grep "image:" | sort -u
 
 # Pull, tag, and push each image to your registry
-docker pull ghcr.io/open-webui/open-webui:v0.8.10
-docker tag ghcr.io/open-webui/open-webui:v0.8.10 registry.internal/open-webui:v0.8.10
-docker push registry.internal/open-webui:v0.8.10
+docker pull ghcr.io/open-webui/open-webui:v0.9.5
+docker tag ghcr.io/open-webui/open-webui:v0.9.5 registry.internal/open-webui:v0.9.5
+docker push registry.internal/open-webui:v0.9.5
 # Repeat for all images...
 ```
 
@@ -182,11 +182,11 @@ docker push registry.internal/open-webui:v0.8.10
 openwebui:
   image:
     repository: registry.internal/open-webui
-    tag: "v0.8.10"
+    tag: "v0.9.5"
 ollama:
   image:
     repository: registry.internal/ollama
-    tag: "0.18.2"
+    tag: "0.24.0"
 # ... repeat for all components
 ```
 
@@ -1213,7 +1213,7 @@ To update a single component without changing the chart:
 
 ```bash
 helm upgrade ai-stack . -n ai-stack \
-  --set ollama.image.tag="0.18.0"
+  --set ollama.image.tag="0.24.0"
 ```
 
 Or update the tag in your values file and run `helm upgrade`.

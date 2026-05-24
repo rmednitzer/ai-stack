@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:f94ffd2d-9547-47bf-9e90-67609ca4dd6b",
+  "serialNumber": "urn:uuid:7a3b5d2e-8c41-4f9a-b6e7-1c54a9d3f082",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-05-16T00:00:00Z",
+    "timestamp": "2026-05-24T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -59,9 +59,9 @@
       "type": "container",
       "bom-ref": "open-webui",
       "name": "open-webui",
-      "version": "v0.9.2",
+      "version": "v0.9.5",
       "description": "Primary user interface for LLM interaction",
-      "purl": "pkg:docker/open-webui/open-webui@v0.9.2?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-webui@v0.9.5?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -94,9 +94,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.23.1",
+      "version": "0.24.0",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.23.1",
+      "purl": "pkg:docker/ollama/ollama@0.24.0",
       "licenses": [
         {
           "license": {
@@ -129,9 +129,9 @@
       "type": "container",
       "bom-ref": "qdrant",
       "name": "qdrant",
-      "version": "v1.17.1",
+      "version": "v1.18.0",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.17.1",
+      "purl": "pkg:docker/qdrant/qdrant@v1.18.0",
       "licenses": [
         {
           "license": {
@@ -238,9 +238,9 @@
       "type": "container",
       "bom-ref": "valkey",
       "name": "valkey",
-      "version": "8.1.6",
+      "version": "9.1.0",
       "description": "In-memory session cache and rate-limiting backend",
-      "purl": "pkg:docker/valkey/valkey@8.1.6",
+      "purl": "pkg:docker/valkey/valkey@9.1.0",
       "licenses": [
         {
           "license": {
@@ -273,9 +273,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.151.0",
+      "version": "0.152.0",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.151.0",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.152.0",
       "licenses": [
         {
           "license": {
