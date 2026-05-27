@@ -40,11 +40,11 @@ components:
       # Ollama
       - ollama/ollama:0.24.0
       # Qdrant
-      - qdrant/qdrant:v1.18.0
+      - qdrant/qdrant:v1.18.1
       # Apache Tika
       - apache/tika:3.3.0.0
       # SearXNG
-      - searxng/searxng:2026.4.11-9e08a6771
+      - searxng/searxng:2026.5.26-0037d43d8
       # Open Terminal
       - ghcr.io/open-webui/open-terminal:0.11.34
       # Valkey
@@ -134,7 +134,7 @@ components:
             path: global.otel.enabled
             default: "true"
     images:
-      - otel/opentelemetry-collector-contrib:0.152.0
+      - otel/opentelemetry-collector-contrib:0.153.0
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
@@ -154,4 +154,4 @@ components:
             path: authelia.enabled
             default: "true"
     images:
-      - ghcr.io/authelia/authelia:4.39
+      - ghcr.io/authelia/authelia:4.39.20

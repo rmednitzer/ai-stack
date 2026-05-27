@@ -20,12 +20,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enumerates upstream patch lag for four images, and sets the policy that
   documentation referencing image tags is treated as code and refreshed in lockstep
   with `values.yaml`. Linked from `README.md` documentation table.
+- **CI image-tag parity check** in `.github/workflows/lint.yaml` `sbom-validate`
+  job: a new step "Verify image-tag parity across values.yaml, sbom.cdx.json,
+  zarf.yaml" enforces per-component version equality across all three files,
+  flags purl-vs-version internal desync inside the SBOM, reports basename
+  collisions, and lists components missing from any of the three sources.
+  Closes the ADR-001 §Consequences follow-up ("file a follow-up if the next
+  audit finds drift again"). The Zarf side is covered by the same step
+  rather than a separate job (no Docker pulls required for repo-only
+  comparison).
 
 ### Changed
 
 - README architecture diagram: clarified legend (default-enabled vs opt-in vs
   conditional edges) and marked Authelia → Valkey / Postgres edges as conditional
   to match the chart's storage/session toggles.
+- **OTel Collector image** bumped from `0.152.0` to `0.153.0` across `values.yaml`,
+  `sbom.cdx.json`, `zarf.yaml`, and `docs/compliance/LICENSE_COMPLIANCE.md`.
+  Absorbs Dependabot PR #106 with atomic SBOM/Zarf sync per ADR-001 §Decision[1].
+  Upstream review (v0.153.0 release notes): no breaking changes affect this chart;
+  the v0.153.0 default `error_mode` change for `filter`/`transform` processors does
+  not apply because the chart uses the `redaction` processor instead. Note:
+  `resourcedetection` is deprecated upstream in favour of `resource_detection`;
+  the old name still works in v0.153.0 but should be renamed in a follow-up PR.
+- **SearXNG image** bumped from `2026.4.11-9e08a6771` to `2026.5.26-0037d43d8`
+  across `values.yaml`, `sbom.cdx.json`, `zarf.yaml`, and
+  `docs/compliance/LICENSE_COMPLIANCE.md`. Closes the ~6-week upstream lag
+  identified in ADR-001 §3 (informational at audit time). The chart's SearXNG
+  config (`use_default_settings: true` with minimal overrides:
+  `server.limiter: false`, `image_proxy: false`, `safe_search: 0`,
+  `formats: [html, json]`, `general.enable_metrics: false`) is unaffected by
+  upstream changes in this window. SearXNG uses continuous-release tagged
+  container images; no formal release notes exist for individual tags. Smoke
+  verification: `helm template` renders unchanged line counts; chart-testing
+  expected to pass at PR time.
+- **Authelia image** pinned from floating `4.39` to exact `4.39.20` across
+  `values.yaml`, `sbom.cdx.json`, `zarf.yaml`,
+  `docs/compliance/LICENSE_COMPLIANCE.md`, and `HOWTO.md` §12.2 docker-run
+  example. Closes the ADR-001 §3 exact-pin lag (one patch newer than ADR-001's
+  `v4.39.19` reference; `4.39.20` released 2026-05-26). v4.39.20 fixes two
+  upstream security advisories: edge-case access-control rule domain
+  canonicalisation, and missing username canonicalisation in LDAP Basic Auth.
+  Behavioural change: access-control domain matching is now case-insensitive,
+  which may affect deployments that relied on case-sensitive matching. The
+  chart ships no preset Authelia access rules; user-managed rules should be
+  reviewed during the next Authelia config touchpoint.
 
 ### Fixed
 
@@ -48,6 +87,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to match the deployed image tag.
 - **docs/governance/CONTROLS.md** — registry version footer bumped from 2.0 to 2.2 to
   track `Chart.yaml`.
+- **SBOM and Zarf drift closure (qdrant `v1.18.0` → `v1.18.1`)**: PR #107 bumped
+  `values.yaml` only, reintroducing the drift pattern ADR-001 §Decision[1] guards
+  against. Resynced `sbom.cdx.json` and `zarf.yaml` to `v1.18.1`; refreshed BOM
+  `serialNumber` and `metadata.timestamp` (2026-05-27). `docs/compliance/LICENSE_COMPLIANCE.md`
+  qdrant row updated to match.
+- **renovate.json5 ownership comment** corrected. The previous comment claimed
+  Dependabot owns "Dockerfile/container deps" exclusively, but Dependabot's
+  `docker` ecosystem also opens PRs against `values.yaml` (PR #106 is the
+  empirical example: a bot-only `values.yaml` bump that would have produced
+  drift without the absorption commit). New comment describes the actual
+  dual-bot overlap, the rate-limit-based tolerance, and the preference for
+  Renovate's PR when both bots fire on the same image.
+- **README Kubernetes badge** corrected from `1.27+` to `1.25+` to match
+  `Chart.yaml`'s `kubeVersion: ">=1.25.0-0"`. PSA restricted, NetworkPolicy
+  `networking.k8s.io/v1`, `autoscaling/v2` HPA, and `policy/v1` PDB are all
+  GA at or before K8s 1.25, so `1.25` is the correct documented floor.
 
 ## [2.2.0] - 2026-04-29
 

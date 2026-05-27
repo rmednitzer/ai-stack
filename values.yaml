@@ -134,7 +134,7 @@ authelia:
   enabled: false  # Opt-in; when true, Open WebUI OAUTH_* env vars are auto-wired
   image:
     repository: ghcr.io/authelia/authelia
-    tag: "4.39"
+    tag: "4.39.20"
   service:
     type: ClusterIP
     port: 9091
@@ -464,7 +464,7 @@ searxng:
   secretKey: ""
   image:
     repository: searxng/searxng
-    tag: "2026.4.11-9e08a6771"
+    tag: "2026.5.26-0037d43d8"
   service:
     type: ClusterIP
     port: 8080
@@ -1052,7 +1052,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.152.0"
+    tag: "0.153.0"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128

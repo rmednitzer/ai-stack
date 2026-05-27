@@ -81,8 +81,8 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install check-jsonschema
-        run: pip install --quiet check-jsonschema
+      - name: Install Python deps (check-jsonschema, PyYAML)
+        run: pip install --quiet check-jsonschema pyyaml
 
       - name: Validate SBOM against CycloneDX 1.6 schema
         run: |
@@ -102,6 +102,103 @@ jobs:
             echo "::error::SBOM component count ($SBOM_COMPONENTS) does not match values.yaml image count ($VALUES_IMAGES). Update sbom.cdx.json."
             exit 1
           fi
+
+      - name: Verify image-tag parity across values.yaml, sbom.cdx.json, zarf.yaml
+        # Per ADR-001 §Decision[1], values.yaml is the source of truth for image
+        # references; sbom.cdx.json and zarf.yaml are downstream artifacts that
+        # must match. The count-only check above does not catch version drift
+        # (e.g. PR #107 bumped values.yaml only without touching downstream
+        # artifacts). This step closes the ADR-001 §Consequences follow-up by
+        # enforcing per-component version parity. Component identity is the
+        # image-repository basename (e.g. open-webui/open-webui -> open-webui).
+        run: |
+          python3 <<'PY'
+          import sys, re, json
+          import yaml
+
+          def basename(s):
+              return s.rsplit('/', 1)[-1] if '/' in s else s
+
+          def values_images(node, out=None):
+              if out is None:
+                  out = {}
+              if isinstance(node, dict):
+                  if isinstance(node.get('repository'), str):
+                      out[node['repository']] = str(node.get('tag', 'latest'))
+                  for v in node.values():
+                      values_images(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      values_images(it, out)
+              return out
+
+          def sbom_images(bom):
+              out = {}
+              issues = []
+              for c in bom.get('components', []):
+                  name = c.get('name', '')
+                  version = str(c.get('version', ''))
+                  purl = c.get('purl', '')
+                  m = re.match(r'pkg:docker/([^@?]+)@([^?]+)', purl)
+                  if m:
+                      out[m.group(1)] = version
+                      if version and m.group(2) != version:
+                          issues.append((name or m.group(1), version, m.group(2)))
+                  elif name and version:
+                      out[name] = version
+              return out, issues
+
+          def zarf_images(text):
+              out = {}
+              for m in re.finditer(r'^\s+-\s+([A-Za-z0-9_.\-/]+):([A-Za-z0-9_.\-]+)\s*$', text, re.M):
+                  out[m.group(1)] = m.group(2)
+              return out
+
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          with open('sbom.cdx.json') as f:
+              bom = json.load(f)
+          with open('zarf.yaml') as f:
+              ztext = f.read()
+
+          v = values_images(vals)
+          b, purl_issues = sbom_images(bom)
+          z = zarf_images(ztext)
+
+          if purl_issues:
+              for name, vv, pv in purl_issues:
+                  print(f"::error::sbom.cdx.json {name!r}: component.version={vv!r} but purl version={pv!r}", file=sys.stderr)
+              sys.exit(2)
+
+          vk = {basename(k): t for k, t in v.items()}
+          bk = {basename(k): t for k, t in b.items()}
+          zk = {basename(k): t for k, t in z.items()}
+
+          for label, src, norm in (('values.yaml', v, vk), ('sbom.cdx.json', b, bk), ('zarf.yaml', z, zk)):
+              if len(src) != len(norm):
+                  print(f"::error::{label}: image-name basename collision ({len(src)} sources, {len(norm)} after normalisation). Add explicit disambiguation.", file=sys.stderr)
+                  sys.exit(2)
+
+          all_keys = set(vk) | set(bk) | set(zk)
+          missing = []
+          for k in sorted(all_keys):
+              where = [name for name, m in (('values.yaml', vk), ('sbom.cdx.json', bk), ('zarf.yaml', zk)) if k not in m]
+              if where:
+                  missing.append((k, where))
+          if missing:
+              for k, where in missing:
+                  print(f"::error::Component {k!r} missing from: {', '.join(where)}", file=sys.stderr)
+              sys.exit(1)
+
+          drift = [(k, vk[k], bk[k], zk[k]) for k in sorted(all_keys) if not (vk[k] == bk[k] == zk[k])]
+          if drift:
+              for k, vv, bv, zv in drift:
+                  print(f"::error::Version drift {k!r}: values.yaml={vv}, sbom.cdx.json={bv}, zarf.yaml={zv}", file=sys.stderr)
+              print(f"::error::{len(drift)} component(s) divergent. Update sbom.cdx.json and zarf.yaml to match values.yaml per ADR-001 §Decision[1].", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"::notice::Image-tag parity OK for {len(all_keys)} component(s) across values.yaml, sbom.cdx.json, zarf.yaml.")
+          PY
 
   syft-sbom:
     # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
