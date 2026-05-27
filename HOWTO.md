@@ -887,7 +887,7 @@ Authelia uses a file-based authentication backend by default. Generate a passwor
 
 ```bash
 # Generate an Argon2 password hash
-docker run --rm ghcr.io/authelia/authelia:4.39 \
+docker run --rm ghcr.io/authelia/authelia:4.39.20 \
   authelia crypto hash generate argon2 --password 'your-password'
 ```
 

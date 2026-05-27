@@ -43,6 +43,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not apply because the chart uses the `redaction` processor instead. Note:
   `resourcedetection` is deprecated upstream in favour of `resource_detection`;
   the old name still works in v0.153.0 but should be renamed in a follow-up PR.
+- **SearXNG image** bumped from `2026.4.11-9e08a6771` to `2026.5.26-0037d43d8`
+  across `values.yaml`, `sbom.cdx.json`, `zarf.yaml`, and
+  `docs/compliance/LICENSE_COMPLIANCE.md`. Closes the ~6-week upstream lag
+  identified in ADR-001 §3 (informational at audit time). The chart's SearXNG
+  config (`use_default_settings: true` with minimal overrides:
+  `server.limiter: false`, `image_proxy: false`, `safe_search: 0`,
+  `formats: [html, json]`, `general.enable_metrics: false`) is unaffected by
+  upstream changes in this window. SearXNG uses continuous-release tagged
+  container images; no formal release notes exist for individual tags. Smoke
+  verification: `helm template` renders unchanged line counts; chart-testing
+  expected to pass at PR time.
+- **Authelia image** pinned from floating `4.39` to exact `4.39.20` across
+  `values.yaml`, `sbom.cdx.json`, `zarf.yaml`,
+  `docs/compliance/LICENSE_COMPLIANCE.md`, and `HOWTO.md` §12.2 docker-run
+  example. Closes the ADR-001 §3 exact-pin lag (one patch newer than ADR-001's
+  `v4.39.19` reference; `4.39.20` released 2026-05-26). v4.39.20 fixes two
+  upstream security advisories: edge-case access-control rule domain
+  canonicalisation, and missing username canonicalisation in LDAP Basic Auth.
+  Behavioural change: access-control domain matching is now case-insensitive,
+  which may affect deployments that relied on case-sensitive matching. The
+  chart ships no preset Authelia access rules; user-managed rules should be
+  reviewed during the next Authelia config touchpoint.
 
 ### Fixed
 

@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:80d4388d-bbf3-4ec0-8e3b-5078ea818228",
+  "serialNumber": "urn:uuid:bfa9fc2b-037d-40a1-a54d-87514ad0b573",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-05-27T15:04:24Z",
+    "timestamp": "2026-05-27T15:10:21Z",
     "tools": {
       "components": [
         {
@@ -199,9 +199,9 @@
       "type": "container",
       "bom-ref": "searxng",
       "name": "searxng",
-      "version": "2026.4.11-9e08a6771",
+      "version": "2026.5.26-0037d43d8",
       "description": "Privacy-respecting metasearch engine for web RAG",
-      "purl": "pkg:docker/searxng/searxng@2026.4.11-9e08a6771",
+      "purl": "pkg:docker/searxng/searxng@2026.5.26-0037d43d8",
       "licenses": [
         {
           "license": {
@@ -488,9 +488,9 @@
       "type": "container",
       "bom-ref": "authelia",
       "name": "authelia",
-      "version": "4.39",
+      "version": "4.39.20",
       "description": "OIDC identity provider for SSO, MFA, and federated authentication",
-      "purl": "pkg:docker/authelia/authelia@4.39?repository_url=ghcr.io",
+      "purl": "pkg:docker/authelia/authelia@4.39.20?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {

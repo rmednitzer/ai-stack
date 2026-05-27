@@ -23,7 +23,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Ollama | `ollama/ollama` | 0.24.0 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.18.1 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.0.0 | Apache-2.0 | Permissive | Enabled | No |
-| SearXNG | `searxng/searxng` | 2026.4.11-9e08a6771 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
+| SearXNG | `searxng/searxng` | 2026.5.26-0037d43d8 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.153.0 | Apache-2.0 | Permissive | Conditional | No |
 | LangGraph Server | `docker.io/langchain/langgraph-server` | 0.8-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
@@ -31,7 +31,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 | BSD-3-Clause | Permissive | Opt-in | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.34 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | 0.0.20 | MIT | Permissive | Opt-in | No |
-| Authelia | `ghcr.io/authelia/authelia` | 4.39 | Apache-2.0 | Permissive | Opt-in | No |
+| Authelia | `ghcr.io/authelia/authelia` | 4.39.20 | Apache-2.0 | Permissive | Opt-in | No |
 | Ingestion Worker | `docker.io/library/python` | 3.14-slim | PSF-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0
