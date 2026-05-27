@@ -21,7 +21,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 |-----------|-------|---------|----------------|------|---------|----------|
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.5 | MIT | Permissive | Enabled | No |
 | Ollama | `ollama/ollama` | 0.24.0 | MIT | Permissive | Enabled | No |
-| Qdrant | `qdrant/qdrant` | v1.18.0 | Apache-2.0 | Permissive | Enabled | No |
+| Qdrant | `qdrant/qdrant` | v1.18.1 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.0.0 | Apache-2.0 | Permissive | Enabled | No |
 | SearXNG | `searxng/searxng` | 2026.4.11-9e08a6771 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |

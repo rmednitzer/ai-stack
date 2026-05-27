@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to match the deployed image tag.
 - **docs/governance/CONTROLS.md** — registry version footer bumped from 2.0 to 2.2 to
   track `Chart.yaml`.
+- **SBOM and Zarf drift closure (qdrant `v1.18.0` → `v1.18.1`)**: PR #107 bumped
+  `values.yaml` only, reintroducing the drift pattern ADR-001 §Decision[1] guards
+  against. Resynced `sbom.cdx.json` and `zarf.yaml` to `v1.18.1`; refreshed BOM
+  `serialNumber` and `metadata.timestamp` (2026-05-27). `docs/compliance/LICENSE_COMPLIANCE.md`
+  qdrant row updated to match.
 
 ## [2.2.0] - 2026-04-29
 
