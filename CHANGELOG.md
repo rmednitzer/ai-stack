@@ -77,6 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drift without the absorption commit). New comment describes the actual
   dual-bot overlap, the rate-limit-based tolerance, and the preference for
   Renovate's PR when both bots fire on the same image.
+- **README Kubernetes badge** corrected from `1.27+` to `1.25+` to match
+  `Chart.yaml`'s `kubeVersion: ">=1.25.0-0"`. PSA restricted, NetworkPolicy
+  `networking.k8s.io/v1`, `autoscaling/v2` HPA, and `policy/v1` PDB are all
+  GA at or before K8s 1.25, so `1.25` is the correct documented floor.
 
 ## [2.2.0] - 2026-04-29
 
