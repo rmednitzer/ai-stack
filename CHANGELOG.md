@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README architecture diagram: clarified legend (default-enabled vs opt-in vs
   conditional edges) and marked Authelia → Valkey / Postgres edges as conditional
   to match the chart's storage/session toggles.
+- **OTel Collector image** bumped from `0.152.0` to `0.153.0` across `values.yaml`,
+  `sbom.cdx.json`, `zarf.yaml`, and `docs/compliance/LICENSE_COMPLIANCE.md`.
+  Absorbs Dependabot PR #106 with atomic SBOM/Zarf sync per ADR-001 §Decision[1].
+  Upstream review (v0.153.0 release notes): no breaking changes affect this chart;
+  the v0.153.0 default `error_mode` change for `filter`/`transform` processors does
+  not apply because the chart uses the `redaction` processor instead. Note:
+  `resourcedetection` is deprecated upstream in favour of `resource_detection`;
+  the old name still works in v0.153.0 but should be renamed in a follow-up PR.
 
 ### Fixed
 

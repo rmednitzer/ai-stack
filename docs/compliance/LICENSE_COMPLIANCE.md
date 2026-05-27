@@ -25,7 +25,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Tika | `apache/tika` | 3.3.0.0 | Apache-2.0 | Permissive | Enabled | No |
 | SearXNG | `searxng/searxng` | 2026.4.11-9e08a6771 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |
-| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.152.0 | Apache-2.0 | Permissive | Conditional | No |
+| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.153.0 | Apache-2.0 | Permissive | Conditional | No |
 | LangGraph Server | `docker.io/langchain/langgraph-server` | 0.8-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 | BSD-3-Clause | Permissive | Opt-in | No |

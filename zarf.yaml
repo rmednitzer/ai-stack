@@ -134,7 +134,7 @@ components:
             path: global.otel.enabled
             default: "true"
     images:
-      - otel/opentelemetry-collector-contrib:0.152.0
+      - otel/opentelemetry-collector-contrib:0.153.0
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
