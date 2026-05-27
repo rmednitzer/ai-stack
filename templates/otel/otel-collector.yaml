@@ -203,7 +203,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: otel-collector
-          image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+          image: "{{ .Values.otelCollector.image.repository }}{{- if .Values.otelCollector.image.digest }}@{{ .Values.otelCollector.image.digest }}{{- else }}:{{ .Values.otelCollector.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

@@ -21,6 +21,9 @@
   "helm-values": {
     "fileMatch": ["(^|/)values\\.yaml$", "(^|/)values-prod\\.yaml$"]
   },
+  // Pin digests alongside tags per ADR-002. Renovate will populate `digest:`
+  // fields whenever it bumps `tag:`, keeping the two in lockstep.
+  "pinDigests": true,
   "prConcurrentLimit": 8,
   "prHourlyLimit": 2,
   "packageRules": [

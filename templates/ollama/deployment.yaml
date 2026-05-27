@@ -38,7 +38,7 @@ spec:
       terminationGracePeriodSeconds: 120
       containers:
         - name: ollama
-          image: "{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          image: "{{ .Values.ollama.image.repository }}{{- if .Values.ollama.image.digest }}@{{ .Values.ollama.image.digest }}{{- else }}:{{ .Values.ollama.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

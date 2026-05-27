@@ -39,7 +39,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "langgraph" "replicaCount" .Values.langgraph.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.langgraph)) | nindent 6 }}
       containers:
         - name: langgraph
-          image: "{{ .Values.langgraph.image.repository }}:{{ .Values.langgraph.image.tag }}"
+          image: "{{ .Values.langgraph.image.repository }}{{- if .Values.langgraph.image.digest }}@{{ .Values.langgraph.image.digest }}{{- else }}:{{ .Values.langgraph.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
