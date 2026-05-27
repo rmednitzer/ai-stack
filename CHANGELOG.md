@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against. Resynced `sbom.cdx.json` and `zarf.yaml` to `v1.18.1`; refreshed BOM
   `serialNumber` and `metadata.timestamp` (2026-05-27). `docs/compliance/LICENSE_COMPLIANCE.md`
   qdrant row updated to match.
+- **renovate.json5 ownership comment** corrected. The previous comment claimed
+  Dependabot owns "Dockerfile/container deps" exclusively, but Dependabot's
+  `docker` ecosystem also opens PRs against `values.yaml` (PR #106 is the
+  empirical example: a bot-only `values.yaml` bump that would have produced
+  drift without the absorption commit). New comment describes the actual
+  dual-bot overlap, the rate-limit-based tolerance, and the preference for
+  Renovate's PR when both bots fire on the same image.
 
 ## [2.2.0] - 2026-04-29
 
