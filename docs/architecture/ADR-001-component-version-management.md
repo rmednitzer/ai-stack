@@ -151,6 +151,17 @@ chasing on different cadences.
   component's `version` / image-tag string against the corresponding
   `values.yaml` field, failing the build on drift. That extension is out of
   scope for this ADR — file a follow-up if the next audit finds drift again.
+  - **Status update (2026-05-27):** The next audit (this branch) found drift
+    again: PR #107 bumped `values.yaml` to `qdrant v1.18.1` while leaving
+    `sbom.cdx.json` and `zarf.yaml` at `v1.18.0`. The follow-up CI
+    enforcement is now implemented as a new step
+    "Verify image-tag parity across values.yaml, sbom.cdx.json, zarf.yaml"
+    inside the `sbom-validate` job of `.github/workflows/lint.yaml`. It
+    validates per-component version equality across all three files,
+    detects basename collisions, missing components, and internal
+    SBOM purl-vs-version desync. The Zarf side is covered by the same
+    step rather than a separate job, since the comparison runs purely on
+    repo files (no Docker pulls).
 - Patch-level lag (currently four components) is documented but not closed.
   Mitigation: a future PR can bump these once tested against the chart's
   smoke-test suite (`helm test`) and the kubeconform / chart-testing CI jobs.

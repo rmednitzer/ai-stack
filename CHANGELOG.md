@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enumerates upstream patch lag for four images, and sets the policy that
   documentation referencing image tags is treated as code and refreshed in lockstep
   with `values.yaml`. Linked from `README.md` documentation table.
+- **CI image-tag parity check** in `.github/workflows/lint.yaml` `sbom-validate`
+  job: a new step "Verify image-tag parity across values.yaml, sbom.cdx.json,
+  zarf.yaml" enforces per-component version equality across all three files,
+  flags purl-vs-version internal desync inside the SBOM, reports basename
+  collisions, and lists components missing from any of the three sources.
+  Closes the ADR-001 §Consequences follow-up ("file a follow-up if the next
+  audit finds drift again"). The Zarf side is covered by the same step
+  rather than a separate job (no Docker pulls required for repo-only
+  comparison).
 
 ### Changed
 
