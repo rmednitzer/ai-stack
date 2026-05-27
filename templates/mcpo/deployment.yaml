@@ -37,7 +37,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "mcpo" "replicaCount" .Values.mcpo.replicaCount) | nindent 6 }}
       containers:
         - name: mcpo
-          image: "{{ .Values.mcpo.image.repository }}:{{ .Values.mcpo.image.tag }}"
+          image: "{{ .Values.mcpo.image.repository }}{{- if .Values.mcpo.image.digest }}@{{ .Values.mcpo.image.digest }}{{- else }}:{{ .Values.mcpo.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}

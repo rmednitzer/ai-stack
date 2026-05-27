@@ -678,7 +678,7 @@ spec:
       initContainers:
         {{- if .Values.valkey.enabled }}
         - name: init-valkey-stream
-          image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
+          image: "{{ .Values.valkey.image.repository }}{{- if .Values.valkey.image.digest }}@{{ .Values.valkey.image.digest }}{{- else }}:{{ .Values.valkey.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command:
             - sh
@@ -709,7 +709,7 @@ spec:
               memory: 32Mi
         {{- end }}
         - name: install-deps
-          image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
+          image: "{{ .Values.ingestionWorker.image.repository }}{{- if .Values.ingestionWorker.image.digest }}@{{ .Values.ingestionWorker.image.digest }}{{- else }}:{{ .Values.ingestionWorker.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command: ['sh', '-c', 'pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt']
           securityContext:
@@ -737,7 +737,7 @@ spec:
               memory: 512Mi
       containers:
         - name: ingestion-worker
-          image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
+          image: "{{ .Values.ingestionWorker.image.repository }}{{- if .Values.ingestionWorker.image.digest }}@{{ .Values.ingestionWorker.image.digest }}{{- else }}:{{ .Values.ingestionWorker.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 1000) | nindent 12 }}

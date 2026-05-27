@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   audit finds drift again"). The Zarf side is covered by the same step
   rather than a separate job (no Docker pulls required for repo-only
   comparison).
+- **ADR-002** (`docs/architecture/ADR-002-image-digest-pinning.md`) accepted:
+  every chart-deployed image now carries both `tag:` and `digest:` in
+  `values.yaml`. Templates render `repo@digest` when `digest` is non-empty,
+  falling back to `repo:tag` otherwise (same pattern previously used only by
+  `openTerminal`). 13 of 14 images carry initial SHA-256 digests captured
+  2026-05-27 via registry-native HTTP HEAD; MCPO's `digest` is empty pending
+  resolution of an upstream tag issue (see Fixed section). Renovate
+  configuration extended with `pinDigests: true` on the `helm-values` manager
+  so digest and tag updates flow together. SBOM components carry the digest
+  in a CycloneDX `hashes` array; Zarf images use `repo:tag@sha256:...` syntax.
+  `values.schema.json` extended with a `digest` field on the `image` def
+  (pattern `^$|^sha256:[a-f0-9]{64}$`).
 
 ### Changed
 
@@ -68,6 +80,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **MCPO upstream tag finding (not yet fixed; out-of-scope flag).** While
+  populating ADR-002 digests, `ghcr.io/open-webui/mcpo` was found to publish
+  only `git-<sha>` tags plus `latest`/`dev`/`main`. The `0.0.20` tag the
+  chart references does not exist in that registry. The chart's default
+  `mcpo.enabled: false` has masked this; deployments that enable MCPO would
+  encounter `ImagePullBackOff`. ADR-002 records the finding and leaves the
+  digest empty (template falls back to the tag, preserving the pre-existing
+  behaviour rather than masking the bug). Fix is deferred to a separate PR;
+  see ADR-002 §MCPO-digest-unresolved for the options.
 - **SBOM drift fixed (again)** — five image versions in `sbom.cdx.json` were lagging
   `values.yaml`. Resynced: open-webui `v0.9.2 → v0.9.5`, ollama `0.23.1 → 0.24.0`,
   qdrant `v1.17.1 → v1.18.0`, valkey `8.1.6 → 9.1.0`, opentelemetry-collector-contrib

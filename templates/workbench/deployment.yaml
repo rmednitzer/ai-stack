@@ -40,7 +40,7 @@ spec:
         # For production, bake these into a custom image instead
         {{- if .Values.workbench.env.PIP_PACKAGES }}
         - name: install-packages
-          image: "{{ .Values.workbench.image.repository }}:{{ .Values.workbench.image.tag }}"
+          image: "{{ .Values.workbench.image.repository }}{{- if .Values.workbench.image.digest }}@{{ .Values.workbench.image.digest }}{{- else }}:{{ .Values.workbench.image.tag }}{{- end }}"
           command:
             - sh
             - -c
@@ -75,7 +75,7 @@ spec:
         {{- end }}
       containers:
         - name: workbench
-          image: "{{ .Values.workbench.image.repository }}:{{ .Values.workbench.image.tag }}"
+          image: "{{ .Values.workbench.image.repository }}{{- if .Values.workbench.image.digest }}@{{ .Values.workbench.image.digest }}{{- else }}:{{ .Values.workbench.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}

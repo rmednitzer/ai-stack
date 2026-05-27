@@ -135,6 +135,7 @@ authelia:
   image:
     repository: ghcr.io/authelia/authelia
     tag: "4.39.20"
+    digest: "sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b"
   service:
     type: ClusterIP
     port: 9091
@@ -210,6 +211,7 @@ openwebui:
   image:
     repository: ghcr.io/open-webui/open-webui
     tag: "v0.9.5"
+    digest: "sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3"
   service:
     type: ClusterIP
     port: 8080
@@ -323,6 +325,7 @@ ollama:
   image:
     repository: ollama/ollama
     tag: "0.24.0"
+    digest: "sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
   service:
     type: ClusterIP
     port: 11434
@@ -378,6 +381,7 @@ qdrant:
   image:
     repository: qdrant/qdrant
     tag: "v1.18.1"
+    digest: "sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89"
   service:
     type: ClusterIP
     httpPort: 6333
@@ -429,6 +433,7 @@ tika:
   image:
     repository: apache/tika
     tag: "3.3.0.0"
+    digest: "sha256:2a565f1ea1290bdcb74a7d35957d16a989ed44ef98790dcdcc28121d728fa583"
   service:
     type: ClusterIP
     port: 9998
@@ -465,6 +470,7 @@ searxng:
   image:
     repository: searxng/searxng
     tag: "2026.5.26-0037d43d8"
+    digest: "sha256:1a9d21346437a41ddfc2286968026dddece1d4d0721625cffa2c3b00bb2f9cf3"
   service:
     type: ClusterIP
     port: 8080
@@ -530,6 +536,7 @@ workbench:
     # includes PyTorch + CUDA but not system tools — extend as needed.
     repository: quay.io/jupyter/pytorch-notebook
     tag: "cuda12-python-3.13"
+    digest: "sha256:ad080f315dfc2e0730b8aec02330405a8fb90d42ccb1965a2bf3a4128e27dc78"
   service:
     type: ClusterIP
     port: 8888
@@ -604,7 +611,7 @@ openTerminal:
   image:
     repository: ghcr.io/open-webui/open-terminal
     tag: "0.11.34"  # Fallback when digest is not set
-    digest: ""      # Optional; set to pin by digest. Leave empty so tag-only overrides remain effective
+    digest: "sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e"  # ADR-002: pinned digest; falls back to tag if cleared
   service:
     type: ClusterIP
     port: 8000
@@ -662,6 +669,7 @@ mcpo:
   image:
     repository: ghcr.io/open-webui/mcpo
     tag: "0.0.20"
+    digest: ""
   service:
     type: ClusterIP
     port: 8000
@@ -722,6 +730,7 @@ langgraph:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
     tag: "0.8-py3.12"
+    digest: "sha256:8fe3a982cd378c7ff82f623f557ee0abd4d322ddaba1e7e3317ce895c6735613"
   service:
     type: ClusterIP
     port: 8000
@@ -828,6 +837,7 @@ postgres:
     image:
       repository: docker.io/library/postgres
       tag: "18-alpine"
+      digest: "sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88"
     env: {}
     persistence:
       enabled: true
@@ -933,6 +943,7 @@ valkey:
   image:
     repository: valkey/valkey
     tag: "9.1.0"
+    digest: "sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9"
   service:
     type: ClusterIP
     port: 6379
@@ -989,6 +1000,7 @@ ingestionWorker:
   image:
     repository: python
     tag: "3.14-slim"
+    digest: "sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
@@ -1053,6 +1065,7 @@ otelCollector:
   image:
     repository: otel/opentelemetry-collector-contrib
     tag: "0.153.0"
+    digest: "sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128

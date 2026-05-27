@@ -150,6 +150,11 @@
       "properties": {
         "repository": { "type": "string" },
         "tag": { "type": ["string", "number"] },
+        "digest": {
+          "type": "string",
+          "pattern": "^$|^sha256:[a-f0-9]{64}$",
+          "description": "Optional OCI manifest digest. When set, the template renders repo@digest; when empty, falls back to repo:tag. Per ADR-002."
+        },
         "pullPolicy": {
           "type": "string",
           "enum": ["Always", "IfNotPresent", "Never"]

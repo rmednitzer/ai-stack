@@ -38,7 +38,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: postgres
-          image: "{{ .Values.postgres.standalone.image.repository }}:{{ .Values.postgres.standalone.image.tag }}"
+          image: "{{ .Values.postgres.standalone.image.repository }}{{- if .Values.postgres.standalone.image.digest }}@{{ .Values.postgres.standalone.image.digest }}{{- else }}:{{ .Values.postgres.standalone.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 999) | nindent 12 }}

@@ -38,7 +38,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: qdrant
-          image: "{{ .Values.qdrant.image.repository }}:{{ .Values.qdrant.image.tag }}"
+          image: "{{ .Values.qdrant.image.repository }}{{- if .Values.qdrant.image.digest }}@{{ .Values.qdrant.image.digest }}{{- else }}:{{ .Values.qdrant.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 1000) | nindent 12 }}

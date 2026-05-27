@@ -149,8 +149,12 @@ jobs:
               return out, issues
 
           def zarf_images(text):
+              # Match `- repo:tag` and optionally `@sha256:<digest>`. The digest
+              # is captured but the tag-only parity check ignores it; digest
+              # parity is enforced via SBOM hashes and values.yaml.digest fields
+              # per ADR-002.
               out = {}
-              for m in re.finditer(r'^\s+-\s+([A-Za-z0-9_.\-/]+):([A-Za-z0-9_.\-]+)\s*$', text, re.M):
+              for m in re.finditer(r'^\s+-\s+([A-Za-z0-9_.\-/]+):([A-Za-z0-9_.\-]+)(?:@sha256:[a-f0-9]{64})?\s*$', text, re.M):
                   out[m.group(1)] = m.group(2)
               return out
 
