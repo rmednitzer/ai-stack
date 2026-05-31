@@ -20,7 +20,6 @@ For the authoritative list of tiers and control references, see [../governance/C
 | Open WebUI | enabled | [openwebui.md](openwebui.md) |
 | Ollama | enabled | [ollama.md](ollama.md) |
 | Qdrant | enabled | [qdrant.md](qdrant.md) |
-
 | LangGraph | opt-in | [langgraph.md](langgraph.md) |
 | Pydantic AI | opt-in | [pydanticai.md](pydanticai.md) |
 
@@ -31,7 +30,7 @@ For the authoritative list of tiers and control references, see [../governance/C
 | Apache Tika | enabled | [tika.md](tika.md) |
 | SearXNG | enabled | [searxng.md](searxng.md) |
 | Valkey | enabled | [valkey.md](valkey.md) |
+| PostgreSQL | enabled | [postgres.md](postgres.md) |
 | Open Terminal | opt-in | [open-terminal.md](open-terminal.md) |
 | MCPO | opt-in | [mcpo.md](mcpo.md) |
-| PostgreSQL | opt-in | [postgres.md](postgres.md) |
 | Ingestion Worker | opt-in | [ingestion-worker.md](ingestion-worker.md) |

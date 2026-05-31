@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pydantic AI production hardening** — the reference agent
+  (`files/pydanticai/app.py`) now exposes an **OpenAI-compatible API**
+  (`GET /v1/models`, `POST /v1/chat/completions` with streaming and
+  non-streaming) alongside `POST /run`, wraps its tool I/O (SearXNG web search,
+  Qdrant retrieval) in `DBOS.step()` for durable, checkpointed execution, and
+  enforces bearer-token auth on every endpoint. Python dependencies are now a
+  **fully pinned, hashed, universal lock** (`files/pydanticai/requirements.txt`,
+  compiled from `requirements.in` and installed with `--require-hashes`);
+  regenerate with `make pydanticai-lock`.
 - **Open WebUI high-availability by default** — Open WebUI now runs as a
   genuinely stateless, horizontally-scalable service. The chart wires
   `WEBUI_SECRET_KEY` (+ `OAUTH_SESSION_TOKEN_ENCRYPTION_KEY`) from a persisted
@@ -20,41 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now a **default-enabled** core dependency (set `postgres.enabled=false` for an
   ephemeral single-pod lab, where Open WebUI falls back to SQLite). New keys:
   `openwebui.secretKey`, `openwebui.databaseName`.
-
-### Removed
-
-- **GPU Workbench component** — the opt-in JupyterLab/CUDA workbench
-  (`workbench.*`) has been removed entirely (template, values, SBOM/Zarf image,
-  docs, and SA/Secret/PDB/NetworkPolicy wiring) to streamline the chart. It was
-  disabled by default, so existing default deployments are unaffected; users who
-  need GPU notebooks should deploy a dedicated JupyterHub/Notebook chart
-  alongside. The chart now pins **14** container images (was 15).
-
-### Fixed
-
-- **Pydantic AI OpenAI-compatible endpoint** — preserve multi-turn chat history
-  (build `message_history` from the full `messages` array instead of only the
-  last user turn); stream real token deltas via `run_stream()` when running
-  non-durable (the DBOS durable path keeps the buffered single-chunk SSE); and
-  return generic error text to clients while logging detail server-side
-  (addresses a CodeQL information-exposure finding). *(Codex/CodeQL review.)*
-- **Open WebUI → LangGraph NetworkPolicy egress** was inadvertently replaced by
-  the Pydantic AI egress rule; both allows now coexist. *(Codex review.)*
-- **Docs link checker** now reproduces GitHub's duplicate-heading anchor
-  suffixes (`-1`, `-2`, …) so links to repeated sections (e.g. multiple
-  `### Added` in this changelog) are not falsely flagged. *(Codex review.)*
-
-### Added (Pydantic AI, from initial 2.5.0 work)
-
-- **Pydantic AI production hardening** — the reference agent
-  (`files/pydanticai/app.py`) now exposes an **OpenAI-compatible API**
-  (`GET /v1/models`, `POST /v1/chat/completions` with streaming and
-  non-streaming) alongside `POST /run`, wraps its tool I/O (SearXNG web search,
-  Qdrant retrieval) in `DBOS.step()` for durable, checkpointed execution, and
-  enforces bearer-token auth on every endpoint. Python dependencies are now a
-  **fully pinned, hashed, universal lock** (`files/pydanticai/requirements.txt`,
-  compiled from `requirements.in` and installed with `--require-hashes`);
-  regenerate with `make pydanticai-lock`.
 - **Open WebUI ↔ Pydantic AI wiring** — set `pydanticai.exposeToOpenWebUI=true`
   to register the agent in Open WebUI's model picker: the chart appends the
   agent's `/v1` endpoint to `OPENAI_API_BASE_URLS`, injects its API key from the
@@ -81,27 +55,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pydantic AI documentation** (`docs/components/pydanticai.md`, `README.md`,
   `HOWTO.md` §8.4) updated for the OpenAI-compatible endpoints, the
   `exposeToOpenWebUI` toggle, and the hashed dependency lock.
-- **Documentation polish across the stack** for v2.4.0: the README architecture
-  diagram now includes Pydantic AI and the Gateway API section lists `pydanticai`;
+- **Documentation polish across the stack**: the README architecture
+  diagram includes Pydantic AI and the Gateway API section lists `pydanticai`;
   `REFERENCE.md` §3 and `HOWTO.md` §8 cover both agentic runtimes (LangGraph /
   Pydantic AI) with a new HOWTO §8.4; `langgraph.md` cross-references the MIT
   alternative; `CONTRIBUTING.md` documents the cross-artifact sync discipline and
   the CI gates (kube-linter, digest parity, zarf-lint); `otel.md` corrected to the
-  actual `redaction` processor; ADR-002's image table/count updated for the
-  Pydantic AI `uv` image (15 images). Retitled REFERENCE §3 and fixed all five
-  inbound anchor links.
+  actual `redaction` processor.
+
+### Removed
+
+- **GPU Workbench component** — the opt-in JupyterLab/CUDA workbench
+  (`workbench.*`) has been removed entirely (template, values, SBOM/Zarf image,
+  docs, and SA/Secret/PDB/NetworkPolicy wiring) to streamline the chart. It was
+  disabled by default, so existing default deployments are unaffected; users who
+  need GPU notebooks should deploy a dedicated JupyterHub/Notebook chart
+  alongside. The chart now pins **14** container images (was 15).
 
 ### Fixed
 
+- **Pydantic AI OpenAI-compatible endpoint** — preserve multi-turn chat history
+  (build `message_history` from the full `messages` array instead of only the
+  last user turn); stream real token deltas via `run_stream()` when running
+  non-durable (the DBOS durable path keeps the buffered single-chunk SSE); and
+  return generic error text to clients while logging detail server-side
+  (addresses a CodeQL information-exposure finding). *(Codex/CodeQL review.)*
+- **Open WebUI → LangGraph NetworkPolicy egress** was inadvertently replaced by
+  the Pydantic AI egress rule; both allows now coexist. *(Codex review.)*
+- **Docs link checker** now reproduces GitHub's duplicate-heading anchor
+  suffixes (`-1`, `-2`, …) so links to repeated sections are not falsely
+  flagged. *(Codex review.)*
 - **`zarf.yaml` chart variables were invalid** against the Zarf package schema
   (`zarf dev lint` reported 16 errors across the optional components): each
   `charts[].variables[]` entry was missing the required `description` and
   carried a `default` key that `ZarfChartVariable` does not permit. Moved the
   defaults to package-level `variables` (which legitimately carry `default`) and
-  gave every variable a `description`. Previously `zarf package create` would
-  have failed for the optional components (workbench, langgraph, pydanticai,
-  mcpo, otel-collector, authelia); `zarf dev lint` now passes cleanly. No change
-  to rendered chart output.
+  gave every variable a `description`. `zarf dev lint` now passes cleanly. No
+  change to rendered chart output.
 
 ## [2.4.0] - 2026-05-31
 

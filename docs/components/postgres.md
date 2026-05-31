@@ -1,10 +1,10 @@
 # PostgreSQL
 
-Relational database backing LangGraph checkpoints and (optionally) Authelia session storage. The chart supports three provisioning modes so you can stay in a single Helm release from lab to HA production to external managed services.
+Relational database backing **Open WebUI's high-availability state**, LangGraph / Pydantic AI checkpoints, and (optionally) Authelia session storage. The chart supports three provisioning modes so you can stay in a single Helm release from lab to HA production to external managed services.
 
 - **Tier**: T2 (productivity)
 - **Boundary**: `internal`
-- **Default**: opt-in (`postgres.enabled=false`)
+- **Default**: enabled (`postgres.enabled=true`). Set `false` for an ephemeral single-pod lab — Open WebUI then falls back to local SQLite.
 - **Upstream**: <https://www.postgresql.org/> · [CloudNativePG](https://cloudnative-pg.io/)
 - **Default image**: `docker.io/library/postgres` (see `values.yaml` for pinned tag)
 - **Chart path**: [`templates/postgres/`](../../templates/postgres/)
@@ -21,9 +21,9 @@ Relational database backing LangGraph checkpoints and (optionally) Authelia sess
 
 | Key | Purpose |
 |-----|---------|
-| `postgres.enabled` | Toggle the component |
+| `postgres.enabled` | Toggle the component (default `true`) |
 | `postgres.mode` | `standalone` / `cnpg` / `external` |
-| `postgres.database`, `postgres.user` | Initial DB and role |
+| `postgres.database`, `postgres.user` | Default DB (LangGraph / DBOS) and role; Open WebUI uses its own `openwebui.databaseName` |
 | `postgres.password` | Explicit password; otherwise auto-generated into `postgres-secret` |
 | `postgres.tls.mode` | `disable`, `prefer`, `require` |
 | `postgres.cnpg.instances` | CNPG replica count (default 3) |
