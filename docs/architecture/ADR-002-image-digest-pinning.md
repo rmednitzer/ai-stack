@@ -97,7 +97,6 @@ single-arch manifest digest).
 | OTel Collector | `otel/opentelemetry-collector-contrib` | `0.153.0` | `sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa` |
 | LangGraph Server | `docker.io/langchain/langgraph-server` | `0.9-py3.12` | `sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce` |
 | PostgreSQL | `docker.io/library/postgres` | `18-alpine` | `sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88` |
-| PyTorch Notebook | `quay.io/jupyter/pytorch-notebook` | `cuda12-python-3.13` | `sha256:ad080f315dfc2e0730b8aec02330405a8fb90d42ccb1965a2bf3a4128e27dc78` |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | `0.11.34` | `sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e` |
 | MCPO | `ghcr.io/open-webui/mcpo` | `main` | `sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467` |
 | Authelia | `ghcr.io/authelia/authelia` | `4.39.20` | `sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b` |
@@ -106,8 +105,8 @@ single-arch manifest digest).
 
 > This table is kept in lockstep with `values.yaml` per ADR-001 and CI digest
 > parity. Rows added or updated since the 2026-05-27 acceptance snapshot include
-> the Pydantic AI `uv` base image (added in v2.4.0, 2026-05-31) and the
-> Tika/SearXNG/LangGraph/MCPO bumps — the chart now pins **15** images.
+> the Pydantic AI `uv` base image (added in v2.4.0, 2026-05-31). The GPU
+> Workbench image was removed in v2.5.0, so the chart now pins **14** images.
 
 ### MCPO digest resolved (2026-05-31, post-acceptance)
 

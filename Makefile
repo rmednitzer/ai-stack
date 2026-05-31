@@ -1,30 +1,38 @@
-SHELL := /bin/bash
-
-CHART_NAME ?= ai-stack
-CHART_DIR ?= .
-PROD_VALUES ?= values-prod.yaml
-
-.PHONY: help lint lint-prod template template-prod ct-lint
+# ai-stack Makefile — common chart operations
+.PHONY: help lint lint-prod template template-prod check-links pydanticai-lock test clean
 
 help:
-	@echo "Targets:"
-	@echo "  lint        - helm lint with default values"
-	@echo "  lint-prod   - helm lint with production overlay"
-	@echo "  template    - render chart with default values"
-	@echo "  template-prod - render chart with production overlay"
-	@echo "  ct-lint     - run chart-testing lint"
+	@echo "ai-stack Helm chart targets:"
+	@echo "  make lint           Run helm lint (lab profile)"
+	@echo "  make lint-prod      Run helm lint (prod profile)"
+	@echo "  make template       Render templates (lab profile)"
+	@echo "  make template-prod  Render templates (prod profile)"
+	@echo "  make check-links    Validate markdown links and anchors"
+	@echo "  make pydanticai-lock  Recompile the hashed Pydantic AI requirements lock (needs uv)"
+	@echo "  make test           Run helm lint + template smoke test"
+	@echo "  make clean          Remove rendered output and packaging artifacts"
 
 lint:
-	helm lint $(CHART_DIR)
+	helm lint .
 
 lint-prod:
-	helm lint $(CHART_DIR) -f values.yaml -f $(PROD_VALUES)
+	helm lint . -f values.yaml -f values-prod.yaml
 
 template:
-	helm template $(CHART_NAME) $(CHART_DIR) --debug
+	helm template ai-stack . --debug > /dev/null && echo "lab template OK"
 
 template-prod:
-	helm template $(CHART_NAME) $(CHART_DIR) -f values.yaml -f $(PROD_VALUES) --debug
+	helm template ai-stack . -f values.yaml -f values-prod.yaml --debug > /dev/null && echo "prod template OK"
 
-ct-lint:
-	ct lint --config ct.yaml --charts $(CHART_DIR)
+check-links:
+	python3 .github/scripts/check_md_links.py
+
+pydanticai-lock:
+	uv pip compile files/pydanticai/requirements.in --universal --generate-hashes \
+		--python-version 3.13 -o files/pydanticai/requirements.txt
+
+test:
+	helm lint . && helm template ai-stack . --debug > /dev/null && echo "smoke test passed"
+
+clean:
+	rm -rf output rendered *.tgz zarf-package-*.tar.zst

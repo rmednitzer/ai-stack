@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.4.0",
+      "version": "2.5.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -435,47 +435,6 @@
     },
     {
       "type": "container",
-      "bom-ref": "workbench",
-      "name": "pytorch-notebook",
-      "version": "cuda12-python-3.13",
-      "description": "GPU-enabled ML engineering environment (JupyterLab)",
-      "purl": "pkg:docker/jupyter/pytorch-notebook@cuda12-python-3.13?repository_url=quay.io",
-      "licenses": [
-        {
-          "license": {
-            "id": "BSD-3-Clause"
-          }
-        }
-      ],
-      "properties": [
-        {
-          "name": "assurance.platform/tier",
-          "value": "T1"
-        },
-        {
-          "name": "assurance.platform/boundary",
-          "value": "decision"
-        },
-        {
-          "name": "chart.ai-stack/default-enabled",
-          "value": "false (opt-in)"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "website",
-          "url": "https://github.com/jupyter/docker-stacks"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "ad080f315dfc2e0730b8aec02330405a8fb90d42ccb1965a2bf3a4128e27dc78"
-        }
-      ]
-    },
-    {
-      "type": "container",
       "bom-ref": "open-terminal",
       "name": "open-terminal",
       "version": "0.11.34",
@@ -703,7 +662,6 @@
         "langgraph-api",
         "pydanticai",
         "postgres",
-        "workbench",
         "open-terminal",
         "mcpo",
         "ingestion-worker",
@@ -742,15 +700,6 @@
         "postgres",
         "ollama",
         "qdrant",
-        "searxng"
-      ]
-    },
-    {
-      "ref": "workbench",
-      "dependsOn": [
-        "ollama",
-        "qdrant",
-        "tika",
         "searxng"
       ]
     },

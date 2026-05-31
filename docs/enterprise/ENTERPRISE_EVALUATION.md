@@ -1,7 +1,7 @@
 # Enterprise Readiness Evaluation — ai-stack
 
 **Date:** 2026-05-24
-**Chart version:** 2.4.0 | **appVersion:** 2026.5
+**Chart version:** 2.5.0 | **appVersion:** 2026.5
 
 ---
 
@@ -23,7 +23,7 @@ alignment with governance, security, observability, and operational requirements
 |---------|--------|
 | PSA restricted baseline | Enforced (`runAsNonRoot`, `drop: ALL`, `seccompProfile: RuntimeDefault`) |
 | NetworkPolicy default-deny | Per-component ingress + egress allowlists |
-| Secret auto-generation | 64-byte keys for Qdrant, SearXNG, Workbench, Open Terminal, MCPO |
+| Secret auto-generation | 64-byte keys for Qdrant, SearXNG, Open Terminal, MCPO |
 | Service account isolation | Per-component, `automountServiceAccountToken: false` |
 | Read-only root filesystem | Qdrant, Valkey, Tika, SearXNG, OTel Collector |
 | Telemetry opt-out | `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY: false` |
@@ -57,7 +57,7 @@ alignment with governance, security, observability, and operational requirements
 - **HPA autoscaling** for stateless components (Open WebUI, Tika)
 - **Disaster recovery** via external tooling (Velero + CSI volume snapshots, CNPG barman for PostgreSQL)
 - CI pipeline: Helm lint → chart-testing → kubeconform schema validation → kube-linter policy lint → SBOM tag/digest parity
-- Chart version 2.4.0 with semver compliance
+- Chart version 2.5.0 with semver compliance
 
 ### 5. Architecture
 
@@ -65,7 +65,7 @@ alignment with governance, security, observability, and operational requirements
 - Stateful/stateless separation with appropriate deployment strategies
   (Recreate for stateful, RollingUpdate for stateless)
 - Internal-only services (ClusterIP) with ingress controller integration
-- Opt-in components (Workbench, Open Terminal, MCPO) reduce default attack surface
+- Opt-in components (Open Terminal, MCPO) reduce default attack surface
 - All images pinned to versioned tags
 - CycloneDX 1.6 SBOM ([sbom.cdx.json](../../sbom.cdx.json)) with full license and dependency graph
 - License compliance matrix ([LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md)) with copyleft analysis

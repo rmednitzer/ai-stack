@@ -24,7 +24,7 @@ by `HTTPRoute` than by `Ingress`.
 ## Decision
 
 1. **Add an opt-in `HTTPRoute` (`gateway.networking.k8s.io/v1`) per
-   externally-exposed component** — `openwebui`, `workbench`, `langgraph`,
+   externally-exposed component** — `openwebui`, `langgraph`,
    `pydanticai`, `authelia` — via a shared `ai-stack.httpRoute` helper, gated by
    a per-component `httpRoute.enabled` (default **false**).
 

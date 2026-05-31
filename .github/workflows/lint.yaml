@@ -557,7 +557,7 @@ jobs:
       - name: kube-linter (all optional components enabled)
         run: |
           helm template ai-stack . \
-            --set workbench.enabled=true,openTerminal.enabled=true,mcpo.enabled=true \
+            --set openTerminal.enabled=true,mcpo.enabled=true \
             --set langgraph.enabled=true,pydanticai.enabled=true,postgres.enabled=true,ingestionWorker.enabled=true \
             --set authelia.enabled=true,global.otel.enabled=true \
             | kube-linter lint --config .kube-linter.yaml -

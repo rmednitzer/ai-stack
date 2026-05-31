@@ -126,7 +126,7 @@ depends on the underlying storage infrastructure.
 | `ai-stack-qdrant` | Yes (vector embeddings from documents) | Yes |
 | `ai-stack-ollama` | No (model weights only) | Recommended |
 | `ai-stack-postgres` | Yes (if LangGraph enabled — agent state) | Yes |
-| `ai-stack-workbench` | Possibly (notebooks, datasets) | Yes |
+
 | `ai-stack-backup` | Yes (contains copies of above) | Yes |
 
 ### 3.2 Implementation Options

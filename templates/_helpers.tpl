@@ -318,6 +318,9 @@ Construct OPENAI_API_BASE_URLS: Ollama endpoint + external provider URLs.
     {{- $urls = append $urls .baseUrl -}}
   {{- end -}}
 {{- end -}}
+{{- if and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI -}}
+  {{- $urls = append $urls (printf "http://%s:%v/v1" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai")) (.Values.pydanticai.service.port | toString)) -}}
+{{- end -}}
 {{- join ";" $urls -}}
 {{- end }}
 
@@ -333,6 +336,9 @@ Construct OPENAI_API_KEYS: placeholder for Ollama + secret refs for external pro
   {{- range $i, $p := .Values.externalAPIs.providers -}}
     {{- $keys = append $keys (printf "$(_EXTAPI_KEY_%d)" $i) -}}
   {{- end -}}
+{{- end -}}
+{{- if and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI -}}
+  {{- $keys = append $keys "$(_PYDANTICAI_KEY)" -}}
 {{- end -}}
 {{- join ";" $keys -}}
 {{- end }}
@@ -393,6 +399,54 @@ Usage: {{ include "ai-stack.qdrantApiKeyEnv" . | nindent N }}
 {{- end }}
 
 {{/*
+Open WebUI high-availability environment.
+
+Open WebUI is stateless ONLY when its session/config state lives in shared
+backends. This injects, as production best practice (docs.openwebui.com
+"Scaling & HA"):
+  * WEBUI_SECRET_KEY (+ OAUTH_SESSION_TOKEN_ENCRYPTION_KEY) from the generated
+    Secret so sessions survive restarts and are valid on every replica;
+  * DATABASE_URL -> shared PostgreSQL (its own `openwebui` database) when
+    postgres is enabled, replacing the single-pod SQLite file;
+  * REDIS_URL + WEBSOCKET_MANAGER=redis + WEBSOCKET_REDIS_URL + websocket
+    support -> Valkey, so multi-replica websocket/config state is coordinated.
+The _PG_PASSWORD anchor (consumed by DATABASE_URL via $(...) substitution) is
+injected only when postgres is enabled.
+Usage: {{ include "ai-stack.webuiHaEnv" . | nindent N }}
+*/}}
+{{- define "ai-stack.webuiHaEnv" -}}
+- name: WEBUI_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}-secret
+      key: secret-key
+- name: OAUTH_SESSION_TOKEN_ENCRYPTION_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}-secret
+      key: secret-key
+{{- if .Values.postgres.enabled }}
+- name: _PG_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.postgresSecretName" . }}
+      key: {{ include "ai-stack.postgresSecretKey" . }}
+- name: DATABASE_URL
+  value: {{ printf "postgresql://%s:$(_PG_PASSWORD)@%s:%s/%s?sslmode=%s" .Values.postgres.user (include "ai-stack.postgresHost" .) (include "ai-stack.postgresPort" .) .Values.openwebui.databaseName (include "ai-stack.postgresSslMode" .) | quote }}
+{{- end }}
+{{- if .Values.valkey.enabled }}
+{{- $valkey := printf "redis://%s:%v/0" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) .Values.valkey.service.port }}
+- name: REDIS_URL
+  value: {{ $valkey | quote }}
+- name: WEBSOCKET_MANAGER
+  value: "redis"
+- name: WEBSOCKET_REDIS_URL
+  value: {{ printf "redis://%s:%v/1" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) .Values.valkey.service.port | quote }}
+{{- /* ENABLE_WEBSOCKET_SUPPORT is set unconditionally in openwebui.env */}}
+{{- end }}
+{{- end }}
+
+{{/*
 Authelia OIDC environment variables for Open WebUI.
 Injects OAUTH_* env vars when authelia.enabled=true.
 Usage: {{ include "ai-stack.autheliaOauthEnv" . | nindent N }}
@@ -418,7 +472,7 @@ Usage: {{ include "ai-stack.autheliaOauthEnv" . | nindent N }}
 {{- end }}
 
 {{/*
-Ingress resource template (shared by openwebui, workbench, langgraph, etc.).
+Ingress resource template (shared by openwebui, langgraph, etc.).
 Usage: {{ include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
 */}}
 {{- define "ai-stack.ingress" -}}

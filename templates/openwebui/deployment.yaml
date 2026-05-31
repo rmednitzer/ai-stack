@@ -49,15 +49,18 @@ spec:
               protocol: TCP
           env:
             {{- range $key, $value := .Values.openwebui.env }}
-            {{- if and (eq $key "OPENAI_API_BASE_URLS") ($.Values.externalAPIs.enabled) }}
-            {{- /* Skip static OPENAI_API_BASE_URLS when externalAPIs are enabled — overridden below */ -}}
+            {{- if and (eq $key "OPENAI_API_BASE_URLS") (or $.Values.externalAPIs.enabled (and $.Values.pydanticai.enabled $.Values.pydanticai.exposeToOpenWebUI)) }}
+            {{- /* Skip static OPENAI_API_BASE_URLS when external APIs or Pydantic AI are wired in — overridden below */ -}}
             {{- else }}
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- end }}
             {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
-            {{- /* --- External API provider configuration --- */ -}}
+            {{- /* --- High-availability state: WEBUI_SECRET_KEY + shared Postgres + Valkey websocket manager --- */ -}}
+            {{- include "ai-stack.webuiHaEnv" . | nindent 12 }}
+            {{- /* --- OpenAI-compatible provider wiring (external APIs and/or the internal Pydantic AI agent) --- */ -}}
+            {{- if or (and .Values.externalAPIs.enabled .Values.externalAPIs.providers) (and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI) }}
             {{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers }}
             {{- /* Inject per-provider API key env vars from Secrets (used via variable substitution) */ -}}
             {{- range $i, $provider := .Values.externalAPIs.providers }}
@@ -72,7 +75,16 @@ spec:
                   key: api-key
                   {{- end }}
             {{- end }}
-            {{- /* Override OPENAI_API_BASE_URLS with combined internal + external URLs */}}
+            {{- end }}
+            {{- if and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI }}
+            {{- /* Inject the Pydantic AI agent's API key (referenced via variable substitution in OPENAI_API_KEYS) */}}
+            - name: _PYDANTICAI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-secret" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai")) }}
+                  key: api-key
+            {{- end }}
+            {{- /* Override OPENAI_API_BASE_URLS with the combined internal + external URLs */}}
             - name: OPENAI_API_BASE_URLS
               value: {{ include "ai-stack.openaiBaseUrls" . | quote }}
             {{- /* Set OPENAI_API_KEYS with placeholder keys for internal + secret refs for external */}}

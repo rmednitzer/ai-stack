@@ -98,10 +98,7 @@ spec:
           {{- if .Values.valkey.enabled }}
           check_redis "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}" "{{ .Values.valkey.service.port }}" "Valkey"
           {{- end }}
-          {{- if .Values.workbench.enabled }}
-          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "Workbench"
-          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "workbench") }}" "{{ .Values.workbench.service.port }}" "/api" "Workbench health"
-          {{- end }}
+
           {{- if .Values.openTerminal.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}" "{{ .Values.openTerminal.service.port }}" "Open Terminal"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}" "{{ .Values.openTerminal.service.port }}" "/health" "Open Terminal health"
@@ -116,6 +113,10 @@ spec:
           {{- if .Values.langgraph.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "LangGraph"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "/ok" "LangGraph health"
+          {{- end }}
+          {{- if .Values.pydanticai.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai") }}" "{{ .Values.pydanticai.service.port }}" "Pydantic AI"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai") }}" "{{ .Values.pydanticai.service.port }}" "/health" "Pydantic AI health"
           {{- end }}
           {{- if .Values.postgres.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}" "{{ .Values.postgres.service.port }}" "PostgreSQL"

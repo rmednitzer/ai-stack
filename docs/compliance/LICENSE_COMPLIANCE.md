@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.4.0 | **Last reviewed:** 2026-05-31
+**Chart version:** 2.5.0 | **Last reviewed:** 2026-05-31
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -29,7 +29,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | LangGraph Server | `docker.io/langchain/langgraph-server` | 0.9-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | Pydantic AI | `ghcr.io/astral-sh/uv` | python3.13-trixie-slim | Apache-2.0 OR MIT | Permissive | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
-| Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 | BSD-3-Clause | Permissive | Opt-in | No |
+
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.34 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | main | MIT | Permissive | Opt-in | No |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39.20 | Apache-2.0 | Permissive | Opt-in | No |
@@ -47,7 +47,7 @@ The majority of the stack uses permissive licenses (MIT, Apache-2.0,
 BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
-OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia, Pydantic AI (`uv`/Python base; Pydantic AI, DBOS, FastAPI are all MIT/Apache-2.0)
+OTel Collector, PostgreSQL, Open Terminal, MCPO, Authelia, Pydantic AI (`uv`/Python base; Pydantic AI, DBOS, FastAPI are all MIT/Apache-2.0)
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)
 
@@ -121,7 +121,7 @@ self-hosting** — these terms change and Enterprise pricing is negotiated.
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 15 container images catalogued |
+| All licenses identified | Done | 14 container images catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |

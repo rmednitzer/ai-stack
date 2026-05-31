@@ -13,7 +13,7 @@ files, and CI workflows.
 GitHub Actions CI (helm lint, chart-testing, kubeconform, kube-linter, Syft SBOM,
 Grype CVE scan, SBOM tag/digest parity, and `zarf dev lint`).
 
-**Components:** Open WebUI, Ollama, Qdrant, Tika, SearXNG, Workbench, Valkey,
+**Components:** Open WebUI, Ollama, Qdrant, Tika, SearXNG, Valkey,
 Open Terminal, MCPO, LangGraph or Pydantic AI (agentic; with PostgreSQL), an
 ingestion worker, optional Authelia OIDC, and an OpenTelemetry Collector. Each
 lives under `templates/<component>/` (shared resources under `templates/common/`).

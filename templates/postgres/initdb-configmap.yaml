@@ -1,0 +1,27 @@
+{{- /*
+Standalone PostgreSQL bootstrap: create Open WebUI's own database alongside the
+default (LangGraph/DBOS) database. Scripts in /docker-entrypoint-initdb.d run
+once, on first cluster initialisation (empty data dir), as the superuser.
+
+The CREATE is idempotent (\gexec guarded by a NOT EXISTS check) and a no-op when
+openwebui.databaseName equals postgres.database, so it is always safe.
+
+cnpg / external modes do not use this ConfigMap — provision the
+openwebui.databaseName database via the operator bootstrap or your DBA.
+*/ -}}
+{{- if and .Values.openwebui.enabled .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}-initdb
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+data:
+  10-openwebui-db.sql: |
+    -- Create the Open WebUI database if it does not already exist.
+    SELECT 'CREATE DATABASE "{{ .Values.openwebui.databaseName }}" OWNER "{{ .Values.postgres.user }}"'
+    WHERE NOT EXISTS (
+      SELECT FROM pg_database WHERE datname = '{{ .Values.openwebui.databaseName }}'
+    )\gexec
+{{- end }}
