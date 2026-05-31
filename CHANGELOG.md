@@ -5,6 +5,79 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-05-31
+
+Tool/command-plane hardening for the model-driven components (MCPO and Open
+Terminal), derived from a cross-checked review against the MCP authorization
+spec, OWASP LLM "excessive agency", the NSA/CISA Kubernetes hardening guidance,
+and the untrusted-code sandboxing consensus. Hardening patterns are integrated
+natively; no external projects are bundled.
+
+### Added
+
+- **Sandbox runtime for model-generated code** — new `openTerminal.runtimeClassName`
+  and `mcpo.runtimeClassName` (default empty = cluster default). Set to a
+  hardened RuntimeClass (e.g. `gvisor`/`kata`) to add a kernel/VM boundary
+  around model-executed code; standard containers are only the minimum-viable
+  isolation for untrusted code.
+- **Scoped CORS for Open Terminal** — new `openTerminal.corsAllowedOrigins`.
+  `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS` is now templated from it and **never
+  emits `*`** (OWASP A05); empty derives the Open WebUI origin — from its
+  ingress host (scheme matched to the ingress TLS config, including matching
+  wildcard certs) or httpRoute hostname
+  (http when a parentRef targets port 80, else https), else the in-cluster
+  Service. A legacy `openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`
+  override is preserved verbatim and is no longer duplicated as a second env
+  var on upgrade — **except a carried-over `"*"` from the old default, which is
+  dropped** so a `helm upgrade --reuse-values` from 2.5.x does not retain a
+  wildcard CORS policy on the code-executing service. (CORS is only exercised
+  if the terminal/notebook UI is exposed to a browser; the default topology
+  reaches Open Terminal server-side, pod-to-pod.)
+- **Secret redaction in telemetry** — the OTel Collector redaction processor now
+  also strips bearer tokens, JWTs, full PEM private-key blocks (header through
+  footer, not just the header line), and provider API-key shapes (OpenAI, AWS,
+  GitHub, GitLab, Google, Slack, Stripe) in addition to PII.
+- **Threat model** in `SECURITY.md` (indirect prompt injection → excessive
+  agency at the tool/command plane; compensating controls; residual risk) and a
+  new top-level **`LIMITATIONS.md`** with per-component scope boundaries.
+- **`AGENTS.md` + `CLAUDE.md`** — an agent/contributor operating spec (repo map,
+  required change workflow, version-bump checklist, CI gates, security posture)
+  and a Claude-specific collaboration overlay; linked from `CONTRIBUTING.md`.
+  Version-bearing docs (`ENTERPRISE_EVALUATION.md`, `CONTROLS.md`,
+  `LICENSE_COMPLIANCE.md`, `EU_COMPLIANCE_CHECK.md`) synced to `2.6.0`.
+- **`helm-unittest` test suite** (`tests/`) asserting the security claims —
+  restricted `securityContext`, no token automount, scoped CORS, opt-in
+  `runtimeClassName`, ephemeral storage default, governance tier/boundary
+  labels, and default-deny/tool-plane NetworkPolicy isolation — wired into CI
+  (`helm-unittest` job) and `make unittest` / `make test`.
+
+### Changed
+
+- **Open Terminal storage is now ephemeral by default** —
+  `openTerminal.persistence.enabled` defaults to `false` so a payload written by
+  model-generated code does not survive a restart; the ephemeral volume is
+  size-bounded (`emptyDir.sizeLimit`, from `openTerminal.persistence.size`) so a
+  runaway write cannot exhaust node ephemeral storage. **Upgrade note:** set
+  `openTerminal.persistence.enabled=true` to retain the previous behaviour; the
+  PVC keeps `helm.sh/resource-policy: keep`, so existing data is not deleted.
+- Expanded `docs/components/{open-terminal,mcpo}.md` Security sections
+  (sandbox-first framing, Authelia-when-exposed, no token passthrough).
+
+### Fixed
+
+- Synced `zarf.yaml` package and local-chart versions to `2.6.0` alongside the
+  chart bump (ADR-001 version-bearing-artifact discipline).
+- Documentation drift: `docs/components/open-terminal.md` and `mcpo.md` now state
+  the actual deployment `boundary` annotations (`execution` and `decision`
+  respectively, not `internal`), and `mcpo.md` references the real values key
+  `mcpo.config.mcpServers` (not `mcpo.servers`).
+
+### Security
+
+- Hardened the two components that execute or broker model-driven actions; see
+  `SECURITY.md` (Threat model) and `LIMITATIONS.md` for the residual-risk
+  posture and the controls that remain the operator's responsibility.
+
 ## [2.5.0] - 2026-05-31
 
 ### Added

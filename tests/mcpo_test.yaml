@@ -1,0 +1,81 @@
+suite: mcpo security invariants
+templates:
+  - templates/mcpo/deployment.yaml
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: enforces a restricted container security context
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.seccompProfile.type
+          value: RuntimeDefault
+
+  - it: does not automount the service account token
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: carries the governance tier and boundary labels (tool gateway = decision)
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "decision"
+
+  - it: mounts the MCP server config read-only
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name=="config")].readOnly
+          value: true
+
+  - it: requires the API key from the Secret on every request
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="MCPO_API_KEY")].valueFrom.secretKeyRef.key
+          value: api-key
+
+  - it: wires a sandbox runtimeClassName when set
+    set:
+      mcpo.enabled: true
+      mcpo.runtimeClassName: kata
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.runtimeClassName
+          value: kata
+
+  - it: omits runtimeClassName by default
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - notExists:
+          path: spec.template.spec.runtimeClassName

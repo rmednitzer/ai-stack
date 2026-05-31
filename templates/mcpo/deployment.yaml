@@ -25,6 +25,9 @@ spec:
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}
       automountServiceAccountToken: false
+      {{- with .Values.mcpo.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:

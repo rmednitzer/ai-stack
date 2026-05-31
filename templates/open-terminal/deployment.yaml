@@ -24,6 +24,9 @@ spec:
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
       automountServiceAccountToken: false
+      {{- with .Values.openTerminal.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
@@ -46,9 +49,15 @@ spec:
               protocol: TCP
           env:
             {{- range $key, $value := .Values.openTerminal.env }}
+            {{- if ne $key "OPEN_TERMINAL_CORS_ALLOWED_ORIGINS" }}
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
+            {{- end }}
+            # CORS origins are owned by the chart and templated below; a legacy
+            # env override is folded into the resolved value, never duplicated.
+            - name: OPEN_TERMINAL_CORS_ALLOWED_ORIGINS
+              value: {{ include "ai-stack.openTerminalCorsOrigins" . | quote }}
             - name: OPEN_TERMINAL_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -84,7 +93,10 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
           {{- else }}
-          emptyDir: {}
+          # Bound the ephemeral home so model-generated writes under
+          # $HOME cannot exhaust node ephemeral storage (sized like the PVC).
+          emptyDir:
+            sizeLimit: {{ .Values.openTerminal.persistence.size }}
           {{- end }}
         - name: tmp
           emptyDir:

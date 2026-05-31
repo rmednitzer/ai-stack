@@ -2,6 +2,11 @@
 
 Thank you for considering contributing to the ai-stack Helm chart.
 
+> **AI agents & automation:** see [`AGENTS.md`](AGENTS.md) for the operating
+> spec and repo map, and [`CLAUDE.md`](CLAUDE.md) for the Claude-specific
+> collaboration overlay. This file covers human contributor setup and the PR
+> process; the conventions in all three are kept consistent.
+
 ## Project Overview
 
 This is a **Helm chart** (`ai-stack`) for deploying a comprehensive AI inference
@@ -28,6 +33,7 @@ Tiering: T0 = safety/integrity, T1 = operational, T2 = productivity.
    - [helm-docs](https://github.com/norwoodj/helm-docs) (optional, for README generation)
    - [chart-testing (ct)](https://github.com/helm/chart-testing) (optional, for CI-grade linting)
    - [kubeconform](https://github.com/yannh/kubeconform) (optional, for manifest validation)
+   - [helm-unittest](https://github.com/helm-unittest/helm-unittest) (optional, for `make unittest`: `helm plugin install https://github.com/helm-unittest/helm-unittest`)
    - [kubectl](https://kubernetes.io/docs/tasks/tools/) with access to a test cluster
 
 2. Clone the repository:
@@ -124,6 +130,7 @@ Every PR runs [`.github/workflows/lint.yaml`](.github/workflows/lint.yaml):
 | Gate | Checks |
 |------|--------|
 | `helm-lint` / `chart-testing` | `helm lint` + `helm template` (lab & prod), `ct lint` |
+| `helm-unittest` | template unit tests asserting security invariants (`tests/`, run `make unittest`) |
 | `kubeconform` | rendered manifests vs Kubernetes JSON schemas |
 | `kube-linter` | policy lint of rendered manifests (config: `.kube-linter.yaml`) |
 | `sbom-validate` | CycloneDX 1.6 schema + tag/digest parity (values ↔ sbom ↔ zarf) |

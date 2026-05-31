@@ -580,3 +580,78 @@ spec:
 {{- end }}
 {{- end }}
 
+{{/*
+Resolve the CORS allowed-origins for Open Terminal. Never returns "*": a
+wildcard CORS policy on a code-executing service is an OWASP A05
+misconfiguration. Precedence:
+  1. explicit openTerminal.corsAllowedOrigins
+  2. legacy openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS (pre-2.6.0
+     installs that set the old env knob keep their value — except a carried-over
+     "*" from the old default, which is dropped so a `helm upgrade
+     --reuse-values` does not retain a wildcard CORS policy)
+  3. derived Open WebUI browser origin(s): ingress hosts (https when the host
+     is TLS-covered, including a matching wildcard cert, else http) and httpRoute
+     hostnames (http when a parentRef targets port 80, else https)
+  4. the in-cluster Open WebUI Service origin (safe fallback)
+CORS is only exercised when the terminal/notebook UI is exposed to a browser;
+the default topology reaches Open Terminal server-side. For any non-standard
+exposure, set openTerminal.corsAllowedOrigins explicitly.
+Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
+*/}}
+{{- define "ai-stack.openTerminalCorsOrigins" -}}
+{{- $legacy := "" -}}
+{{- with .Values.openTerminal.env -}}
+{{- $legacy = (index . "OPEN_TERMINAL_CORS_ALLOWED_ORIGINS") | default "" -}}
+{{- end -}}
+{{- /* drop a carried-over "*" old default (reuse-values upgrade safety) */ -}}
+{{- if eq (trim $legacy) "*" -}}{{- $legacy = "" -}}{{- end -}}
+{{- if .Values.openTerminal.corsAllowedOrigins -}}
+{{- .Values.openTerminal.corsAllowedOrigins -}}
+{{- else if $legacy -}}
+{{- $legacy -}}
+{{- else -}}
+{{- $origins := list -}}
+{{- if .Values.openwebui.ingress.enabled -}}
+{{- $tlsHosts := list -}}
+{{- range .Values.openwebui.ingress.tls -}}
+{{- range .hosts -}}
+{{- $tlsHosts = append $tlsHosts . -}}
+{{- end -}}
+{{- end -}}
+{{- range .Values.openwebui.ingress.hosts -}}
+{{- $host := .host -}}
+{{- $covered := has $host $tlsHosts -}}
+{{- if not $covered -}}
+{{- range $tlsHosts -}}
+{{- if hasPrefix "*." . -}}
+{{- $needle := printf ".%s" (trimPrefix "*." .) -}}
+{{- if and (hasSuffix $needle $host) (not (contains "." (trimSuffix $needle $host))) -}}
+{{- $covered = true -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $scheme := ternary "https" "http" $covered -}}
+{{- $origins = append $origins (printf "%s://%s" $scheme $host) -}}
+{{- end -}}
+{{- end -}}
+{{- if .Values.openwebui.httpRoute.enabled -}}
+{{- $httpListener := false -}}
+{{- range .Values.openwebui.httpRoute.parentRefs -}}
+{{- if eq (.port | default 0 | int) 80 -}}
+{{- $httpListener = true -}}
+{{- end -}}
+{{- end -}}
+{{- $scheme := ternary "http" "https" $httpListener -}}
+{{- range .Values.openwebui.httpRoute.hostnames -}}
+{{- $origins = append $origins (printf "%s://%s" $scheme .) -}}
+{{- end -}}
+{{- end -}}
+{{- if $origins -}}
+{{- join "," $origins -}}
+{{- else -}}
+{{- printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui")) .Values.openwebui.service.port -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+

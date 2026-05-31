@@ -70,19 +70,55 @@ Per CRA Art. 13(8) and industry best practice:
 There is currently no bug bounty program. We gratefully acknowledge all
 responsible disclosures in our release notes (with permission).
 
+## Threat model
+
+The chart serves an LLM application: Open WebUI consumes web search (SearXNG)
+and RAG documents (Qdrant) and can reach tools through MCPO, and the agentic
+runtimes (LangGraph / Pydantic AI) drive those same tools. **Treat model inputs
+and tool/RAG/web content as attacker-influenced** — the primary adversary is an
+*indirect prompt injection* (a poisoned web result, document, or tool output)
+that steers the model into unintended tool calls or commands. This is the
+OWASP LLM "excessive agency" class, and it is most acute at the **tool/command
+plane**: MCPO (the shared tool gateway) and Open Terminal (model-driven code
+execution).
+
+**What the platform controls do:** PodSecurity `restricted`, default-deny
+NetworkPolicies, per-component ServiceAccounts, secret redaction in the OTel
+pipeline, and (opt-in) a hardened `runtimeClassName` for the code-execution
+components constrain *blast radius* — a persuaded model still operates inside an
+operator-defined envelope.
+
+**What they do not do (residual risk):** the chart does not place an in-band
+command/tool allow-deny policy *inside* MCPO or Open Terminal (those are
+upstream images), and standard container isolation is **not** a sandbox against
+hostile code. For untrusted / model-generated code, set
+`openTerminal.runtimeClassName` (and `mcpo.runtimeClassName`) to a hardened
+RuntimeClass (gVisor / Kata); restrict egress; keep limits tight; and ship audit
+telemetry off-cluster. If you expose MCPO / Open Terminal beyond the cluster,
+front the route with Authelia (OIDC / ForwardAuth) rather than the static API
+key alone. relay-shell-style tiered authority and contract / budget governance
+for agent tool-use are recommended *patterns* to apply in servers and runtimes
+you operate separately; they are intentionally **not bundled** into this chart.
+Per-component scope boundaries and known gaps are tracked in
+[LIMITATIONS.md](LIMITATIONS.md).
+
 ## Security Controls
 
 The ai-stack implements the following security controls by default:
 
 - **Pod Security Admission:** Restricted baseline (`runAsNonRoot`, `drop: ALL`,
   `seccompProfile: RuntimeDefault`)
+- **Sandbox runtime (opt-in):** `runtimeClassName` on Open Terminal and MCPO for
+  a gVisor / Kata kernel boundary around model-generated code
 - **Network isolation:** Default-deny NetworkPolicy with per-component allowlists
 - **Secret management:** Auto-generated 64-byte keys; external secret manager support
 - **Service account isolation:** Per-component, `automountServiceAccountToken: false`
 - **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
+- **CORS:** Open Terminal origins are scoped to the Open WebUI origin (never `*`)
 - **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, CVE scanning (Grype),
   Dependabot for GitHub Actions; container images tracked manually
-- **PII redaction:** OTel Collector strips email, SSN, and credit card patterns
+- **PII + secret redaction:** OTel Collector strips email, SSN, and credit-card
+  patterns plus bearer tokens, JWTs, private keys, and provider API-key shapes
 - **Telemetry opt-out:** `DO_NOT_TRACK=true`, `ANONYMIZED_TELEMETRY=false`
 
 For details, see [ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) and
