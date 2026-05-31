@@ -25,8 +25,9 @@ natively; no external projects are bundled.
   emits `*`** (OWASP A05); empty derives the Open WebUI origin from its
   ingress/httpRoute host (else the in-cluster Service).
 - **Secret redaction in telemetry** — the OTel Collector redaction processor now
-  also strips bearer tokens, JWTs, PEM private keys, and provider API-key shapes
-  (OpenAI, AWS, GitHub, GitLab, Google, Slack, Stripe) in addition to PII.
+  also strips bearer tokens, JWTs, full PEM private-key blocks (header through
+  footer, not just the header line), and provider API-key shapes (OpenAI, AWS,
+  GitHub, GitLab, Google, Slack, Stripe) in addition to PII.
 - **Threat model** in `SECURITY.md` (indirect prompt injection → excessive
   agency at the tool/command plane; compensating controls; residual risk) and a
   new top-level **`LIMITATIONS.md`** with per-component scope boundaries.
@@ -40,7 +41,9 @@ natively; no external projects are bundled.
 
 - **Open Terminal storage is now ephemeral by default** —
   `openTerminal.persistence.enabled` defaults to `false` so a payload written by
-  model-generated code does not survive a restart. **Upgrade note:** set
+  model-generated code does not survive a restart; the ephemeral volume is
+  size-bounded (`emptyDir.sizeLimit`, from `openTerminal.persistence.size`) so a
+  runaway write cannot exhaust node ephemeral storage. **Upgrade note:** set
   `openTerminal.persistence.enabled=true` to retain the previous behaviour; the
   PVC keeps `helm.sh/resource-policy: keep`, so existing data is not deleted.
 - Expanded `docs/components/{open-terminal,mcpo}.md` Security sections
@@ -48,6 +51,8 @@ natively; no external projects are bundled.
 
 ### Fixed
 
+- Synced `zarf.yaml` package and local-chart versions to `2.6.0` alongside the
+  chart bump (ADR-001 version-bearing-artifact discipline).
 - Documentation drift: `docs/components/open-terminal.md` and `mcpo.md` now state
   the actual deployment `boundary` annotations (`execution` and `decision`
   respectively, not `internal`), and `mcpo.md` references the real values key

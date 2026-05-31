@@ -89,7 +89,10 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
           {{- else }}
-          emptyDir: {}
+          # Bound the ephemeral home so model-generated writes under
+          # $HOME cannot exhaust node ephemeral storage (sized like the PVC).
+          emptyDir:
+            sizeLimit: {{ .Values.openTerminal.persistence.size }}
           {{- end }}
         - name: tmp
           emptyDir:
