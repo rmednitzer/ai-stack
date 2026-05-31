@@ -27,9 +27,11 @@ natively; no external projects are bundled.
   (http when a parentRef targets port 80, else https), else the in-cluster
   Service. A legacy `openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`
   override is preserved verbatim and is no longer duplicated as a second env
-  var on upgrade. (CORS is only exercised if the terminal/notebook UI is
-  exposed to a browser; the default topology reaches Open Terminal server-side,
-  pod-to-pod.)
+  var on upgrade — **except a carried-over `"*"` from the old default, which is
+  dropped** so a `helm upgrade --reuse-values` from 2.5.x does not retain a
+  wildcard CORS policy on the code-executing service. (CORS is only exercised
+  if the terminal/notebook UI is exposed to a browser; the default topology
+  reaches Open Terminal server-side, pod-to-pod.)
 - **Secret redaction in telemetry** — the OTel Collector redaction processor now
   also strips bearer tokens, JWTs, full PEM private-key blocks (header through
   footer, not just the header line), and provider API-key shapes (OpenAI, AWS,

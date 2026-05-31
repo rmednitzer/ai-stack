@@ -586,7 +586,9 @@ wildcard CORS policy on a code-executing service is an OWASP A05
 misconfiguration. Precedence:
   1. explicit openTerminal.corsAllowedOrigins
   2. legacy openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS (pre-2.6.0
-     installs that set the old env knob keep their value, verbatim)
+     installs that set the old env knob keep their value — except a carried-over
+     "*" from the old default, which is dropped so a `helm upgrade
+     --reuse-values` does not retain a wildcard CORS policy)
   3. derived Open WebUI browser origin(s): ingress hosts (https when the host
      is TLS-covered, else http) and httpRoute hostnames (http when a parentRef
      targets port 80, else https)
@@ -601,6 +603,8 @@ Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 {{- with .Values.openTerminal.env -}}
 {{- $legacy = (index . "OPEN_TERMINAL_CORS_ALLOWED_ORIGINS") | default "" -}}
 {{- end -}}
+{{- /* drop a carried-over "*" old default (reuse-values upgrade safety) */ -}}
+{{- if eq (trim $legacy) "*" -}}{{- $legacy = "" -}}{{- end -}}
 {{- if .Values.openTerminal.corsAllowedOrigins -}}
 {{- .Values.openTerminal.corsAllowedOrigins -}}
 {{- else if $legacy -}}
