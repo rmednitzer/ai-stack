@@ -22,8 +22,11 @@ natively; no external projects are bundled.
   isolation for untrusted code.
 - **Scoped CORS for Open Terminal** — new `openTerminal.corsAllowedOrigins`.
   `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS` is now templated from it and **never
-  emits `*`** (OWASP A05); empty derives the Open WebUI origin from its
-  ingress/httpRoute host (else the in-cluster Service).
+  emits `*`** (OWASP A05); empty derives the Open WebUI origin — from its
+  ingress host (scheme matched to the ingress TLS config) or httpRoute
+  hostname, else the in-cluster Service. (CORS is only exercised if the
+  terminal/notebook UI is exposed to a browser; the default topology reaches
+  Open Terminal server-side, pod-to-pod.)
 - **Secret redaction in telemetry** — the OTel Collector redaction processor now
   also strips bearer tokens, JWTs, full PEM private-key blocks (header through
   footer, not just the header line), and provider API-key shapes (OpenAI, AWS,
@@ -31,6 +34,11 @@ natively; no external projects are bundled.
 - **Threat model** in `SECURITY.md` (indirect prompt injection → excessive
   agency at the tool/command plane; compensating controls; residual risk) and a
   new top-level **`LIMITATIONS.md`** with per-component scope boundaries.
+- **`AGENTS.md` + `CLAUDE.md`** — an agent/contributor operating spec (repo map,
+  required change workflow, version-bump checklist, CI gates, security posture)
+  and a Claude-specific collaboration overlay; linked from `CONTRIBUTING.md`.
+  Version-bearing docs (`ENTERPRISE_EVALUATION.md`, `CONTROLS.md`,
+  `LICENSE_COMPLIANCE.md`, `EU_COMPLIANCE_CHECK.md`) synced to `2.6.0`.
 - **`helm-unittest` test suite** (`tests/`) asserting the security claims —
   restricted `securityContext`, no token automount, scoped CORS, opt-in
   `runtimeClassName`, ephemeral storage default, governance tier/boundary

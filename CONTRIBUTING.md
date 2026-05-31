@@ -2,6 +2,11 @@
 
 Thank you for considering contributing to the ai-stack Helm chart.
 
+> **AI agents & automation:** see [`AGENTS.md`](AGENTS.md) for the operating
+> spec and repo map, and [`CLAUDE.md`](CLAUDE.md) for the Claude-specific
+> collaboration overlay. This file covers human contributor setup and the PR
+> process; the conventions in all three are kept consistent.
+
 ## Project Overview
 
 This is a **Helm chart** (`ai-stack`) for deploying a comprehensive AI inference

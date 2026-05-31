@@ -585,7 +585,9 @@ Resolve the CORS allowed-origins for Open Terminal. Never returns "*": a
 wildcard CORS policy on a code-executing service is an OWASP A05
 misconfiguration. Precedence:
   1. explicit openTerminal.corsAllowedOrigins
-  2. Open WebUI browser origin(s) derived from its ingress/httpRoute hosts
+  2. Open WebUI browser origin(s) derived from its ingress hosts (scheme taken
+     from the ingress TLS config: https if the host is TLS-covered, else http)
+     and httpRoute hostnames (https; the Gateway listener terminates TLS)
   3. the in-cluster Open WebUI Service origin (safe fallback)
 Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 */}}
@@ -595,8 +597,15 @@ Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 {{- else -}}
 {{- $origins := list -}}
 {{- if .Values.openwebui.ingress.enabled -}}
+{{- $tlsHosts := list -}}
+{{- range .Values.openwebui.ingress.tls -}}
+{{- range .hosts -}}
+{{- $tlsHosts = append $tlsHosts . -}}
+{{- end -}}
+{{- end -}}
 {{- range .Values.openwebui.ingress.hosts -}}
-{{- $origins = append $origins (printf "https://%s" .host) -}}
+{{- $scheme := ternary "https" "http" (has .host $tlsHosts) -}}
+{{- $origins = append $origins (printf "%s://%s" $scheme .host) -}}
 {{- end -}}
 {{- end -}}
 {{- if .Values.openwebui.httpRoute.enabled -}}

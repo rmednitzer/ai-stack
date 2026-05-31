@@ -66,6 +66,32 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
           value: "https://ai.example.com"
 
+  - it: derives an http CORS origin from a non-TLS ingress host
+    set:
+      openTerminal.enabled: true
+      openwebui.ingress.enabled: true
+      openwebui.ingress.hosts[0].host: lab.example.com
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "http://lab.example.com"
+
+  - it: derives an https CORS origin when the ingress host is TLS-covered
+    set:
+      openTerminal.enabled: true
+      openwebui.ingress.enabled: true
+      openwebui.ingress.hosts[0].host: secure.example.com
+      openwebui.ingress.tls:
+        - hosts:
+            - secure.example.com
+          secretName: openwebui-tls
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "https://secure.example.com"
+
   - it: wires a sandbox runtimeClassName when set
     set:
       openTerminal.enabled: true
