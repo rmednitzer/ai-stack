@@ -92,6 +92,36 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
           value: "https://secure.example.com"
 
+  - it: treats a matching wildcard ingress TLS cert as covering a concrete host (https)
+    set:
+      openTerminal.enabled: true
+      openwebui.ingress.enabled: true
+      openwebui.ingress.hosts[0].host: lab.example.com
+      openwebui.ingress.tls:
+        - hosts:
+            - "*.example.com"
+          secretName: wildcard-tls
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "https://lab.example.com"
+
+  - it: does not let a wildcard TLS cert cover a multi-label host (stays http)
+    set:
+      openTerminal.enabled: true
+      openwebui.ingress.enabled: true
+      openwebui.ingress.hosts[0].host: a.b.example.com
+      openwebui.ingress.tls:
+        - hosts:
+            - "*.example.com"
+          secretName: wildcard-tls
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "http://a.b.example.com"
+
   - it: derives https from an httpRoute on a default (TLS) listener
     set:
       openTerminal.enabled: true

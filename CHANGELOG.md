@@ -23,7 +23,8 @@ natively; no external projects are bundled.
 - **Scoped CORS for Open Terminal** — new `openTerminal.corsAllowedOrigins`.
   `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS` is now templated from it and **never
   emits `*`** (OWASP A05); empty derives the Open WebUI origin — from its
-  ingress host (scheme matched to the ingress TLS config) or httpRoute hostname
+  ingress host (scheme matched to the ingress TLS config, including matching
+  wildcard certs) or httpRoute hostname
   (http when a parentRef targets port 80, else https), else the in-cluster
   Service. A legacy `openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`
   override is preserved verbatim and is no longer duplicated as a second env

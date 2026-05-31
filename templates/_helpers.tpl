@@ -590,8 +590,8 @@ misconfiguration. Precedence:
      "*" from the old default, which is dropped so a `helm upgrade
      --reuse-values` does not retain a wildcard CORS policy)
   3. derived Open WebUI browser origin(s): ingress hosts (https when the host
-     is TLS-covered, else http) and httpRoute hostnames (http when a parentRef
-     targets port 80, else https)
+     is TLS-covered, including a matching wildcard cert, else http) and httpRoute
+     hostnames (http when a parentRef targets port 80, else https)
   4. the in-cluster Open WebUI Service origin (safe fallback)
 CORS is only exercised when the terminal/notebook UI is exposed to a browser;
 the default topology reaches Open Terminal server-side. For any non-standard
@@ -619,8 +619,20 @@ Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 {{- end -}}
 {{- end -}}
 {{- range .Values.openwebui.ingress.hosts -}}
-{{- $scheme := ternary "https" "http" (has .host $tlsHosts) -}}
-{{- $origins = append $origins (printf "%s://%s" $scheme .host) -}}
+{{- $host := .host -}}
+{{- $covered := has $host $tlsHosts -}}
+{{- if not $covered -}}
+{{- range $tlsHosts -}}
+{{- if hasPrefix "*." . -}}
+{{- $needle := printf ".%s" (trimPrefix "*." .) -}}
+{{- if and (hasSuffix $needle $host) (not (contains "." (trimSuffix $needle $host))) -}}
+{{- $covered = true -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $scheme := ternary "https" "http" $covered -}}
+{{- $origins = append $origins (printf "%s://%s" $scheme $host) -}}
 {{- end -}}
 {{- end -}}
 {{- if .Values.openwebui.httpRoute.enabled -}}
