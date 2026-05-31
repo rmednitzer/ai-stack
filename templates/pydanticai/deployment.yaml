@@ -59,7 +59,7 @@ spec:
         - name: install-deps
           image: "{{ .Values.pydanticai.image.repository }}{{- if .Values.pydanticai.image.digest }}@{{ .Values.pydanticai.image.digest }}{{- else }}:{{ .Values.pydanticai.image.tag }}{{- end }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          command: ['sh', '-c', 'uv pip install --target=/deps -r /app/requirements.txt']
+          command: ['sh', '-c', 'uv pip install --target=/deps --require-hashes -r /app/requirements.txt']
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false

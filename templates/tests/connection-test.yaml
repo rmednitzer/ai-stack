@@ -117,6 +117,10 @@ spec:
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "LangGraph"
           check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}" "{{ .Values.langgraph.service.port }}" "/ok" "LangGraph health"
           {{- end }}
+          {{- if .Values.pydanticai.enabled }}
+          check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai") }}" "{{ .Values.pydanticai.service.port }}" "Pydantic AI"
+          check_http "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai") }}" "{{ .Values.pydanticai.service.port }}" "/health" "Pydantic AI health"
+          {{- end }}
           {{- if .Values.postgres.enabled }}
           check_tcp "{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}" "{{ .Values.postgres.service.port }}" "PostgreSQL"
           {{- end }}

@@ -889,13 +889,20 @@ pydanticai:
     type: ClusterIP
     port: 8000
   # -- Override API key (auto-generated if empty; stored in Secret). When set,
-  # enforced as a bearer token on POST /run.
+  # enforced as a bearer token on /run and the /v1/* OpenAI-compatible endpoints.
   apiKey: ""
+  # -- Register the agent as an OpenAI-compatible model in Open WebUI's model
+  # picker (adds its /v1 endpoint to OPENAI_API_BASE_URLS + the API key, and
+  # opens the Open WebUI -> pydanticai NetworkPolicy egress). Requires
+  # openwebui.enabled. The model id shown is env.OPENAI_MODEL_ID.
+  exposeToOpenWebUI: false
   env:
     # -- Ollama backend URL (OpenAI-compatible via /v1)
     OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
     # -- Default model the agent uses (pull it in Ollama first)
     AGENT_MODEL: "llama3.2"
+    # -- Model id advertised on /v1/models (what Open WebUI shows in the picker)
+    OPENAI_MODEL_ID: "pydanticai-agent"
     # -- System prompt / instructions
     AGENT_SYSTEM_PROMPT: "You are a helpful assistant running on a self-hosted, EU-regulated AI stack."
     # -- Qdrant vector store (enables the knowledge-base retrieval tool)

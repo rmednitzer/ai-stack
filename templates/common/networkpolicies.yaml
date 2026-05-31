@@ -231,7 +231,7 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" 6379) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" 8000) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.mcpo.enabled "name" "mcpo" "port" 8000) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" 8000) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" (and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI) "name" "pydanticai" "port" 8000) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.authelia.enabled "name" "authelia" "port" 9091) | nindent 4 }}
     {{- if .Values.externalAPIs.enabled }}
     - ports:

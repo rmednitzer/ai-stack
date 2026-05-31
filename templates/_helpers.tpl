@@ -318,6 +318,9 @@ Construct OPENAI_API_BASE_URLS: Ollama endpoint + external provider URLs.
     {{- $urls = append $urls .baseUrl -}}
   {{- end -}}
 {{- end -}}
+{{- if and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI -}}
+  {{- $urls = append $urls (printf "http://%s:%v/v1" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai")) (.Values.pydanticai.service.port | toString)) -}}
+{{- end -}}
 {{- join ";" $urls -}}
 {{- end }}
 
@@ -333,6 +336,9 @@ Construct OPENAI_API_KEYS: placeholder for Ollama + secret refs for external pro
   {{- range $i, $p := .Values.externalAPIs.providers -}}
     {{- $keys = append $keys (printf "$(_EXTAPI_KEY_%d)" $i) -}}
   {{- end -}}
+{{- end -}}
+{{- if and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI -}}
+  {{- $keys = append $keys "$(_PYDANTICAI_KEY)" -}}
 {{- end -}}
 {{- join ";" $keys -}}
 {{- end }}

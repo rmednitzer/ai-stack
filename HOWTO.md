@@ -724,6 +724,8 @@ curl -X POST http://localhost:8000/run \
   -d '{"prompt": "Say hello and name three EU AI Act obligations."}'
 ```
 
+The agent also speaks the **OpenAI-compatible API** (`GET /v1/models`, `POST /v1/chat/completions`, streaming and non-streaming), so it can be registered directly in Open WebUI's model picker — set `pydanticai.exposeToOpenWebUI=true` and the chart wires the `/v1` endpoint, API key, and NetworkPolicy egress automatically. The model appears as `pydanticai.env.OPENAI_MODEL_ID`.
+
 The agent lives in `files/pydanticai/app.py` as a reference — extend it with your own tools (`@DBOS.step` for durable I/O), structured outputs, or MCP servers. See [docs/components/pydanticai.md](docs/components/pydanticai.md).
 
 ---

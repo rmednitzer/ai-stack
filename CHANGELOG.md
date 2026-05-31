@@ -5,10 +5,29 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.5.0] - 2026-05-31
 
 ### Added
 
+- **Pydantic AI production hardening** — the reference agent
+  (`files/pydanticai/app.py`) now exposes an **OpenAI-compatible API**
+  (`GET /v1/models`, `POST /v1/chat/completions` with streaming and
+  non-streaming) alongside `POST /run`, wraps its tool I/O (SearXNG web search,
+  Qdrant retrieval) in `DBOS.step()` for durable, checkpointed execution, and
+  enforces bearer-token auth on every endpoint. Python dependencies are now a
+  **fully pinned, hashed, universal lock** (`files/pydanticai/requirements.txt`,
+  compiled from `requirements.in` and installed with `--require-hashes`);
+  regenerate with `make pydanticai-lock`.
+- **Open WebUI ↔ Pydantic AI wiring** — set `pydanticai.exposeToOpenWebUI=true`
+  to register the agent in Open WebUI's model picker: the chart appends the
+  agent's `/v1` endpoint to `OPENAI_API_BASE_URLS`, injects its API key from the
+  generated Secret, and opens the Open WebUI → pydanticai NetworkPolicy egress.
+  A `helm test` health probe now covers the agent.
+- **Docs link-check CI gate** (`.github/workflows/docs.yaml` +
+  `.github/scripts/check_md_links.py`): a deterministic, offline checker
+  validates every relative link and `#anchor` across all markdown files using
+  GitHub-accurate heading slugs, so internal doc-link rot fails CI. Runs only on
+  markdown changes; also available via `make check-links`.
 - **CI `zarf-lint` job** (`.github/workflows/lint.yaml`): validates `zarf.yaml`
   with `zarf dev lint` (pinned Zarf v0.77.0 + SHA-256 checksum) against the Zarf
   package schema — catching package-definition drift the image-parity check
@@ -22,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Pydantic AI documentation** (`docs/components/pydanticai.md`, `README.md`,
+  `HOWTO.md` §8.4) updated for the OpenAI-compatible endpoints, the
+  `exposeToOpenWebUI` toggle, and the hashed dependency lock.
 - **Documentation polish across the stack** for v2.4.0: the README architecture
   diagram now includes Pydantic AI and the Gateway API section lists `pydanticai`;
   `REFERENCE.md` §3 and `HOWTO.md` §8 cover both agentic runtimes (LangGraph /

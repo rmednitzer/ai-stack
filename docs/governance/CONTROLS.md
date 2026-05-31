@@ -58,4 +58,4 @@ technical enforcement.
 
 ---
 
-*Registry version: 2.4.0 | Maintained alongside Chart version in `Chart.yaml`.*
+*Registry version: 2.5.0 | Maintained alongside Chart version in `Chart.yaml`.*
