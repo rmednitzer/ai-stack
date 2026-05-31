@@ -33,6 +33,12 @@ spec:
   namespaceResourceWhitelist:
     - group: "*"
       kind: "*"
+  # ...but the chart renders NO RBAC: deny namespaced Role/RoleBinding so a future
+  # chart change or a compromised commit cannot grant in-namespace permissions
+  # through this project (cluster-scoped RBAC is already denied above).
+  namespaceResourceBlacklist:
+    - group: "rbac.authorization.k8s.io"
+      kind: "*"
   # Surface resources that live in the namespace but are not tracked in Git.
   orphanedResources:
     warn: true

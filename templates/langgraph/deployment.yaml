@@ -17,6 +17,9 @@ spec:
   # (persistence and autoscaling are mutually exclusive — RWO cannot multi-attach).
   strategy:
     type: Recreate
+    # null clears a rollingUpdate field defaulted by a prior RollingUpdate so the
+    # upgrade patch stays valid (rollingUpdate is forbidden with type: Recreate).
+    rollingUpdate: null
   {{- end }}
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.langgraph) }}
   replicas: {{ .Values.langgraph.replicaCount }}

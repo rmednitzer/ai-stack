@@ -17,6 +17,9 @@ spec:
   # new pod cannot mount the volume still held by the old pod.
   strategy:
     type: Recreate
+    # null clears a rollingUpdate field defaulted by a prior RollingUpdate so the
+    # upgrade patch stays valid (rollingUpdate is forbidden with type: Recreate).
+    rollingUpdate: null
   {{- end }}
   replicas: {{ .Values.openTerminal.replicaCount }}
   selector:
