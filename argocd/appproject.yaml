@@ -1,0 +1,44 @@
+# ArgoCD AppProject — ai-stack
+# A dedicated, least-privilege project so the GitOps controller can deploy ONLY
+# this chart, from ONLY this repository, into ONLY the ai-stack namespace.
+# Apply this before the Application manifests:
+#   kubectl apply -f argocd/appproject.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ai-stack
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: ai-stack
+    assurance.platform/tier: "T1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: EU-regulated AI inference stack (Open WebUI, Ollama, Qdrant, …)
+  # Source allowlist — only this repository may be deployed under this project.
+  sourceRepos:
+    - https://github.com/rmednitzer/ai-stack.git
+  # Destination allowlist — only the ai-stack namespace on the in-cluster API.
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: ai-stack
+  # The chart is namespace-scoped. Allow only Namespace at cluster scope (so
+  # CreateNamespace=true works in lab) and deny every other cluster-scoped
+  # resource — the controller cannot create RBAC, CRDs, webhooks, etc.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  # Permit the namespaced resources the chart renders (incl. CNPG and monitoring
+  # custom resources) within the destination namespace only.
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  # ...but the chart renders NO RBAC: deny namespaced Role/RoleBinding so a future
+  # chart change or a compromised commit cannot grant in-namespace permissions
+  # through this project (cluster-scoped RBAC is already denied above).
+  namespaceResourceBlacklist:
+    - group: "rbac.authorization.k8s.io"
+      kind: "*"
+  # Surface resources that live in the namespace but are not tracked in Git.
+  orphanedResources:
+    warn: true

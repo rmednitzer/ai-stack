@@ -1259,12 +1259,20 @@ kubectl rollout status -n ai-stack deploy/ai-stack-openwebui
 
 ## 17. GitOps with ArgoCD
 
-Manage ai-stack declaratively with ArgoCD. The repo ships two ready-to-use Application manifests under `argocd/`.
+Manage ai-stack declaratively with ArgoCD. The repo ships a dedicated `AppProject` and two ready-to-use Application manifests under `argocd/`.
 
 **Prerequisites:**
 
 - ArgoCD installed in the cluster (namespace `argocd`)
 - Repository credentials configured in ArgoCD (Settings > Repositories) so ArgoCD can pull from `https://github.com/rmednitzer/ai-stack.git`
+
+**Apply the AppProject first** — both Applications reference the dedicated, least-privilege `ai-stack` project (scoped to this repository and the `ai-stack` namespace; cluster-scoped resources other than `Namespace` are denied):
+
+```bash
+kubectl apply -f argocd/appproject.yaml
+```
+
+The chart's workloads carry `argocd.argoproj.io/sync-wave` annotations, so a first sync rolls out in dependency order (Secrets/ServiceAccounts → datastores/backing services → app workloads → HPA/PDB), reducing first-sync crash-loops.
 
 ### 17.1 Deploy the Lab Application
 

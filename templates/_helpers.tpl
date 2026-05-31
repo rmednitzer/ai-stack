@@ -655,3 +655,18 @@ Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 {{- end -}}
 {{- end }}
 
+{{/*
+ArgoCD sync-wave annotation for a tier. A fresh `argocd app sync` then rolls out
+in dependency order: foundation (Secrets + ServiceAccounts) → platform
+(datastores, backing services, infra — the default wave) → app (workloads that
+consume them) → policy (HPA/PDB, applied last so their target workloads already
+exist, avoiding a wave deadlock where a policy never reconciles). Harmless
+outside ArgoCD (it is just a metadata annotation).
+Usage inside a metadata.annotations block:
+  {{- include "ai-stack.syncWave" "app" | nindent 4 }}
+*/}}
+{{- define "ai-stack.syncWave" -}}
+{{- $waves := dict "foundation" "-10" "platform" "0" "app" "5" "policy" "10" -}}
+argocd.argoproj.io/sync-wave: {{ index $waves . | default "0" | quote }}
+{{- end }}
+

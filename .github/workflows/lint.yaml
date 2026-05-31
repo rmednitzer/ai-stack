@@ -10,6 +10,7 @@ on:
       - "templates/**"
       - "files/**"
       - "tests/**"
+      - "argocd/**"
       - "sbom.cdx.json"
       - "zarf.yaml"
       - "ct.yaml"
@@ -536,6 +537,18 @@ jobs:
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
             -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway
+
+      # GitOps manifests live outside the chart (helmignored), so validate the
+      # ArgoCD Application/AppProject CRs against the Argo schemas separately —
+      # this set is otherwise unchecked and has drifted before.
+      - name: Validate ArgoCD manifests (argocd/)
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            argocd/
 
   kube-linter:
     runs-on: ubuntu-latest

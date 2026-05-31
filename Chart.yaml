@@ -6,7 +6,7 @@ description: >-
   MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async
   ingestion worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
-version: 2.6.0
+version: 2.7.0
 appVersion: "2026.5"
 # Requires PSA "restricted" (GA 1.25), networking.k8s.io/v1 NetworkPolicy,
 # autoscaling/v2 HPA, and policy/v1 PodDisruptionBudget with

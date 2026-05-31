@@ -1,0 +1,70 @@
+suite: argocd sync-wave ordering
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/common/secrets.yaml
+  - templates/common/serviceaccounts.yaml
+  - templates/openwebui/deployment.yaml
+  - templates/common/hpa.yaml
+  - templates/common/pdbs.yaml
+tests:
+  - it: places Secrets in the foundation wave (-10)
+    set:
+      openwebui.enabled: true
+    template: templates/common/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui-secret
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-10"
+
+  - it: places ServiceAccounts in the foundation wave (-10)
+    set:
+      openwebui.enabled: true
+    template: templates/common/serviceaccounts.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-10"
+
+  - it: places app workloads after the platform default wave (5)
+    set:
+      openwebui.enabled: true
+    template: templates/openwebui/deployment.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "5"
+
+  - it: places HPAs in the final policy wave (10, after their target Deployments)
+    set:
+      openwebui.enabled: true
+      openwebui.autoscaling.enabled: true
+    template: templates/common/hpa.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "10"
+
+  - it: places PDBs in the final policy wave (10)
+    set:
+      openwebui.enabled: true
+      openwebui.autoscaling.enabled: true
+    template: templates/common/pdbs.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "10"

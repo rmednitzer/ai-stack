@@ -11,11 +11,13 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/profile: lab
   annotations:
-    argocd.argoproj.io/manifest-generate-paths: .
+    # Only re-render when chart-affecting files change (skips docs/tests/argocd/
+    # SBOM edits) so webhook pushes don't churn the controller.
+    argocd.argoproj.io/manifest-generate-paths: /Chart.yaml;/values.yaml;/values.schema.json;/templates;/files
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default  # Use a dedicated AppProject in production
+  project: ai-stack  # dedicated least-privilege AppProject (argocd/appproject.yaml)
   source:
     repoURL: https://github.com/rmednitzer/ai-stack.git
     targetRevision: main

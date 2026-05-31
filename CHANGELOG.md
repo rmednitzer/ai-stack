@@ -5,6 +5,42 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-05-31
+
+ArgoCD / GitOps optimization and deployment-rollout hardening.
+
+### Added
+
+- **Dedicated ArgoCD `AppProject`** (`argocd/appproject.yaml`) — least-privilege:
+  the controller is scoped to this repository and the `ai-stack` namespace, and
+  cluster-scoped resources other than `Namespace` are denied. Both Applications
+  now run under it (`project: ai-stack`).
+- **Sync-wave ordering** — chart workloads carry `argocd.argoproj.io/sync-wave`
+  annotations so a fresh `argocd app sync` rolls out in dependency order:
+  foundation (Secrets + ServiceAccounts, `-10`) → platform (datastores / backing
+  services, `0`) → app workloads (`5`) → HPA/PDB policies (`10`, applied last so
+  their target workloads already exist). Harmless outside ArgoCD.
+- **GitOps CI validation** — the `kubeconform` job now validates the `argocd/`
+  manifests against the Argo CRD schemas, and `argocd/**` is a workflow trigger
+  path, so this set can no longer drift unchecked.
+
+### Changed
+
+- **Narrowed ArgoCD `manifest-generate-paths`** to chart-affecting files
+  (`Chart.yaml`, `values*.yaml`, `values.schema.json`, `templates/`, `files/`)
+  so docs/tests/SBOM pushes don't churn the controller.
+- **Rollout strategy for RWO single-replica deployments** — Authelia, LangGraph,
+  and Open Terminal use `strategy: Recreate` **when `persistence.enabled`** (an
+  attached ReadWriteOnce PVC), avoiding the RollingUpdate deadlock where the new
+  pod cannot mount the volume still held by the old pod. Ephemeral installs keep
+  the default RollingUpdate. Probes, resources, and anti-affinity
+  (topologySpread) were reviewed and left unchanged — already appropriate.
+
+### Fixed
+
+- The README GitOps table said the lab Application had auto-sync **disabled**; it
+  is in fact **enabled** (prune + selfHeal), matching the manifest and HOWTO §17.
+
 ## [2.6.0] - 2026-05-31
 
 Tool/command-plane hardening for the model-driven components (MCPO and Open

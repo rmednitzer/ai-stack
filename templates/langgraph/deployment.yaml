@@ -9,7 +9,18 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "langgraph") | nindent 4 }}
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
+  annotations:
+    {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
+  {{- if .Values.langgraph.persistence.enabled }}
+  # RWO PVC: Recreate avoids a rollout deadlock on the single attached volume
+  # (persistence and autoscaling are mutually exclusive — RWO cannot multi-attach).
+  strategy:
+    type: Recreate
+    # null clears a rollingUpdate field defaulted by a prior RollingUpdate so the
+    # upgrade patch stays valid (rollingUpdate is forbidden with type: Recreate).
+    rollingUpdate: null
+  {{- end }}
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.langgraph) }}
   replicas: {{ .Values.langgraph.replicaCount }}
   {{- end }}

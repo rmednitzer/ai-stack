@@ -174,6 +174,33 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
           value: "http://ai-stack-openwebui:8080"
 
+  - it: is annotated into the app sync-wave (5)
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "5"
+
+  - it: uses the Recreate strategy only when persistence (RWO PVC) is enabled
+    set:
+      openTerminal.enabled: true
+      openTerminal.persistence.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: keeps the default RollingUpdate (no explicit strategy) when ephemeral
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - notExists:
+          path: spec.strategy
+
   - it: wires a sandbox runtimeClassName when set
     set:
       openTerminal.enabled: true

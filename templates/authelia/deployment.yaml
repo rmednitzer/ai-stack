@@ -14,6 +14,15 @@ metadata:
     assurance.platform/tier: "T0"
     assurance.platform/boundary: "authentication"
 spec:
+  {{- if .Values.authelia.persistence.enabled }}
+  # Single-replica component on an RWO PVC: Recreate avoids a rollout deadlock
+  # where the new pod cannot mount the volume still held by the old pod.
+  strategy:
+    type: Recreate
+    # null clears a rollingUpdate field defaulted by a prior RollingUpdate so the
+    # upgrade patch stays valid (rollingUpdate is forbidden with type: Recreate).
+    rollingUpdate: null
+  {{- end }}
   replicas: 1
   selector:
     matchLabels:
