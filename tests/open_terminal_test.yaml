@@ -92,6 +92,45 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
           value: "https://secure.example.com"
 
+  - it: derives https from an httpRoute on a default (TLS) listener
+    set:
+      openTerminal.enabled: true
+      openwebui.httpRoute.enabled: true
+      openwebui.httpRoute.parentRefs:
+        - name: eg
+      openwebui.httpRoute.hostnames:
+        - secure.example.com
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "https://secure.example.com"
+
+  - it: derives http from an httpRoute on a port-80 listener
+    set:
+      openTerminal.enabled: true
+      openwebui.httpRoute.enabled: true
+      openwebui.httpRoute.parentRefs:
+        - name: eg
+          port: 80
+      openwebui.httpRoute.hostnames:
+        - lab.example.com
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "http://lab.example.com"
+
+  - it: honours a legacy env CORS override (resolved value, not shadowed by the derived default)
+    set:
+      openTerminal.enabled: true
+      openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS: "https://legacy.example.com"
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "https://legacy.example.com"
+
   - it: wires a sandbox runtimeClassName when set
     set:
       openTerminal.enabled: true

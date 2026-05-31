@@ -585,15 +585,26 @@ Resolve the CORS allowed-origins for Open Terminal. Never returns "*": a
 wildcard CORS policy on a code-executing service is an OWASP A05
 misconfiguration. Precedence:
   1. explicit openTerminal.corsAllowedOrigins
-  2. Open WebUI browser origin(s) derived from its ingress hosts (scheme taken
-     from the ingress TLS config: https if the host is TLS-covered, else http)
-     and httpRoute hostnames (https; the Gateway listener terminates TLS)
-  3. the in-cluster Open WebUI Service origin (safe fallback)
+  2. legacy openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS (pre-2.6.0
+     installs that set the old env knob keep their value, verbatim)
+  3. derived Open WebUI browser origin(s): ingress hosts (https when the host
+     is TLS-covered, else http) and httpRoute hostnames (http when a parentRef
+     targets port 80, else https)
+  4. the in-cluster Open WebUI Service origin (safe fallback)
+CORS is only exercised when the terminal/notebook UI is exposed to a browser;
+the default topology reaches Open Terminal server-side. For any non-standard
+exposure, set openTerminal.corsAllowedOrigins explicitly.
 Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 */}}
 {{- define "ai-stack.openTerminalCorsOrigins" -}}
+{{- $legacy := "" -}}
+{{- with .Values.openTerminal.env -}}
+{{- $legacy = (index . "OPEN_TERMINAL_CORS_ALLOWED_ORIGINS") | default "" -}}
+{{- end -}}
 {{- if .Values.openTerminal.corsAllowedOrigins -}}
 {{- .Values.openTerminal.corsAllowedOrigins -}}
+{{- else if $legacy -}}
+{{- $legacy -}}
 {{- else -}}
 {{- $origins := list -}}
 {{- if .Values.openwebui.ingress.enabled -}}
@@ -609,8 +620,15 @@ Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
 {{- end -}}
 {{- end -}}
 {{- if .Values.openwebui.httpRoute.enabled -}}
+{{- $httpListener := false -}}
+{{- range .Values.openwebui.httpRoute.parentRefs -}}
+{{- if eq (.port | default 0 | int) 80 -}}
+{{- $httpListener = true -}}
+{{- end -}}
+{{- end -}}
+{{- $scheme := ternary "http" "https" $httpListener -}}
 {{- range .Values.openwebui.httpRoute.hostnames -}}
-{{- $origins = append $origins (printf "https://%s" .) -}}
+{{- $origins = append $origins (printf "%s://%s" $scheme .) -}}
 {{- end -}}
 {{- end -}}
 {{- if $origins -}}

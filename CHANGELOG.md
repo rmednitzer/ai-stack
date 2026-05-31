@@ -23,10 +23,13 @@ natively; no external projects are bundled.
 - **Scoped CORS for Open Terminal** — new `openTerminal.corsAllowedOrigins`.
   `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS` is now templated from it and **never
   emits `*`** (OWASP A05); empty derives the Open WebUI origin — from its
-  ingress host (scheme matched to the ingress TLS config) or httpRoute
-  hostname, else the in-cluster Service. (CORS is only exercised if the
-  terminal/notebook UI is exposed to a browser; the default topology reaches
-  Open Terminal server-side, pod-to-pod.)
+  ingress host (scheme matched to the ingress TLS config) or httpRoute hostname
+  (http when a parentRef targets port 80, else https), else the in-cluster
+  Service. A legacy `openTerminal.env.OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`
+  override is preserved verbatim and is no longer duplicated as a second env
+  var on upgrade. (CORS is only exercised if the terminal/notebook UI is
+  exposed to a browser; the default topology reaches Open Terminal server-side,
+  pod-to-pod.)
 - **Secret redaction in telemetry** — the OTel Collector redaction processor now
   also strips bearer tokens, JWTs, full PEM private-key blocks (header through
   footer, not just the header line), and provider API-key shapes (OpenAI, AWS,
