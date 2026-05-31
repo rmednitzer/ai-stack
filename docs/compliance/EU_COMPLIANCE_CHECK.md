@@ -41,32 +41,32 @@ The ai-stack processes the following categories of personal data:
 | GDPR Article | Requirement | Status | Evidence |
 |-------------|-------------|--------|----------|
 | **Art. 5(1)(c)** | Data minimisation | Partial | OTel PII redaction (email, SSN, CC patterns); but no data retention limits on conversations or embeddings |
-| **Art. 5(1)(e)** | Storage limitation | Addressed | Data retention guidance and purge scripts in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1 |
+| **Art. 5(1)(e)** | Storage limitation | Addressed | Data retention guidance and purge scripts in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §1 |
 | **Art. 13** | Information to data subjects | Gap | No privacy notice template or consent mechanism in chart |
-| **Art. 15** | Right of access | Addressed | DSAR procedures in [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) |
+| **Art. 15** | Right of access | Addressed | DSAR procedures in [docs/compliance/DSAR_PROCEDURES.md](DSAR_PROCEDURES.md) |
 | **Art. 17** | Right to erasure | Gap | No automated deletion workflow; manual Qdrant/PostgreSQL purge required |
 | **Art. 22** | Automated decision-making | Attention | If AI outputs are used for decisions with legal/significant effects, Art. 22 safeguards required |
 | **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference, optional Authelia OIDC/MFA for enterprise SSO |
-| **Art. 28** | Processor agreements | Addressed | DPA guidance, provider checklist, and GPAI documentation requirements in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2 |
-| **Art. 30** | Records of processing | Addressed | ROPA template in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) |
+| **Art. 28** | Processor agreements | Addressed | DPA guidance, provider checklist, and GPAI documentation requirements in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2 |
+| **Art. 30** | Records of processing | Addressed | ROPA template in [docs/compliance/ROPA_TEMPLATE.md](ROPA_TEMPLATE.md) |
 | **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control (built-in + optional Authelia OIDC/MFA), network isolation, read-only filesystem, PII redaction |
-| **Art. 33/34** | Breach notification | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
-| **Art. 35** | DPIA | Addressed | DPIA template in [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) |
-| **Art. 44-49** | International transfers | Addressed | Transfer assessment checklist and provider DPA status table in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2 |
+| **Art. 33/34** | Breach notification | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
+| **Art. 35** | DPIA | Addressed | DPIA template in [docs/compliance/DPIA_TEMPLATE.md](DPIA_TEMPLATE.md) |
+| **Art. 44-49** | International transfers | Addressed | Transfer assessment checklist and provider DPA status table in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2 |
 
 #### Gaps Requiring Action
 
-1. **Data Retention Policy (Art. 5(1)(e))** — Addressed: Retention periods, automated purge scripts, and Helm configuration guidance documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1. Deployers must configure and schedule retention enforcement appropriate to their use case.
+1. **Data Retention Policy (Art. 5(1)(e))** — Addressed: Retention periods, automated purge scripts, and Helm configuration guidance documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §1. Deployers must configure and schedule retention enforcement appropriate to their use case.
 
-2. **Data Subject Rights (Art. 15-20)** — Addressed: DSAR procedures documented in [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md). Deployers must implement operational workflows based on these procedures.
+2. **Data Subject Rights (Art. 15-20)** — Addressed: DSAR procedures documented in [docs/compliance/DSAR_PROCEDURES.md](DSAR_PROCEDURES.md). Deployers must implement operational workflows based on these procedures.
 
-3. **DPIA (Art. 35)** — Addressed: DPIA template provided in [docs/compliance/DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md). Deployers must complete it before production deployment.
+3. **DPIA (Art. 35)** — Addressed: DPIA template provided in [docs/compliance/DPIA_TEMPLATE.md](DPIA_TEMPLATE.md). Deployers must complete it before production deployment.
 
-4. **Records of Processing Activities (Art. 30)** — Addressed: ROPA template provided in [docs/compliance/ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md).
+4. **Records of Processing Activities (Art. 30)** — Addressed: ROPA template provided in [docs/compliance/ROPA_TEMPLATE.md](ROPA_TEMPLATE.md).
 
-5. **Processor Agreements (Art. 28)** — Addressed: DPA pre-enablement checklist, provider DPA status table, and international transfer assessment guidance documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2. Deployers must obtain signed DPAs before enabling `externalAPIs`.
+5. **Processor Agreements (Art. 28)** — Addressed: DPA pre-enablement checklist, provider DPA status table, and international transfer assessment guidance documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2. Deployers must obtain signed DPAs before enabling `externalAPIs`.
 
-6. **Breach Notification (Art. 33/34)** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md).
+6. **Breach Notification (Art. 33/34)** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md).
 
 ---
 
@@ -96,8 +96,8 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 | **Art. 13** | Transparency — provider obligation to inform deployers (high-risk) | Conditional | Tier labels and boundary annotations provide governance metadata; full compliance depends on use case. Note: Art. 13 is a provider obligation; deployers consume this information per Art. 26(9) |
 | **Art. 26** | Deployer obligations (high-risk) | Conditional | Monitoring via OTel, human oversight via Open WebUI; completeness depends on use case |
 | **Art. 27** | Fundamental rights impact assessment | Gap | No FRIA template provided; required for public bodies, private entities providing public services, and deployers under Annex III points 5(b)/(c) — not all high-risk deployers |
-| **Art. 53** | GPAI provider obligations | Addressed | GPAI downstream documentation requirements and provider checklist in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2.3 |
-| **Art. 73** | Serious incident reporting (provider obligation) | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific incidents. Note: Art. 73 applies to providers of high-risk AI systems; deployers report to providers per Art. 26(5) |
+| **Art. 53** | GPAI provider obligations | Addressed | GPAI downstream documentation requirements and provider checklist in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2.3 |
+| **Art. 73** | Serious incident reporting (provider obligation) | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) covers AI-specific incidents. Note: Art. 73 applies to providers of high-risk AI systems; deployers report to providers per Art. 26(5) |
 
 #### Gaps Requiring Action
 
@@ -105,11 +105,11 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 2. **Art. 50(2) Content Marking** — AI-generated text, images, audio, and video must be marked in a machine-readable format. No C2PA, watermarking, or metadata injection is implemented. Deployers must address this at the application layer.
 
-3. **GPAI Downstream Documentation (Art. 53)** — Addressed: Guidance for obtaining and maintaining model documentation from GPAI providers (Art. 53(1)(b)), including technical documentation, capabilities/limitations, intended use, and copyright compliance, documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2.3.
+3. **GPAI Downstream Documentation (Art. 53)** — Addressed: Guidance for obtaining and maintaining model documentation from GPAI providers (Art. 53(1)(b)), including technical documentation, capabilities/limitations, intended use, and copyright compliance, documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2.3.
 
 4. **Fundamental Rights Impact Assessment (Art. 27)** — Art. 27(1) requires a FRIA for deployers that are public bodies, private entities providing public services, or deployers of systems under Annex III points 5(b) (creditworthiness) and 5(c) (risk assessment/pricing for life and health insurance). Not all Annex III high-risk deployers are subject to this obligation.
 
-5. **Incident Reporting (Art. 73)** — Addressed: Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covers AI-specific serious incident reporting. Note: Art. 73 is a provider obligation; as a deployer platform, reporting flows through providers per Art. 26(5), with deployers informing providers of serious incidents.
+5. **Incident Reporting (Art. 73)** — Addressed: Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) covers AI-specific serious incident reporting. Note: Art. 73 is a provider obligation; as a deployer platform, reporting flows through providers per Art. 26(5), with deployers informing providers of serious incidents.
 
 ---
 
@@ -124,25 +124,25 @@ NIS2 applicability depends on whether the deploying organization falls within An
 | NIS2 Art. 21(2) | Requirement | Status | Evidence |
 |-----------------|-------------|--------|----------|
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
-| **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
+| **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 | **(c)** Business continuity & DR | Good | PVC snapshots with external DR (Velero), PDB, HA in prod profile |
 | **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Dependabot, license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
-| **(f)** Effectiveness assessment | Good | Penetration testing cadence, AI-specific security testing, and assessment programme documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §5 |
-| **(g)** Cyber hygiene & training | Addressed | Operator training requirements and role-based training matrix documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §6 |
-| **(h)** Cryptography & encryption | Addressed | Encryption-at-rest requirements, PVC classification, and implementation options documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §3 |
+| **(f)** Effectiveness assessment | Good | Penetration testing cadence, AI-specific security testing, and assessment programme documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §5 |
+| **(g)** Cyber hygiene & training | Addressed | Operator training requirements and role-based training matrix documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §6 |
+| **(h)** Cryptography & encryption | Addressed | Encryption-at-rest requirements, PVC classification, and implementation options documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §3 |
 | **(i)** Access control & asset management | Strong | Per-component ServiceAccounts, RBAC, `automountServiceAccountToken: false` |
 | **(j)** MFA/continuous auth | Strong | Open WebUI built-in auth; optional Authelia OIDC/MFA for enterprise SSO (`authelia.defaultPolicy: two_factor`) |
 
 #### Gaps Requiring Action
 
-1. **Incident Response Procedure (Art. 21(2)(b))** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) covering detection, triage, containment, eradication, and notification workflows.
+1. **Incident Response Procedure (Art. 21(2)(b))** — Addressed: Incident response playbook provided in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) covering detection, triage, containment, eradication, and notification workflows.
 
-2. **Encryption at Rest (Art. 21(2)(h))** — Addressed: PVC classification, encryption-at-rest requirements, and implementation options (StorageClass encryption, LUKS, KMS) documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §3.
+2. **Encryption at Rest (Art. 21(2)(h))** — Addressed: PVC classification, encryption-at-rest requirements, and implementation options (StorageClass encryption, LUKS, KMS) documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §3.
 
-3. **Security Effectiveness Assessment (Art. 21(2)(f))** — Addressed: Security assessment cadence, AI-specific security testing programme, and penetration testing recommendations documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §5.
+3. **Security Effectiveness Assessment (Art. 21(2)(f))** — Addressed: Security assessment cadence, AI-specific security testing programme, and penetration testing recommendations documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §5.
 
-4. **Cyber Hygiene Training (Art. 21(2)(g))** — Addressed: Role-based training requirements for platform administrators, end users, security team, and management documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §6.
+4. **Cyber Hygiene Training (Art. 21(2)(g))** — Addressed: Role-based training requirements for platform administrators, end users, security team, and management documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §6.
 
 ---
 
@@ -173,7 +173,7 @@ The CRA applies to "products with digital elements" placed on the EU market. Whe
 
 #### Gaps Requiring Action
 
-1. **Coordinated Vulnerability Disclosure Policy (Art. 13(8))** — Addressed: CVD policy documented in [SECURITY.md](SECURITY.md).
+1. **Coordinated Vulnerability Disclosure Policy (Art. 13(8))** — Addressed: CVD policy documented in [SECURITY.md](../../SECURITY.md).
 
 2. **CVE Monitoring** — Addressed: Grype scans all container images in CI (`cve-scan` job) and fails on critical vulnerabilities.
 
@@ -233,31 +233,31 @@ If the platform is accessible via web browser (Open WebUI), ePrivacy provisions 
 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
-| 1 | ~~**Create DPIA template**~~ | GDPR Art. 35, AI Act Art. 27 | Done — [DPIA_TEMPLATE.md](docs/compliance/DPIA_TEMPLATE.md) |
+| 1 | ~~**Create DPIA template**~~ | GDPR Art. 35, AI Act Art. 27 | Done — [DPIA_TEMPLATE.md](DPIA_TEMPLATE.md) |
 | 2 | ~~**Add AI transparency disclosure**~~ | AI Act Art. 50(1) | Done — `WEBUI_BANNER_TEXT` in values.yaml |
-| 3 | ~~**Document data retention policy**~~ and provide guidance for automated purge of conversations, embeddings, uploaded docs | GDPR Art. 5(1)(e) | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §1 |
-| 4 | ~~**Create incident response playbook**~~ | GDPR + NIS2 | Done — [INCIDENT_RESPONSE.md](docs/compliance/INCIDENT_RESPONSE.md) |
+| 3 | ~~**Document data retention policy**~~ and provide guidance for automated purge of conversations, embeddings, uploaded docs | GDPR Art. 5(1)(e) | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §1 |
+| 4 | ~~**Create incident response playbook**~~ | GDPR + NIS2 | Done — [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 
 ### High (address within first quarter of operation)
 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
-| 5 | ~~**Document DSAR procedures**~~ | GDPR Art. 15-20 | Done — [DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) |
-| 6 | ~~**Provide ROPA template**~~ | GDPR Art. 30 | Done — [ROPA_TEMPLATE.md](docs/compliance/ROPA_TEMPLATE.md) |
-| 7 | ~~**Add DPA guidance**~~ for external API providers with checklist of required contractual clauses | GDPR Art. 28, Art. 44-49 | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2 |
+| 5 | ~~**Document DSAR procedures**~~ | GDPR Art. 15-20 | Done — [DSAR_PROCEDURES.md](DSAR_PROCEDURES.md) |
+| 6 | ~~**Provide ROPA template**~~ | GDPR Art. 30 | Done — [ROPA_TEMPLATE.md](ROPA_TEMPLATE.md) |
+| 7 | ~~**Add DPA guidance**~~ for external API providers with checklist of required contractual clauses | GDPR Art. 28, Art. 44-49 | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2 |
 | 8 | ~~**Integrate CVE scanning**~~ | CRA Art. 13 | Done — Grype `cve-scan` job in CI |
-| 9 | ~~**Document encryption-at-rest requirements**~~ for PVCs in operator guidance | NIS2 Art. 21(2)(h) | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §3 |
+| 9 | ~~**Document encryption-at-rest requirements**~~ for PVCs in operator guidance | NIS2 Art. 21(2)(h) | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §3 |
 
 ### Medium (address within first year)
 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
 | 10 | **Implement AI content marking** (C2PA metadata or watermarking) for AI-generated outputs | AI Act Art. 50(2) | High |
-| 11 | ~~**Create coordinated vulnerability disclosure policy**~~ | CRA Art. 13(8) | Done — [SECURITY.md](SECURITY.md) |
-| 12 | ~~**Document GPAI downstream obligations**~~ — guidance for deployers using external model providers | AI Act Art. 53 | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §2.3 |
-| 13 | ~~**Add security audit/pentest cadence**~~ to operator documentation | NIS2 Art. 21(2)(f) | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §5 |
-| 14 | ~~**Document operator training requirements**~~ for platform security | NIS2 Art. 21(2)(g) | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §6 |
-| 15 | ~~**Verify cookie behavior**~~ and provide consent mechanism guidance | ePrivacy/TKG 2021 | Done — [EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) §7 |
+| 11 | ~~**Create coordinated vulnerability disclosure policy**~~ | CRA Art. 13(8) | Done — [SECURITY.md](../../SECURITY.md) |
+| 12 | ~~**Document GPAI downstream obligations**~~ — guidance for deployers using external model providers | AI Act Art. 53 | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2.3 |
+| 13 | ~~**Add security audit/pentest cadence**~~ to operator documentation | NIS2 Art. 21(2)(f) | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §5 |
+| 14 | ~~**Document operator training requirements**~~ for platform security | NIS2 Art. 21(2)(g) | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §6 |
+| 15 | ~~**Verify cookie behavior**~~ and provide consent mechanism guidance | ePrivacy/TKG 2021 | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §7 |
 
 ---
 

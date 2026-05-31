@@ -2,7 +2,7 @@
 
 This document describes the reference architecture the chart composes and the
 patterns it implements for two primary workloads: **conversational + RAG**
-(Open WebUI) and **agentic** (LangGraph). It is the long-form companion to the
+(Open WebUI) and **agentic** (LangGraph or Pydantic AI). It is the long-form companion to the
 [architecture diagram in README.md](../../README.md#architecture).
 
 The chart's job is to give you a defensible default topology — correct
@@ -70,7 +70,22 @@ extract → chunk → Ollama embed → Qdrant upsert, and writes status to
 [HOWTO §5](../../HOWTO.md#5-async-document-ingestion) for the producer
 contract.
 
-## 3. Agentic flow (LangGraph)
+## 3. Agentic flow (LangGraph or Pydantic AI)
+
+The chart ships two interchangeable agentic runtimes that implement the **same
+contracts** — PostgreSQL for durable state, Qdrant for semantic memory, MCPO for
+the shared tool catalog, Ollama/External APIs for inference, and Open WebUI as
+the front door. Choose by licensing and execution model:
+
+- **LangGraph** — graph-based orchestration. The `langgraph-server` image is
+  Elastic License 2.0; production self-hosting needs a commercial LangGraph
+  Platform key (see [LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md#source-available--langgraph-api-elastic-license-20)).
+- **Pydantic AI** — type-safe agents with durable execution via DBOS, checkpointed
+  in the same PostgreSQL; fully MIT/Apache-2.0. See [pydanticai.md](../components/pydanticai.md).
+
+The flow below is drawn for LangGraph; the Pydantic AI runtime substitutes the
+LangGraph box (DBOS provides the checkpointer/store) and keeps every other edge
+identical.
 
 ```text
 Open WebUI ─(OpenAI API)→ LangGraph
@@ -100,9 +115,10 @@ Open WebUI ─(OpenAI API)→ LangGraph
   the shared tool catalog, the per-tool auth boundary, and the audit surface.
 - **Don't store long-running agent state in Valkey.** Valkey is cache and
   streams; checkpoints belong in Postgres.
-- **Don't run LangGraph without a checkpointer.** Without one, HITL, retries,
-  and observability across steps degrade to a single-shot RPC.
-- **Don't expose LangGraph directly to end users.** Front it with Open WebUI
+- **Don't run agents without durable state.** Without a checkpointer (LangGraph)
+  or DBOS durable execution (Pydantic AI), HITL, retries, and observability
+  across steps degrade to a single-shot RPC.
+- **Don't expose the agent runtime directly to end users.** Front it with Open WebUI
   (or your own UI) so authentication, audit, and rate limiting are consistent.
 
 ## 4. Cross-cutting concerns
@@ -174,7 +190,7 @@ The chart deliberately stops at the contracts below; extend at these seams.
 ## 7. Related reading
 
 - [README — Architecture](../../README.md#architecture) — diagram and tier table
-- [HOWTO — Agentic Workloads](../../HOWTO.md#8-agentic-workloads-langgraph)
+- [HOWTO — Agentic Workloads](../../HOWTO.md#8-agentic-workloads-langgraph-or-pydantic-ai)
 - [HOWTO — MCP Tool Integration](../../HOWTO.md#9-mcp-tool-integration-mcpo)
 - [HOWTO — Async Document Ingestion](../../HOWTO.md#5-async-document-ingestion)
 - [HOWTO — RAG](../../HOWTO.md#4-rag-retrieval-augmented-generation)

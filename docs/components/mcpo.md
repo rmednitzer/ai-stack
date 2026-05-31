@@ -27,9 +27,9 @@ MCP-to-OpenAPI proxy. Exposes Model Context Protocol (MCP) servers as standard O
 
 ## Reference architecture
 
-MCPO is the **shared tool surface** for both Open WebUI chat and LangGraph
-agents — see
-[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph).
+MCPO is the **shared tool surface** for both Open WebUI chat and the agentic
+runtimes (LangGraph / Pydantic AI) — see
+[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph-or-pydantic-ai).
 Best-practice patterns:
 
 - Author tools once as MCP servers; let MCPO surface them as OpenAPI for both the chat and agent paths.

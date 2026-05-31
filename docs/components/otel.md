@@ -23,7 +23,7 @@ Centralises logs, metrics, and traces from every ai-stack component, enriches th
 
 ## PII redaction
 
-The Collector runs a `transform/redact` processor that masks email, SSN, and credit-card patterns in log and trace attributes before export. Implements GDPR Art. 5(1)(c) data minimisation (see [CTL-001](../governance/CONTROLS.md#controls-ctl)).
+The Collector runs a `redaction` processor (patterns configurable via `otelCollector.redaction.blockedPatterns`) that masks email, social-security (VSNR), and credit-card patterns in log and trace attributes before export. Implements GDPR Art. 5(1)(c) data minimisation (see [CTL-001](../governance/CONTROLS.md#controls-ctl)). Resource enrichment uses the `resource_detection` and `resource` processors.
 
 ## Related HOWTO sections
 

@@ -38,5 +38,5 @@ CNPG supports automated Barman-based backups to S3-compatible storage. Configure
 ## Related HOWTO sections
 
 - [§10 PostgreSQL Modes](../../HOWTO.md#10-postgresql-modes)
-- [§8 LangGraph](../../HOWTO.md#8-agentic-workloads-langgraph)
+- [§8 Agentic Workloads (LangGraph / Pydantic AI)](../../HOWTO.md#8-agentic-workloads-langgraph-or-pydantic-ai)
 - [§12.4 Authelia with PostgreSQL](../../HOWTO.md#124-use-postgresql-as-storage-backend)

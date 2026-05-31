@@ -55,7 +55,7 @@ The agent in `files/pydanticai/app.py` is a deliberately small **reference**:
 ## Reference architecture
 
 Pydantic AI is an alternative **agentic runtime** to the one described in
-[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph).
+[docs/architecture/REFERENCE.md §3](../architecture/REFERENCE.md#3-agentic-flow-langgraph-or-pydantic-ai).
 Best-practice patterns carry over:
 
 - Run with a Postgres-backed durable executor (DBOS); do not run agents stateless in production.
@@ -65,6 +65,6 @@ Best-practice patterns carry over:
 
 ## Related HOWTO sections
 
-- [§8 Agentic Workloads](../../HOWTO.md#8-agentic-workloads-langgraph)
+- [§8 Agentic Workloads](../../HOWTO.md#8-agentic-workloads-langgraph-or-pydantic-ai)
 - [§9 MCP Tool Integration](../../HOWTO.md#9-mcp-tool-integration-mcpo)
 - [§10 PostgreSQL Modes](../../HOWTO.md#10-postgresql-modes)

@@ -35,7 +35,7 @@ alignment with governance, security, observability, and operational requirements
 - Explicit framework alignment: **NIS2**, **GDPR**, **AI Act**
 - PII redaction in telemetry pipeline (email, SSN, credit card patterns)
 - Governance-as-code annotations (`assurance.platform/*`) on all resources
-- Control reference traceability (CTL-001, CTL-002, POL-001) — defined in [docs/governance/CONTROLS.md](docs/governance/CONTROLS.md)
+- Control reference traceability (CTL-001, CTL-002, POL-001) — defined in [docs/governance/CONTROLS.md](../governance/CONTROLS.md)
 - Tier classification system (T0–T2) with clear boundary labels
 
 ### 3. Observability — Production-Grade
@@ -67,7 +67,7 @@ alignment with governance, security, observability, and operational requirements
 - Internal-only services (ClusterIP) with ingress controller integration
 - Opt-in components (Workbench, Open Terminal, MCPO) reduce default attack surface
 - All images pinned to versioned tags
-- CycloneDX 1.6 SBOM ([sbom.cdx.json](sbom.cdx.json)) with full license and dependency graph
+- CycloneDX 1.6 SBOM ([sbom.cdx.json](../../sbom.cdx.json)) with full license and dependency graph
 - License compliance matrix ([LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md)) with copyleft analysis
 - SBOM validation in CI (schema + component count cross-check)
 

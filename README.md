@@ -69,6 +69,7 @@ graph LR
 
   subgraph Agentic["Agentic Runtime & Tools"]
     LangGraph["LangGraph<br/>stateful agents · HITL (T1)"]
+    PydanticAI["Pydantic AI<br/>durable agents · DBOS (T1)"]
     MCPO["MCPO<br/>MCP → OpenAPI gateway (T2)"]
     OpenTerminal["Open Terminal<br/>sandboxed shell (T2)"]
   end
@@ -95,6 +96,7 @@ graph LR
   OpenWebUI -->|OpenAI API| Ollama
   OpenWebUI -->|OpenAI API| ExternalAPIs
   OpenWebUI -->|OpenAI API| LangGraph
+  OpenWebUI -->|OpenAI API| PydanticAI
   OpenWebUI -->|retrieve| Qdrant
   OpenWebUI -->|extract on upload| Tika
   OpenWebUI -->|web fallback| SearXNG
@@ -116,6 +118,12 @@ graph LR
   LangGraph -->|checkpointer · store| Postgres
   LangGraph -.->|sandbox exec| OpenTerminal
 
+  %% Pydantic AI — MIT alternative runtime (same contracts as LangGraph)
+  PydanticAI -->|inference| Ollama
+  PydanticAI -->|semantic memory| Qdrant
+  PydanticAI -->|tools| MCPO
+  PydanticAI -->|durable exec · store| Postgres
+
   %% Async ingestion (non-blocking)
   OpenWebUI -.->|enqueue| Valkey
   IngestionWorker -->|XREAD| Valkey
@@ -130,6 +138,7 @@ graph LR
   OpenWebUI -.->|OTLP| OTel
   Workbench -.->|OTLP| OTel
   LangGraph -.->|OTLP| OTel
+  PydanticAI -.->|OTLP| OTel
   MCPO -.->|OTLP| OTel
   Ollama -.->|OTLP| OTel
   Qdrant -.->|OTLP| OTel
@@ -137,7 +146,7 @@ graph LR
   Authelia -.->|OTLP| OTel
 
   classDef optIn stroke-dasharray: 5 5
-  class Authelia,Workbench,LangGraph,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
+  class Authelia,Workbench,LangGraph,PydanticAI,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
 ```
 
 ### Best-practice notes
@@ -337,7 +346,7 @@ openwebui:
 ### Gateway API (HTTPRoute)
 
 As a modern, opt-in alternative to `Ingress`, each externally-exposed component
-(`openwebui`, `workbench`, `langgraph`, `authelia`) can emit a Gateway API
+(`openwebui`, `workbench`, `langgraph`, `pydanticai`, `authelia`) can emit a Gateway API
 [`HTTPRoute`](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io/v1`,
 GA since Gateway API v1.0). The chart renders only the per-app `HTTPRoute` and
 attaches it to a **pre-existing** `Gateway` via `parentRefs` — mirroring how the
@@ -658,7 +667,10 @@ ct lint --config ct.yaml --charts .
 |----------|---------|
 | [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
 | [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md) | Reference architecture — design principles, conversational + RAG flow, agentic flow, hardening checklist |
-| [docs/architecture/ADR-001-component-version-management.md](docs/architecture/ADR-001-component-version-management.md) | Architecture Decision Record — `values.yaml` as the single source of truth for image tags, with SBOM/Zarf and version-bearing docs kept in lockstep |
+| [docs/architecture/ADR-001-component-version-management.md](docs/architecture/ADR-001-component-version-management.md) | ADR — `values.yaml` as the single source of truth for image tags, with SBOM/Zarf and version-bearing docs kept in lockstep |
+| [docs/architecture/ADR-002-image-digest-pinning.md](docs/architecture/ADR-002-image-digest-pinning.md) | ADR — every image pinned by manifest digest, with CI digest parity |
+| [docs/architecture/ADR-003-gateway-api-httproute.md](docs/architecture/ADR-003-gateway-api-httproute.md) | ADR — opt-in Gateway API `HTTPRoute` alongside Ingress |
+| [docs/architecture/ADR-004-pydantic-ai-runtime.md](docs/architecture/ADR-004-pydantic-ai-runtime.md) | ADR — Pydantic AI as an MIT-licensed agentic-runtime alternative to LangGraph |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |

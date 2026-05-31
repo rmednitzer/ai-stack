@@ -102,6 +102,12 @@ single-arch manifest digest).
 | MCPO | `ghcr.io/open-webui/mcpo` | `main` | `sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467` |
 | Authelia | `ghcr.io/authelia/authelia` | `4.39.20` | `sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b` |
 | Python (ingestion worker) | `python` | `3.14-slim` | `sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97` |
+| Pydantic AI (uv base) | `ghcr.io/astral-sh/uv` | `python3.13-trixie-slim` | `sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e` |
+
+> This table is kept in lockstep with `values.yaml` per ADR-001 and CI digest
+> parity. Rows added or updated since the 2026-05-27 acceptance snapshot include
+> the Pydantic AI `uv` base image (added in v2.4.0, 2026-05-31) and the
+> Tika/SearXNG/LangGraph/MCPO bumps — the chart now pins **15** images.
 
 ### MCPO digest resolved (2026-05-31, post-acceptance)
 
@@ -122,7 +128,7 @@ ghcr.io/open-webui/mcpo:main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279
 The digest makes pulls deterministic regardless of tag mutation, and
 Renovate's `pinDigests` refreshes it as `main` advances. The MCPO row in
 the table above now carries this digest, and `values.yaml`, `sbom.cdx.json`,
-and `zarf.yaml` were updated in lockstep — so **all 14 images are
+and `zarf.yaml` were updated in lockstep — so **all chart images are
 digest-pinned with no exceptions**, which in turn lets the CI parity step
 enforce digest parity (see Consequences → Operational).
 

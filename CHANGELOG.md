@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `zarf.yaml`, `files/**`, `values.schema.json`, and `.kube-linter.yaml`
   (edits to those previously skipped CI on PRs), and added `pydanticai` to the
   all-optional-components kube-linter run.
+- **ADR-003** (opt-in Gateway API `HTTPRoute`) and **ADR-004** (Pydantic AI as an
+  MIT-licensed agentic-runtime alternative) documenting the architectural
+  decisions shipped in 2.3.0 / 2.4.0; linked from the README documentation table.
+
+### Changed
+
+- **Documentation polish across the stack** for v2.4.0: the README architecture
+  diagram now includes Pydantic AI and the Gateway API section lists `pydanticai`;
+  `REFERENCE.md` §3 and `HOWTO.md` §8 cover both agentic runtimes (LangGraph /
+  Pydantic AI) with a new HOWTO §8.4; `langgraph.md` cross-references the MIT
+  alternative; `CONTRIBUTING.md` documents the cross-artifact sync discipline and
+  the CI gates (kube-linter, digest parity, zarf-lint); `otel.md` corrected to the
+  actual `redaction` processor; ADR-002's image table/count updated for the
+  Pydantic AI `uv` image (15 images). Retitled REFERENCE §3 and fixed all five
+  inbound anchor links.
 
 ### Fixed
 
