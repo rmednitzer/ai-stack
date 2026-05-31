@@ -39,7 +39,7 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
    - [Enable GPU for Ollama](#71-enable-gpu-for-ollama)
    - [Enable the GPU Workbench](#72-enable-the-gpu-workbench)
    - [Verify GPU access](#73-verify-gpu-access)
-8. [Agentic Workloads (LangGraph)](#8-agentic-workloads-langgraph)
+8. [Agentic Workloads (LangGraph)](#8-agentic-workloads-langgraph-or-pydantic-ai)
    - [Enable LangGraph with PostgreSQL](#81-enable-langgraph-with-postgresql)
    - [Deploy a custom graph](#82-deploy-a-custom-graph)
    - [Test the LangGraph API](#83-test-the-langgraph-api)
@@ -631,9 +631,9 @@ kubectl exec -n ai-stack deploy/ai-stack-workbench -- python3 -c \
 
 ---
 
-## 8. Agentic Workloads (LangGraph)
+## 8. Agentic Workloads (LangGraph or Pydantic AI)
 
-LangGraph enables stateful, multi-step agentic workflows with tool calling and checkpoint persistence. For the design rationale, recommended integration patterns, and anti-patterns, see [docs/architecture/REFERENCE.md §3 Agentic flow](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph).
+The chart ships two interchangeable agentic runtimes — **LangGraph** (graph-based; the `langgraph-server` image is Elastic License 2.0, and production self-hosting needs a commercial key) and **Pydantic AI** (durable execution via DBOS; fully MIT/Apache-2.0, see §8.4). Both enable stateful, multi-step workflows with tool calling and checkpoint persistence, and share the same Ollama/Qdrant/SearXNG/MCPO/PostgreSQL integrations. For the design rationale, integration patterns, and anti-patterns, see [docs/architecture/REFERENCE.md §3 Agentic flow](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph-or-pydantic-ai).
 
 ### 8.1 Enable LangGraph with PostgreSQL
 
@@ -694,11 +694,43 @@ curl http://localhost:8000/assistants \
   -H "x-api-key: $(kubectl get secret -n ai-stack ai-stack-langgraph-secret -o jsonpath='{.data.api-key}' | base64 -d)"
 ```
 
+### 8.4 Pydantic AI (MIT alternative)
+
+For a fully **MIT/Apache-2.0** agentic runtime, enable Pydantic AI instead of (or alongside) LangGraph. It uses DBOS for durable execution, checkpointed in the same PostgreSQL:
+
+```yaml
+pydanticai:
+  enabled: true
+postgres:
+  enabled: true   # DBOS checkpoints durable runs here; without it, runs are non-durable
+```
+
+```bash
+helm upgrade ai-stack . -n ai-stack
+```
+
+Test it:
+
+```bash
+kubectl port-forward -n ai-stack svc/ai-stack-pydanticai 8000:8000
+
+# Health
+curl http://localhost:8000/health
+
+# Run the agent (bearer token from the auto-generated secret)
+curl -X POST http://localhost:8000/run \
+  -H "Authorization: Bearer $(kubectl get secret -n ai-stack ai-stack-pydanticai-secret -o jsonpath='{.data.api-key}' | base64 -d)" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Say hello and name three EU AI Act obligations."}'
+```
+
+The agent lives in `files/pydanticai/app.py` as a reference — extend it with your own tools (`@DBOS.step` for durable I/O), structured outputs, or MCP servers. See [docs/components/pydanticai.md](docs/components/pydanticai.md).
+
 ---
 
 ## 9. MCP Tool Integration (MCPO)
 
-MCPO bridges Model Context Protocol (MCP) servers to OpenAPI endpoints that Open WebUI can consume as tools. The same MCPO instance is the recommended tool surface for LangGraph agents — see [docs/architecture/REFERENCE.md §3](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph).
+MCPO bridges Model Context Protocol (MCP) servers to OpenAPI endpoints that Open WebUI can consume as tools. The same MCPO instance is the recommended tool surface for LangGraph agents — see [docs/architecture/REFERENCE.md §3](docs/architecture/REFERENCE.md#3-agentic-flow-langgraph-or-pydantic-ai).
 
 ### 9.1 Enable MCPO
 

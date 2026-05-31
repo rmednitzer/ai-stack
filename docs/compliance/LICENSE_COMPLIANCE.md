@@ -10,7 +10,7 @@ ai-stack Helm chart and evaluates compliance implications for enterprise use.
 ## SBOM
 
 A machine-readable Software Bill of Materials is maintained in
-[sbom.cdx.json](sbom.cdx.json) (CycloneDX 1.6, JSON). The SBOM is validated
+[sbom.cdx.json](../../sbom.cdx.json) (CycloneDX 1.6, JSON). The SBOM is validated
 in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 
 ---
