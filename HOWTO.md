@@ -740,6 +740,14 @@ After deploying, configure Open WebUI to use the MCPO endpoint as an OpenAPI too
 
 ## 10. PostgreSQL Modes
 
+PostgreSQL is **enabled by default**. It backs Open WebUI's high-availability
+state (its own `openwebui` database, set via `openwebui.databaseName`) as well as
+LangGraph and Pydantic AI (durable execution via DBOS), and optionally Authelia.
+The three provisioning modes below cover lab through enterprise. Set
+`postgres.enabled=false` only for an ephemeral single-pod lab, where Open WebUI
+falls back to a local SQLite file (see [§15 Scaling](#15-scaling) for the
+single-replica caveat that implies).
+
 ### 10.1 Standalone (Lab)
 
 Single-instance PostgreSQL — no HA, suitable for development:
@@ -1126,6 +1134,17 @@ otelCollector:
 ---
 
 ## 15. Scaling
+
+> **Open WebUI is replica-safe by default.** Running more than one Open WebUI
+> pod requires its session and config state to live in shared backends, which
+> the chart wires automatically: a stable `WEBUI_SECRET_KEY` (so every replica
+> signs tokens identically), `DATABASE_URL` → the shared PostgreSQL, and the
+> Valkey-backed websocket manager. These are active because `postgres.enabled`
+> and `valkey.enabled` default to `true`. If you set `postgres.enabled=false`
+> (ephemeral single-pod lab), Open WebUI falls back to a local SQLite file and
+> **must not** be scaled beyond one replica — extra pods would each get their own
+> database and users would hit login loops. See
+> [docs/components/openwebui.md §High availability](docs/components/openwebui.md#high-availability).
 
 ### 15.1 Horizontal Pod Autoscaling
 
