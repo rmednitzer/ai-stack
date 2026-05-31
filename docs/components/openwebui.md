@@ -1,6 +1,6 @@
 # Open WebUI
 
-Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentication, conversation state, model selection (local and external), RAG document upload, and routing to Ollama, Qdrant, Tika, SearXNG, MCPO, and LangGraph.
+Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentication, conversation state, model selection (local and external), RAG document upload, and routing to Ollama, Qdrant, Tika, SearXNG, MCPO, LangGraph, and Pydantic AI. Runs as a stateless, horizontally-scalable service — session and config state live in the shared PostgreSQL and Valkey (see [High availability](#high-availability)).
 
 - **Tier**: T1 (operational)
 - **Boundary**: `decision`
@@ -16,10 +16,31 @@ Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentic
 | `openwebui.enabled` | Toggle the component |
 | `openwebui.image.{repository,tag}` | Container image override |
 | `openwebui.replicaCount` | Replicas (prod overlay sets HA) |
+| `openwebui.secretKey` | Signs sessions/JWTs; auto-generated, stable across restarts and replicas |
+| `openwebui.databaseName` | Open WebUI's database on the shared PostgreSQL (default `openwebui`) |
 | `openwebui.resources` | CPU / memory requests and limits |
-| `openwebui.persistence.{enabled,size,storageClass}` | PVC for database, uploads, memories |
+| `openwebui.persistence.{enabled,size,storageClass}` | PVC for uploads and local cache |
 | `openwebui.ingress.*` | Ingress / Gateway API configuration |
 | `openwebui.env.*` | Environment passthrough (OAuth, banner text, feature flags) |
+
+## High availability
+
+Open WebUI is stateless only when its session and config state live in shared
+backends, so the chart wires that up by default (per Open WebUI's
+[Scaling & HA](https://docs.openwebui.com/) guidance):
+
+- **`WEBUI_SECRET_KEY`** (and `OAUTH_SESSION_TOKEN_ENCRYPTION_KEY`) come from the
+  generated `openwebui-secret` and stay stable across restarts, so sessions stay
+  valid and every replica signs tokens identically.
+- **`DATABASE_URL`** points at the shared PostgreSQL (`openwebui.databaseName`,
+  auto-created in `standalone` mode) when `postgres.enabled=true`, replacing the
+  single-pod SQLite file.
+- **`REDIS_URL` + `WEBSOCKET_MANAGER=redis` + `WEBSOCKET_REDIS_URL`** use Valkey
+  to coordinate websocket and config state across replicas.
+
+To scale out, raise `openwebui.replicaCount` (or enable `openwebui.autoscaling`)
+with `postgres.enabled=true` and `valkey.enabled=true` (both default on). For an
+ephemeral single-pod lab, `postgres.enabled=false` falls back to SQLite.
 
 ## Integrations
 
@@ -45,7 +66,7 @@ Open WebUI is the entry point for the **conversational + RAG flow** described
 in [docs/architecture/REFERENCE.md §2](../architecture/REFERENCE.md#2-conversational--rag-flow-open-webui).
 Best-practice patterns:
 
-- Treat all inference (Ollama, External APIs, LangGraph) as one OpenAI-compatible surface so the model picker handles routing.
+- Treat all inference (Ollama, External APIs, LangGraph, Pydantic AI) as one OpenAI-compatible surface so the model picker handles routing.
 - Use the bundled MCPO as the single tool gateway; do not let Open WebUI call internal services directly.
 - Enable async ingestion (`ingestionWorker.enabled=true`) for bulk uploads so the chat path stays non-blocking.
 - Front Open WebUI with Authelia OIDC and put MFA on the production policy.

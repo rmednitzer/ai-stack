@@ -35,12 +35,13 @@ Two flows drive the design:
 - **Conversational + RAG** — Open WebUI consumes any OpenAI-compatible model
   (Ollama for local inference, External APIs for hosted), retrieves with Qdrant
   (with web fallback via SearXNG), and exposes tools through MCPO so any MCP
-  server is reachable as an OpenAPI tool.
-- **Agentic** — LangGraph runs stateful, long-horizon agents with PostgreSQL as
-  the checkpointer/store, Qdrant for semantic memory, and the same MCPO tool
-  surface so tool definitions are shared across UI and agent runtimes. Async
-  document ingestion is decoupled via the Valkey-backed Ingestion Worker so the
-  request path stays non-blocking.
+  server is reachable as an OpenAPI tool. Its session/config state lives in the
+  shared PostgreSQL and Valkey, so it scales horizontally out of the box.
+- **Agentic** — LangGraph or Pydantic AI runs stateful, long-horizon agents with
+  PostgreSQL as the checkpointer/store, Qdrant for semantic memory, and the same
+  MCPO tool surface so tool definitions are shared across UI and agent runtimes.
+  Async document ingestion is decoupled via the Valkey-backed Ingestion Worker so
+  the request path stays non-blocking.
 
 ```mermaid
 graph LR
@@ -167,7 +168,7 @@ Components are classified by operational criticality:
 |------|---------|------------|
 | T0 | Safety / Integrity — non-negotiable for security and compliance | OTel Collector, Authelia |
 | T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, LangGraph, Pydantic AI |
-| T2 | Productivity — supporting services and optional tooling | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
+| T2 | Productivity — supporting services and shared state | Tika, SearXNG, Valkey, PostgreSQL, Open Terminal, MCPO, Ingestion Worker |
 
 ### Default Images
 
@@ -251,7 +252,9 @@ tika:
 searxng:
   enabled: true     # Web search (default: true)
 valkey:
-  enabled: true     # Session cache (default: true)
+  enabled: true     # Session cache + websocket/stream backend (default: true)
+postgres:
+  enabled: true     # Shared state: Open WebUI HA + agent checkpoints (default: true)
 openTerminal:
   enabled: false    # Sandboxed terminal for AI agents (opt-in)
 mcpo:
@@ -260,29 +263,36 @@ langgraph:
   enabled: false    # LangGraph agentic runtime (opt-in; ELv2)
 pydanticai:
   enabled: false    # Pydantic AI agentic runtime (opt-in; MIT alternative to LangGraph)
-postgres:
-  enabled: false    # PostgreSQL for LangGraph/Pydantic AI checkpoints (opt-in)
 ingestionWorker:
   enabled: false    # Async document ingestion worker (opt-in)
 authelia:
   enabled: false    # OIDC identity provider for SSO/MFA (opt-in)
 ```
 
+> **PostgreSQL is enabled by default** so Open WebUI persists sessions and
+> config in a shared database (the prerequisite for running more than one
+> replica). For a throwaway single-pod lab you can set `postgres.enabled=false`,
+> and Open WebUI falls back to a local SQLite file.
+
 ### Secrets
 
 The chart auto-generates secrets on first install for:
 
+- **Open WebUI secret key** (`openwebui-secret`) — signs sessions and JWTs; kept stable so logins survive restarts and work across replicas
 - **Qdrant API key** (`qdrant-secret`)
 - **SearXNG secret key** (`searxng-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
 - **LangGraph API key** (`langgraph-secret`)
+- **Pydantic AI API key** (`pydanticai-secret`)
 - **PostgreSQL password** (`postgres-secret`)
 - **Authelia secrets** (`authelia-secret`) — JWT secret, session secret, storage encryption key, OIDC client secret
 
 Secrets are annotated with `helm.sh/resource-policy: keep` so they survive `helm upgrade`. To use an external secret manager (e.g., ESO or Vault), set the corresponding value:
 
 ```yaml
+openwebui:
+  secretKey: "your-external-key"
 qdrant:
   apiKey: "your-external-key"
 searxng:
@@ -292,6 +302,8 @@ openTerminal:
 mcpo:
   apiKey: "your-external-key"
 langgraph:
+  apiKey: "your-external-key"
+pydanticai:
   apiKey: "your-external-key"
 postgres:
   password: "your-external-password"
@@ -414,7 +426,7 @@ postgres:
   enabled: true   # DBOS checkpoints durable runs here; without it, runs non-durable
 ```
 
-It exposes `POST /run` (`{"prompt": "..."}`) and connects to Ollama (inference), Qdrant (retrieval tool), and SearXNG (web-search tool). The agent in [`files/pydanticai/app.py`](files/pydanticai/app.py) is a reference you extend; install deps at startup (`buildDeps: true`, default) or bake a prebuilt image ([`files/pydanticai/Dockerfile`](files/pydanticai/Dockerfile), `buildDeps: false`). See [docs/components/pydanticai.md](docs/components/pydanticai.md).
+It serves an **OpenAI-compatible API** (`GET /v1/models`, `POST /v1/chat/completions` — streaming and non-streaming) alongside `POST /run`, and connects to Ollama (inference), Qdrant (retrieval tool), and SearXNG (web-search tool). Set `pydanticai.exposeToOpenWebUI=true` to register it directly in Open WebUI's model picker. The agent in [`files/pydanticai/app.py`](files/pydanticai/app.py) is a reference you extend; deps install from a hash-pinned lock at startup (`buildDeps: true`, default) or bake into a prebuilt image ([`files/pydanticai/Dockerfile`](files/pydanticai/Dockerfile), `buildDeps: false`). See [docs/components/pydanticai.md](docs/components/pydanticai.md).
 
 ### PostgreSQL Modes
 
