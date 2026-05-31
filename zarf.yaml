@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.3.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.4.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.3.0
+  version: 2.4.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -31,7 +31,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
     images:
@@ -62,7 +62,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
         variables:
@@ -82,7 +82,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
         variables:
@@ -97,6 +97,30 @@ components:
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------
+  # Optional: Pydantic AI agentic runtime (MIT alternative to LangGraph)
+  # ---------------------------------------------------------------------------
+  - name: pydanticai
+    required: false
+    description: "Pydantic AI agent server (durable execution via DBOS + PostgreSQL)"
+    charts:
+      - name: ai-stack
+        localPath: "."
+        namespace: ai-stack
+        version: 2.4.0
+        valuesFiles:
+          - values.yaml
+        variables:
+          - name: PYDANTICAI_ENABLED
+            path: pydanticai.enabled
+            default: "true"
+          - name: POSTGRES_ENABLED
+            path: postgres.enabled
+            default: "true"
+    images:
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e
+      - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
+
+  # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
   # ---------------------------------------------------------------------------
   - name: mcpo
@@ -106,7 +130,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
         variables:
@@ -126,7 +150,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
         variables:
@@ -146,7 +170,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.3.0
+        version: 2.4.0
         valuesFiles:
           - values.yaml
         variables:

@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.3.0 | **Last reviewed:** 2026-05-31
+**Chart version:** 2.4.0 | **Last reviewed:** 2026-05-31
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -27,6 +27,7 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.153.0 | Apache-2.0 | Permissive | Conditional | No |
 | LangGraph Server | `docker.io/langchain/langgraph-server` | 0.9-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
+| Pydantic AI | `ghcr.io/astral-sh/uv` | python3.13-trixie-slim | Apache-2.0 OR MIT | Permissive | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 | BSD-3-Clause | Permissive | Opt-in | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.34 | MIT | Permissive | Opt-in | No |
@@ -46,7 +47,7 @@ The majority of the stack uses permissive licenses (MIT, Apache-2.0,
 BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
-OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia
+OTel Collector, PostgreSQL, Workbench, Open Terminal, MCPO, Authelia, Pydantic AI (`uv`/Python base; Pydantic AI, DBOS, FastAPI are all MIT/Apache-2.0)
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)
 
@@ -74,21 +75,45 @@ deployment documentation.
 
 ### Source-Available — LangGraph API (Elastic License 2.0)
 
-**Risk level: Medium (review before enabling)**
+**Risk level: Medium-High (review licensing before production)**
 
-The Elastic License 2.0 permits self-hosted use but imposes restrictions:
+The LangGraph ecosystem ships **two artifacts with different licenses**, and the
+chart deploys the more restrictive one:
 
-- **Permitted**: Internal self-hosted deployment, modification for internal use,
+- The **`langgraph` Python library** (graph definitions) is **MIT**.
+- The **`langgraph-server` / `langgraph-api` runtime** — the container image this
+  chart deploys (`docker.io/langchain/langgraph-server`) — is **Elastic License
+  2.0**. It provides the HTTP API, persistence, task queues, and streaming.
+
+Elastic License 2.0 restrictions:
+
+- **Permitted**: internal self-hosted deployment, modification for internal use,
   integration with other internal tools.
-- **Prohibited**: Offering LangGraph Platform as a managed service to third
-  parties (i.e., you cannot resell it as-a-service).
-- **Not OSI-approved**: ELv2 is not considered open-source by the Open Source
-  Initiative.
+- **Prohibited**: offering it as a managed service to third parties (no
+  as-a-service resale), circumventing the license-key functionality, or removing
+  licensing/notice markings.
+- **Not OSI-approved**: ELv2 is not open source per the Open Source Initiative.
 
-**Recommendation:** Acceptable for internal enterprise use. If your business
-model involves offering AI orchestration as a service to external customers,
-consult legal counsel before enabling LangGraph. The component is opt-in
-(disabled by default) specifically to ensure conscious adoption.
+**Production license key (important).** Beyond the ELv2 text, LangChain gates the
+`langgraph-server` runtime behind **LangGraph Platform** deployment tiers: a free
+self-hosted *Developer* tier (per LangChain's published terms as of 2026-05, up to
+~100k nodes/month, requiring a LangSmith API key) and a **commercial (Enterprise)
+license key for production / at-scale self-hosting**. Note that `langgraph build`
+and `langgraph dev` both exercise `langgraph-api`. **Verify the current terms and
+the threshold for your version and deployment tier before relying on
+self-hosting** — these terms change and Enterprise pricing is negotiated.
+
+**Recommendations:**
+
+- Internal, low-volume use: the free Developer tier may suffice — confirm the
+  current node/usage cap and key requirement for your image version.
+- Production/scale, or if you require a 100%-permissive-OSS stack: either budget
+  for a LangGraph Platform Enterprise license, **or** use the chart's
+  MIT-licensed alternative agentic runtime — **Pydantic AI**
+  (`pydanticai.enabled=true`; see
+  [docs/components/pydanticai.md](../components/pydanticai.md)) — which reuses the
+  same PostgreSQL, Ollama, MCPO, Qdrant, and OTel integrations.
+- LangGraph remains opt-in (disabled by default) to ensure conscious adoption.
 
 ---
 
@@ -96,14 +121,14 @@ consult legal counsel before enabling LangGraph. The component is opt-in
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 15 components catalogued |
+| All licenses identified | Done | 15 container images catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |
 | Copyleft components identified | Done | SearXNG (AGPL-3.0) — low risk when unmodified |
-| Source-available components identified | Done | LangGraph API (ELv2) — opt-in only |
+| Source-available components identified | Done | LangGraph API (ELv2) — opt-in; production self-host needs a commercial license key (MIT alternative: Pydantic AI) |
 | Attribution requirements met | Done | License file included; component licenses in SBOM |
-| Dependency update tracking | Done | Dependabot for GitHub Actions; container images tracked manually |
+| Dependency update tracking | Done | Renovate (helm-values, pinDigests) for container images; Dependabot for GitHub Actions |
 | Deep SBOM generation | Done | Syft scans all images in CI (`syft-sbom` job) |
 | License review on update | Recommended | Add license check to Dependabot PR review process |
 

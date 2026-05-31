@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -376,7 +376,7 @@
         },
         {
           "name": "chart.ai-stack/license-note",
-          "value": "ELv2 permits self-hosted use but prohibits offering LangGraph Platform as a managed service to third parties. Review ELv2 terms before offering as SaaS."
+          "value": "The langgraph-server/langgraph-api runtime image is Elastic License 2.0 (the langgraph library itself is MIT). ELv2 prohibits offering it as a managed service to third parties and forbids circumventing the license-key functionality. Beyond ELv2, LangChain gates production self-hosting behind LangGraph Platform tiers: a free Developer tier (per published terms 2026-05, ~100k nodes/month, requires a LangSmith API key) and a commercial Enterprise license key for production/scale. Verify current terms for your version/tier. MIT-licensed alternative in this chart: Pydantic AI (pydanticai)."
         }
       ],
       "externalReferences": [
@@ -637,6 +637,56 @@
           "content": "c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
         }
       ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pydanticai",
+      "name": "uv",
+      "version": "python3.13-trixie-slim",
+      "description": "Pydantic AI agentic runtime base image (Astral uv + Python) — MIT-licensed alternative to the LangGraph runtime",
+      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "decision"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        },
+        {
+          "name": "chart.ai-stack/license-note",
+          "value": "Base image is the Astral uv image (uv is dual MIT/Apache-2.0) on a Python (PSF-2.0) base. The agent runtime installed on top (Pydantic AI, DBOS, FastAPI) is MIT/Apache-2.0 — a fully permissive alternative to the ELv2 langgraph-server."
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/astral-sh/uv"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -651,6 +701,7 @@
         "valkey",
         "otel-collector",
         "langgraph-api",
+        "pydanticai",
         "postgres",
         "workbench",
         "open-terminal",
@@ -682,6 +733,15 @@
         "ollama",
         "qdrant",
         "tika",
+        "searxng"
+      ]
+    },
+    {
+      "ref": "pydanticai",
+      "dependsOn": [
+        "postgres",
+        "ollama",
+        "qdrant",
         "searxng"
       ]
     },

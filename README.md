@@ -3,7 +3,7 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.3.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.4.0-blue.svg)](Chart.yaml)
 [![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -12,7 +12,7 @@
 
 Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations, deployed as a single Helm chart.
 
-Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
+Includes [Open WebUI](https://github.com/open-webui/open-webui), [Ollama](https://ollama.com/), [Qdrant](https://qdrant.tech/), [Apache Tika](https://tika.apache.org/), [SearXNG](https://docs.searxng.org/), [Valkey](https://valkey.io/), [Open Terminal](https://github.com/open-webui/open-terminal), [MCPO](https://github.com/open-webui/mcpo), [LangGraph](https://langchain-ai.github.io/langgraph/) or [Pydantic AI](https://ai.pydantic.dev/) (agentic runtimes), [PostgreSQL](https://www.postgresql.org/) (standalone, [CloudNativePG](https://cloudnative-pg.io/), or external), [Authelia](https://www.authelia.com/) for OIDC/SSO/MFA, an async ingestion worker, and an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) with PII redaction.
 
 Designed for governance-as-code environments with PSA restricted baseline, NetworkPolicy default-deny, and OpenTelemetry instrumentation hooks.
 
@@ -165,7 +165,7 @@ Components are classified by operational criticality:
 | Tier | Meaning | Components |
 |------|---------|------------|
 | T0 | Safety / Integrity — non-negotiable for security and compliance | OTel Collector, Authelia |
-| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, Workbench, LangGraph |
+| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, Workbench, LangGraph, Pydantic AI |
 | T2 | Productivity — supporting services and optional tooling | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
 
 ### Default Images
@@ -258,9 +258,11 @@ openTerminal:
 mcpo:
   enabled: false    # MCP-to-OpenAPI proxy (opt-in)
 langgraph:
-  enabled: false    # LangGraph agentic runtime (opt-in)
+  enabled: false    # LangGraph agentic runtime (opt-in; ELv2)
+pydanticai:
+  enabled: false    # Pydantic AI agentic runtime (opt-in; MIT alternative to LangGraph)
 postgres:
-  enabled: false    # PostgreSQL for LangGraph checkpoints (opt-in)
+  enabled: false    # PostgreSQL for LangGraph/Pydantic AI checkpoints (opt-in)
 ingestionWorker:
   enabled: false    # Async document ingestion worker (opt-in)
 authelia:
@@ -407,6 +409,21 @@ LangGraph connects to Ollama for LLM inference, Qdrant for vector retrieval, Tik
 
 1. **Custom image** (recommended): Build with `langgraph build -t my-graphs` and override `langgraph.image.repository`/`tag`
 2. **Volume mount**: Place graph code in the `/deps/graphs` persistent volume
+
+> **Licensing:** the `langgraph-server` runtime is **Elastic License 2.0** and production self-hosting requires a commercial LangGraph Platform key (see [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md#source-available--langgraph-api-elastic-license-20)). For a fully permissive option, use **Pydantic AI** below.
+
+### Pydantic AI (Agentic Workloads — MIT alternative)
+
+A fully **MIT/Apache-2.0**-licensed agentic runtime, built on [Pydantic AI](https://ai.pydantic.dev/) with durable execution via [DBOS](https://www.dbos.dev/) checkpointed in the shared PostgreSQL. Enable it instead of (or alongside) LangGraph:
+
+```yaml
+pydanticai:
+  enabled: true
+postgres:
+  enabled: true   # DBOS checkpoints durable runs here; without it, runs non-durable
+```
+
+It exposes `POST /run` (`{"prompt": "..."}`) and connects to Ollama (inference), Qdrant (retrieval tool), and SearXNG (web-search tool). The agent in [`files/pydanticai/app.py`](files/pydanticai/app.py) is a reference you extend; install deps at startup (`buildDeps: true`, default) or bake a prebuilt image ([`files/pydanticai/Dockerfile`](files/pydanticai/Dockerfile), `buildDeps: false`). See [docs/components/pydanticai.md](docs/components/pydanticai.md).
 
 ### PostgreSQL Modes
 
@@ -556,7 +573,7 @@ The chart includes a machine-readable Software Bill of Materials and license com
 All default-enabled components use permissive licenses (MIT, Apache-2.0, BSD-3-Clause). Notable exceptions:
 
 - **SearXNG** (AGPL-3.0): Low risk when using the upstream container unmodified. See compliance doc for details.
-- **LangGraph API** (Elastic License 2.0): Opt-in only. Permits self-hosted use but prohibits offering as a managed service.
+- **LangGraph Server** (Elastic License 2.0): Opt-in only. The `langgraph-server` runtime is ELv2 (the `langgraph` library is MIT); ELv2 forbids as-a-service resale, and LangChain additionally gates production self-hosting behind a LangGraph Platform license key (free Developer tier up to a usage cap; Enterprise for production/scale). See [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md#source-available--langgraph-api-elastic-license-20). A fully **MIT** alternative agentic runtime, **Pydantic AI**, ships in this chart (`pydanticai.enabled=true`).
 
 The SBOM is validated in CI against the CycloneDX 1.6 schema and cross-checked against `values.yaml` to ensure completeness. Deep per-image SBOMs are generated via Syft and uploaded as CI artifacts.
 
