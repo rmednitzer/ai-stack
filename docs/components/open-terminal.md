@@ -48,9 +48,13 @@ constrain the *container*, but they are **not a sandbox against hostile code**
    `false` so a payload written to `$HOME` does not survive a restart. Enable
    persistence only when a durable home is genuinely required; the PVC keeps
    `helm.sh/resource-policy: keep` so existing data is not deleted on change.
-4. **Scoped CORS.** `corsAllowedOrigins` is templated into
-   `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`; the chart never emits `*` (OWASP A05).
-   Leave it empty to derive the Open WebUI origin, or set your browser origin(s).
+4. **Scoped CORS.** In the default topology Open Terminal is `ClusterIP` and its
+   NetworkPolicy admits only the Open WebUI pod, so it is reached **server-side
+   (pod-to-pod)** and CORS is not exercised. CORS only applies if you
+   deliberately expose Open Terminal's terminal/notebook UI to a browser. Either
+   way the chart never emits `*` (OWASP A05): `corsAllowedOrigins` is templated
+   into `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS`; leave it empty to derive the Open
+   WebUI ingress origin, or set the exact browser origin(s) when you expose the UI.
 5. **Tight resource limits.** Keep `resources.limits` low to bound a runaway
    or mining payload (CPU limits throttle rather than kill — pair with #1).
 6. **Audit.** When `global.otel.enabled=true`, traffic is traced through the

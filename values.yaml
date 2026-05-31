@@ -581,10 +581,12 @@ openTerminal:
   # (e.g. "gvisor" or "kata") to add a kernel/VM boundary; empty = cluster
   # default runtime. See docs/components/open-terminal.md (Security).
   runtimeClassName: ""
-  # -- CORS allowed origins for the terminal/notebook UI. Empty derives the
-  # Open WebUI origin (its ingress/httpRoute host, else its in-cluster Service);
-  # set explicitly to your browser origin(s), comma-separated. Never use "*" on
-  # this code-executing service (OWASP A05 misconfiguration).
+  # -- CORS allowed origins for the terminal/notebook UI. Only exercised if you
+  # expose that UI to a browser; the default topology reaches Open Terminal
+  # server-side (pod-to-pod from Open WebUI), so CORS does not apply. Empty
+  # derives the Open WebUI origin (its ingress/httpRoute host, else its
+  # in-cluster Service); set explicitly to your browser origin(s),
+  # comma-separated. Never use "*" on this code-executing service (OWASP A05).
   corsAllowedOrigins: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
