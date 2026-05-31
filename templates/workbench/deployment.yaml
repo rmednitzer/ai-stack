@@ -192,4 +192,5 @@ spec:
       storage: {{ .Values.workbench.persistence.size }}
 {{- end }}
 {{- include "ai-stack.ingress" (dict "root" . "component" "workbench" "ingress" .Values.workbench.ingress) }}
+{{- include "ai-stack.httpRoute" (dict "root" . "component" "workbench" "httpRoute" .Values.workbench.httpRoute "servicePort" .Values.workbench.service.port) }}
 {{- end }}

@@ -1,0 +1,36 @@
+# Optional prebuilt image for the ai-stack ingestion worker.
+#
+# By default the chart ships worker.py via a ConfigMap and installs the Python
+# dependencies at pod startup with an initContainer (ingestionWorker.buildDeps=true),
+# which keeps the chart self-contained but requires PyPI egress on every start.
+#
+# For air-gapped or hardened deployments, bake the dependencies into an image
+# instead and disable the runtime install:
+#
+#   docker build -t <registry>/ai-stack-ingestion-worker:<tag> files/ingestion-worker
+#   docker push  <registry>/ai-stack-ingestion-worker:<tag>
+#
+#   # values.yaml
+#   ingestionWorker:
+#     buildDeps: false
+#     image:
+#       repository: <registry>/ai-stack-ingestion-worker
+#       tag: "<tag>"
+#       digest: "sha256:..."   # pin per ADR-002
+#
+# worker.py is still mounted from the ConfigMap at runtime (single source of
+# truth), so this image only needs to provide the importable dependencies; the
+# baked copy below is for running the worker outside the chart.
+ARG PYTHON_VERSION=3.14-slim
+FROM python:${PYTHON_VERSION}
+
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY worker.py ./
+
+# Match the chart's restricted securityContext (runAsNonRoot, runAsUser 1000).
+USER 1000
+
+ENTRYPOINT ["python", "/app/worker.py"]

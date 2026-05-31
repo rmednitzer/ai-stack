@@ -140,4 +140,6 @@ spec:
     requests:
       storage: {{ .Values.langgraph.persistence.size }}
 {{- end }}
+{{- include "ai-stack.ingress" (dict "root" . "component" "langgraph" "ingress" .Values.langgraph.ingress) }}
+{{- include "ai-stack.httpRoute" (dict "root" . "component" "langgraph" "httpRoute" .Values.langgraph.httpRoute "servicePort" .Values.langgraph.service.port) }}
 {{- end }}

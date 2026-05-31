@@ -10,6 +10,10 @@ metadata:
     assurance.platform/tier: "T2"
 spec:
   replicas: {{ .Values.valkey.replicaCount }}
+  {{- if .Values.valkey.persistence.enabled }}
+  strategy:
+    type: Recreate  # RWO PVC cannot attach to two pods during a rollout
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 6 }}
@@ -51,7 +55,7 @@ spec:
               protocol: TCP
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: {{ .Values.valkey.persistence.mountPath | default "/data" }}
             - name: tmp
               mountPath: /tmp
           startupProbe:
@@ -73,11 +77,37 @@ spec:
           {{- end }}
       volumes:
         - name: data
+          {{- if .Values.valkey.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         - name: tmp
           emptyDir:
             sizeLimit: 50Mi
       {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
+{{- if .Values.valkey.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.valkey.persistence.accessMode | default "ReadWriteOnce" }}
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.valkey.persistence.size | default "8Gi" }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Service

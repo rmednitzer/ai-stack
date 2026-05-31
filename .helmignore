@@ -11,6 +11,7 @@
 .github/
 ct.yaml
 renovate.json5
+.kube-linter.yaml
 argocd/
 zarf.yaml
 
@@ -39,6 +40,10 @@ grype-reports/
 # Build artefacts
 zarf-package-*.tar.zst
 *.tgz
+
+# Python bytecode (keep files/ingestion-worker packaging clean)
+__pycache__/
+*.py[cod]
 
 # OS files
 .DS_Store

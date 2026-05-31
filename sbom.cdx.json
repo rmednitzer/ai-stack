@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -182,9 +182,9 @@
       "type": "container",
       "bom-ref": "tika",
       "name": "tika",
-      "version": "3.3.0.0",
+      "version": "3.3.1.0",
       "description": "Document content extraction for RAG pipeline",
-      "purl": "pkg:docker/apache/tika@3.3.0.0",
+      "purl": "pkg:docker/apache/tika@3.3.1.0",
       "licenses": [
         {
           "license": {
@@ -215,7 +215,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "2a565f1ea1290bdcb74a7d35957d16a989ed44ef98790dcdcc28121d728fa583"
+          "content": "90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973"
         }
       ]
     },
@@ -223,9 +223,9 @@
       "type": "container",
       "bom-ref": "searxng",
       "name": "searxng",
-      "version": "2026.5.26-0037d43d8",
+      "version": "2026.5.31-300695de5",
       "description": "Privacy-respecting metasearch engine for web RAG",
-      "purl": "pkg:docker/searxng/searxng@2026.5.26-0037d43d8",
+      "purl": "pkg:docker/searxng/searxng@2026.5.31-300695de5",
       "licenses": [
         {
           "license": {
@@ -260,7 +260,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "1a9d21346437a41ddfc2286968026dddece1d4d0721625cffa2c3b00bb2f9cf3"
+          "content": "75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396"
         }
       ]
     },
@@ -350,9 +350,9 @@
       "type": "container",
       "bom-ref": "langgraph-api",
       "name": "langgraph-server",
-      "version": "0.8-py3.12",
+      "version": "0.9-py3.12",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-server@0.8-py3.12?repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.9-py3.12?repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -388,7 +388,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8fe3a982cd378c7ff82f623f557ee0abd4d322ddaba1e7e3317ce895c6735613"
+          "content": "916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
         }
       ]
     },
@@ -519,9 +519,9 @@
       "type": "container",
       "bom-ref": "mcpo",
       "name": "mcpo",
-      "version": "0.0.20",
+      "version": "main",
       "description": "MCP-to-OpenAPI proxy for Open WebUI tool integration",
-      "purl": "pkg:docker/open-webui/mcpo@0.0.20?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/mcpo@main?repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -547,6 +547,12 @@
         {
           "type": "website",
           "url": "https://github.com/open-webui/mcpo"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467"
         }
       ]
     },

@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.2.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.3.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.2.0
+  version: 2.3.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -31,7 +31,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
     images:
@@ -42,9 +42,9 @@ components:
       # Qdrant
       - qdrant/qdrant:v1.18.1@sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89
       # Apache Tika
-      - apache/tika:3.3.0.0@sha256:2a565f1ea1290bdcb74a7d35957d16a989ed44ef98790dcdcc28121d728fa583
+      - apache/tika:3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
       # SearXNG
-      - searxng/searxng:2026.5.26-0037d43d8@sha256:1a9d21346437a41ddfc2286968026dddece1d4d0721625cffa2c3b00bb2f9cf3
+      - searxng/searxng:2026.5.31-300695de5@sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396
       # Open Terminal
       - ghcr.io/open-webui/open-terminal:0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e
       # Valkey
@@ -62,7 +62,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
         variables:
@@ -82,7 +82,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
         variables:
@@ -93,7 +93,7 @@ components:
             path: postgres.enabled
             default: "true"
     images:
-      - docker.io/langchain/langgraph-server:0.8-py3.12@sha256:8fe3a982cd378c7ff82f623f557ee0abd4d322ddaba1e7e3317ce895c6735613
+      - docker.io/langchain/langgraph-server:0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
         variables:
@@ -114,7 +114,7 @@ components:
             path: mcpo.enabled
             default: "true"
     images:
-      - ghcr.io/open-webui/mcpo:0.0.20
+      - ghcr.io/open-webui/mcpo:main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467
 
   # ---------------------------------------------------------------------------
   # Optional: OpenTelemetry Collector
@@ -126,7 +126,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
         variables:
@@ -146,7 +146,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.2.0
+        version: 2.3.0
         valuesFiles:
           - values.yaml
         variables:

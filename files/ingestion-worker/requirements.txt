@@ -1,0 +1,12 @@
+# Python dependencies for the ai-stack ingestion worker.
+#
+# Loaded into the worker ConfigMap via `.Files.Get` and installed at pod
+# startup by the `install-deps` initContainer (when ingestionWorker.buildDeps=true),
+# or baked into a prebuilt image via the adjacent Dockerfile (buildDeps=false).
+#
+# Upper bounds pin the major version so a runtime `pip install` cannot pull a
+# breaking major release without a deliberate chart change (supply-chain
+# determinism, consistent with ADR-002's image-pinning posture).
+valkey>=6.0.0,<7
+httpx>=0.27.0,<1.0
+psycopg[binary]>=3.1.0,<4

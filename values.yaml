@@ -27,10 +27,24 @@ global:
   # -- Pod-level DNS config
   dnsConfig: {}
 
-  # -- Namespace where the ingress controller runs (used in NetworkPolicy ingress rules)
+  # -- Namespace where the ingress controller / Gateway data plane runs (used in
+  # NetworkPolicy ingress rules). For the reference Envoy Gateway edge this is
+  # also where the Gateway listeners live, so it doubles as the default
+  # HTTPRoute parent namespace (see global.gateway and per-component httpRoute).
   ingressNamespace: "envoy-gateway-system"
   # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for scrape ingress)
   monitoringNamespace: "monitoring"
+
+  # -- Gateway API defaults. The chart emits opt-in HTTPRoutes (per-component
+  # `httpRoute` blocks) as a modern alternative to Ingress; both can be used.
+  # HTTPRoutes attach to a pre-existing Gateway via parentRefs — the chart does
+  # not provision the Gateway itself, exactly as the Ingress path relies on an
+  # externally-managed IngressClass/controller. Requires a Gateway API
+  # implementation in the cluster (the reference edge is Envoy Gateway).
+  gateway:
+    # -- Default namespace for HTTPRoute parentRefs. Empty falls back to
+    # global.ingressNamespace (where the Envoy Gateway data plane runs).
+    namespace: ""
 
   # -- Pod Security: enforce restricted baseline (PSA)
   # Applied as labels on namespace externally; chart sets securityContext to comply
@@ -169,6 +183,16 @@ authelia:
           - path: /
             pathType: Prefix
     tls: []
+  # -- Gateway API HTTPRoute (modern alternative to ingress; see global.gateway).
+  httpRoute:
+    enabled: false
+    parentRefs: []
+      # - name: eg
+      #   sectionName: https
+    hostnames: []
+      # - auth.example.com
+    annotations: {}
+    rules: []
   persistence:
     enabled: true
     size: 1Gi
@@ -225,6 +249,24 @@ openwebui:
           - path: /
             pathType: Prefix
     tls: []
+  # -- Gateway API HTTPRoute (modern alternative to ingress above; either or
+  # both may be enabled). Attaches to an existing Gateway via parentRefs.
+  # See global.gateway. Requires a Gateway API implementation (Envoy Gateway).
+  httpRoute:
+    enabled: false
+    # -- Gateways to attach to. `name` is required when enabled; `namespace`
+    # defaults to global.gateway.namespace (else global.ingressNamespace).
+    parentRefs: []
+      # - name: eg                 # Gateway resource name
+      #   namespace: ""            # defaults to the Envoy Gateway namespace
+      #   sectionName: https       # optional: bind to a specific listener
+    # -- Hostnames this route answers for (must match a Gateway listener).
+    hostnames: []
+      # - ai.example.com
+    annotations: {}
+    # -- Optional explicit HTTPRoute rules. When empty, all traffic
+    # ("/" PathPrefix) is forwarded to the component Service.
+    rules: []
   env:
     # -- Ollama backend URL (internal service DNS)
     OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
@@ -432,8 +474,8 @@ tika:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: apache/tika
-    tag: "3.3.0.0"
-    digest: "sha256:2a565f1ea1290bdcb74a7d35957d16a989ed44ef98790dcdcc28121d728fa583"
+    tag: "3.3.1.0"
+    digest: "sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973"
   service:
     type: ClusterIP
     port: 9998
@@ -469,8 +511,8 @@ searxng:
   secretKey: ""
   image:
     repository: searxng/searxng
-    tag: "2026.5.26-0037d43d8"
-    digest: "sha256:1a9d21346437a41ddfc2286968026dddece1d4d0721625cffa2c3b00bb2f9cf3"
+    tag: "2026.5.31-300695de5"
+    digest: "sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396"
   service:
     type: ClusterIP
     port: 8080
@@ -570,6 +612,16 @@ workbench:
           - path: /
             pathType: Prefix
     tls: []
+  # -- Gateway API HTTPRoute (modern alternative to ingress; see global.gateway).
+  httpRoute:
+    enabled: false
+    parentRefs: []
+      # - name: eg
+      #   sectionName: https
+    hostnames: []
+      # - workbench.example.com
+    annotations: {}
+    rules: []
   persistence:
     enabled: true
     size: 100Gi
@@ -668,8 +720,13 @@ mcpo:
   apiKey: ""
   image:
     repository: ghcr.io/open-webui/mcpo
-    tag: "0.0.20"
-    digest: ""
+    # Upstream mcpo publishes no semver container tags — only `latest`/`main`
+    # (identical manifest) and per-commit `git-<sha>` tags. The prior `0.0.20`
+    # pin did not exist and produced ImagePullBackOff (see ADR-002). We track the
+    # `main` channel pinned by immutable digest; Renovate refreshes the digest as
+    # `main` advances, keeping pulls deterministic per ADR-002.
+    tag: "main"
+    digest: "sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467"
   service:
     type: ClusterIP
     port: 8000
@@ -729,8 +786,8 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.8-py3.12"
-    digest: "sha256:8fe3a982cd378c7ff82f623f557ee0abd4d322ddaba1e7e3317ce895c6735613"
+    tag: "0.9-py3.12"
+    digest: "sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
   service:
     type: ClusterIP
     port: 8000
@@ -759,6 +816,16 @@ langgraph:
           - path: /
             pathType: Prefix
     tls: []
+  # -- Gateway API HTTPRoute (modern alternative to ingress; see global.gateway).
+  httpRoute:
+    enabled: false
+    parentRefs: []
+      # - name: eg
+      #   sectionName: https
+    hostnames: []
+      # - langgraph.example.com
+    annotations: {}
+    rules: []
   persistence:
     enabled: true
     size: 5Gi
@@ -873,8 +940,9 @@ postgres:
   cnpg:
     # -- Number of PostgreSQL instances (1 = single, 3 = HA with streaming replication)
     instances: 3
-    # -- PostgreSQL major version
-    imageName: "ghcr.io/cloudnative-pg/postgresql:16"
+    # -- PostgreSQL major version. Aligned with the standalone image (PG 18) so
+    # switching postgres.mode does not change the engine major version.
+    imageName: "ghcr.io/cloudnative-pg/postgresql:18"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
@@ -948,7 +1016,15 @@ valkey:
     type: ClusterIP
     port: 6379
   persistence:
-    enabled: false  # Ephemeral cache; no durable state
+    # -- Persist Valkey data to a PVC (RDB snapshots under /data). Leave false
+    # for a pure ephemeral cache (emptyDir). Set true when the Ingestion Worker
+    # is enabled so Valkey Streams (and in-flight ingestion tasks) survive pod
+    # restarts. When enabled, the Deployment switches to the Recreate strategy
+    # because the RWO PVC cannot be attached to two pods during a rollout.
+    enabled: false
+    size: 8Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data
   resources:
     requests:
       cpu: 100m
@@ -1001,6 +1077,12 @@ ingestionWorker:
     repository: python
     tag: "3.14-slim"
     digest: "sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
+  # -- Install Python dependencies at pod startup via an initContainer (default).
+  # The worker source (files/ingestion-worker/worker.py) is always mounted from a
+  # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
+  # prebuilt image with the deps baked in (see files/ingestion-worker/Dockerfile)
+  # and override image.repository/tag/digest; this drops the runtime PyPI egress.
+  buildDeps: true
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
