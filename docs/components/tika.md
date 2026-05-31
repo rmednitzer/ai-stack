@@ -5,7 +5,7 @@ Document text-extraction service. Called by Open WebUI, LangGraph, and the inges
 - **Tier**: T2 (productivity)
 - **Boundary**: `internal`
 - **Default**: enabled
-- **Upstream**: <https://tika.apache.org/> · [REST API](https://tika.apache.org/3.3.0/formats.html)
+- **Upstream**: <https://tika.apache.org/> · [REST API](https://tika.apache.org/3.3.1/formats.html)
 - **Default image**: `apache/tika` (see `values.yaml` for pinned tag)
 - **Chart path**: [`templates/tika/`](../../templates/tika/)
 

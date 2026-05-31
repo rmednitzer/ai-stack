@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.2.0 | **Last reviewed:** 2026-05-24
+**Chart version:** 2.3.0 | **Last reviewed:** 2026-05-31
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -22,15 +22,15 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.5 | MIT | Permissive | Enabled | No |
 | Ollama | `ollama/ollama` | 0.24.0 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.18.1 | Apache-2.0 | Permissive | Enabled | No |
-| Tika | `apache/tika` | 3.3.0.0 | Apache-2.0 | Permissive | Enabled | No |
-| SearXNG | `searxng/searxng` | 2026.5.26-0037d43d8 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
+| Tika | `apache/tika` | 3.3.1.0 | Apache-2.0 | Permissive | Enabled | No |
+| SearXNG | `searxng/searxng` | 2026.5.31-300695de5 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.153.0 | Apache-2.0 | Permissive | Conditional | No |
-| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.8-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
+| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.9-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
 | Workbench | `quay.io/jupyter/pytorch-notebook` | cuda12-python-3.13 | BSD-3-Clause | Permissive | Opt-in | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.34 | MIT | Permissive | Opt-in | No |
-| MCPO | `ghcr.io/open-webui/mcpo` | 0.0.20 | MIT | Permissive | Opt-in | No |
+| MCPO | `ghcr.io/open-webui/mcpo` | main | MIT | Permissive | Opt-in | No |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39.20 | Apache-2.0 | Permissive | Opt-in | No |
 | Ingestion Worker | `docker.io/library/python` | 3.14-slim | PSF-2.0 | Permissive | Opt-in | No |
 

@@ -7,7 +7,7 @@ In-memory key/value store used for session caching (Open WebUI, Authelia) and as
 - **Default**: enabled
 - **Upstream**: <https://valkey.io/>
 - **Default image**: `valkey/valkey` (see `values.yaml` for pinned tag)
-- **Chart path**: [`templates/valkey/`](../../templates/valkey/)
+- **Chart path**: [`templates/common/valkey.yaml`](../../templates/common/valkey.yaml)
 
 ## Key `values.yaml` keys
 
@@ -15,7 +15,7 @@ In-memory key/value store used for session caching (Open WebUI, Authelia) and as
 |-----|---------|
 | `valkey.enabled` | Toggle the component |
 | `valkey.image.{repository,tag}` | Container image override |
-| `valkey.persistence.{enabled,size,storageClass}` | Enable to preserve Streams across restarts |
+| `valkey.persistence.{enabled,size,accessMode}` | Provision a PVC (RDB snapshots under `/data`) to preserve Streams across restarts; switches the Deployment to the `Recreate` strategy. Storage class comes from `global.storageClass`. |
 | `valkey.resources` | CPU / memory |
 | `valkey.config` | Extra config passed to `valkey-server` |
 

@@ -3,9 +3,9 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.2.0-blue.svg)](Chart.yaml)
-[![App Version](https://img.shields.io/badge/appVersion-2026.4-informational.svg)](Chart.yaml)
-[![Kubernetes](https://img.shields.io/badge/kubernetes-1.25%2B-blue.svg)](https://kubernetes.io/releases/)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.3.0-blue.svg)](Chart.yaml)
+[![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rmednitzer/ai-stack)
@@ -332,6 +332,35 @@ openwebui:
           - ai.example.com
 ```
 
+### Gateway API (HTTPRoute)
+
+As a modern, opt-in alternative to `Ingress`, each externally-exposed component
+(`openwebui`, `workbench`, `langgraph`, `authelia`) can emit a Gateway API
+[`HTTPRoute`](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io/v1`,
+GA since Gateway API v1.0). The chart renders only the per-app `HTTPRoute` and
+attaches it to a **pre-existing** `Gateway` via `parentRefs` — mirroring how the
+Ingress path relies on an externally-managed controller. Both can be enabled
+simultaneously. Requires a Gateway API implementation in the cluster
+(the reference edge is [Envoy Gateway](https://gateway.envoyproxy.io/)).
+
+```yaml
+openwebui:
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: eg                  # an existing Gateway
+        # namespace defaults to global.gateway.namespace, else
+        # global.ingressNamespace (envoy-gateway-system)
+        sectionName: https        # optional: bind to a specific listener
+    hostnames:
+      - ai.example.com
+    # rules: []                   # optional; defaults to "/" → the component Service
+```
+
+The default-deny NetworkPolicies already admit traffic from
+`global.ingressNamespace` (where the Envoy Gateway data plane runs), so no
+NetworkPolicy change is needed when switching from Ingress to HTTPRoute.
+
 ### External Inference APIs
 
 Add cloud-hosted LLM providers (OpenAI, Azure OpenAI, Anthropic, Gemini, Mistral, etc.) alongside local Ollama inference:
@@ -539,10 +568,11 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 |-----|--------------|
 | **helm-lint** | `helm lint` and `helm template` for both lab and prod profiles |
 | **chart-testing** | `ct lint` with chart-testing for standards compliance |
-| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml` |
+| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml`; enforces **tag and digest parity** across `values.yaml`, `sbom.cdx.json`, and `zarf.yaml` (ADR-001/ADR-002) |
 | **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
 | **cve-scan** | Scans all container images for CVEs using Grype; emits warnings on critical vulnerabilities |
 | **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
+| **kube-linter** | Policy-lints rendered manifests (lab, prod, and all-optional-components profiles); config in `.kube-linter.yaml` |
 
 ## GitOps / ArgoCD
 
@@ -555,7 +585,12 @@ Pre-built ArgoCD Application manifests are provided in `argocd/`:
 
 ## Dependency Management
 
-GitHub Actions versions are managed by [Dependabot](https://docs.github.com/en/code-security/dependabot). Container image versions in `values.yaml` are managed manually. Configuration is in `.github/dependabot.yml`.
+Dependency updates are automated:
+
+- **Container images** in `values.yaml` / `values-prod.yaml` are managed by [Renovate](https://docs.renovatebot.com/) via its `helm-values` manager with `pinDigests: true`, so each bump updates the `tag:` and the `digest:` together (per [ADR-002](docs/architecture/ADR-002-image-digest-pinning.md)). Configuration is in [`renovate.json5`](renovate.json5).
+- **GitHub Actions** are managed by [Dependabot](https://docs.github.com/en/code-security/dependabot) (and Dependabot's `docker` ecosystem may also open image PRs against `values.yaml`; the overlap with Renovate is tolerated). Configuration is in [`.github/dependabot.yml`](.github/dependabot.yml).
+
+Whichever bot proposes an image bump, the maintainer keeps `sbom.cdx.json`, `zarf.yaml`, and the version-bearing docs in lockstep with `values.yaml` (per [ADR-001](docs/architecture/ADR-001-component-version-management.md)); CI's **tag- and digest-parity** checks enforce this.
 
 ## Verification
 
