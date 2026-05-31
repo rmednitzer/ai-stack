@@ -121,7 +121,7 @@ self-hosting** — these terms change and Enterprise pricing is negotiated.
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 15 container images catalogued |
+| All licenses identified | Done | 14 container images catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |

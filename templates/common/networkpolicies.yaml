@@ -661,6 +661,11 @@ spec:
     - Ingress
   ingress:
     - from:
+        {{- if .Values.openwebui.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        {{- end }}
         {{- if .Values.langgraph.enabled }}
         - podSelector:
             matchLabels:

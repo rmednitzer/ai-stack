@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Open WebUI high-availability by default** — Open WebUI now runs as a
+  genuinely stateless, horizontally-scalable service. The chart wires
+  `WEBUI_SECRET_KEY` (+ `OAUTH_SESSION_TOKEN_ENCRYPTION_KEY`) from a persisted
+  Secret so sessions survive restarts and are valid on every replica; points
+  `DATABASE_URL` at the shared PostgreSQL (its own `openwebui` database,
+  auto-created in standalone mode via an initdb ConfigMap); and configures the
+  Valkey-backed websocket manager (`REDIS_URL`, `WEBSOCKET_MANAGER=redis`,
+  `WEBSOCKET_REDIS_URL`) per Open WebUI's "Scaling & HA" guidance. PostgreSQL is
+  now a **default-enabled** core dependency (set `postgres.enabled=false` for an
+  ephemeral single-pod lab, where Open WebUI falls back to SQLite). New keys:
+  `openwebui.secretKey`, `openwebui.databaseName`.
+
+### Removed
+
+- **GPU Workbench component** — the opt-in JupyterLab/CUDA workbench
+  (`workbench.*`) has been removed entirely (template, values, SBOM/Zarf image,
+  docs, and SA/Secret/PDB/NetworkPolicy wiring) to streamline the chart. It was
+  disabled by default, so existing default deployments are unaffected; users who
+  need GPU notebooks should deploy a dedicated JupyterHub/Notebook chart
+  alongside. The chart now pins **14** container images (was 15).
+
+### Fixed
+
+- **Pydantic AI OpenAI-compatible endpoint** — preserve multi-turn chat history
+  (build `message_history` from the full `messages` array instead of only the
+  last user turn); stream real token deltas via `run_stream()` when running
+  non-durable (the DBOS durable path keeps the buffered single-chunk SSE); and
+  return generic error text to clients while logging detail server-side
+  (addresses a CodeQL information-exposure finding). *(Codex/CodeQL review.)*
+- **Open WebUI → LangGraph NetworkPolicy egress** was inadvertently replaced by
+  the Pydantic AI egress rule; both allows now coexist. *(Codex review.)*
+- **Docs link checker** now reproduces GitHub's duplicate-heading anchor
+  suffixes (`-1`, `-2`, …) so links to repeated sections (e.g. multiple
+  `### Added` in this changelog) are not falsely flagged. *(Codex review.)*
+
+### Added (Pydantic AI, from initial 2.5.0 work)
+
 - **Pydantic AI production hardening** — the reference agent
   (`files/pydanticai/app.py`) now exposes an **OpenAI-compatible API**
   (`GET /v1/models`, `POST /v1/chat/completions` with streaming and

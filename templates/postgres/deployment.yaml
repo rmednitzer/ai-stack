@@ -70,6 +70,11 @@ spec:
               mountPath: /tmp
             - name: run
               mountPath: /var/run/postgresql
+            {{- if .Values.openwebui.enabled }}
+            - name: init-db
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            {{- end }}
           startupProbe:
             exec:
               command: ["pg_isready", "-U", {{ .Values.postgres.user | quote }}, "-d", {{ .Values.postgres.database | quote }}]
@@ -101,6 +106,11 @@ spec:
         - name: run
           emptyDir:
             sizeLimit: 64Mi
+        {{- if .Values.openwebui.enabled }}
+        - name: init-db
+          configMap:
+            name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}-initdb
+        {{- end }}
       {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 ---
 apiVersion: v1

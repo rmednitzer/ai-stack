@@ -226,6 +226,15 @@ authelia:
 openwebui:
   enabled: true
   replicaCount: 1
+  # -- Signing key for sessions/JWTs. Auto-generated into the openwebui Secret
+  # and kept stable across upgrades. MUST be identical on every replica — the
+  # chart guarantees this by sourcing it from one Secret. Set explicitly only
+  # to share a key with an external system.
+  secretKey: ""
+  # -- Open WebUI database name on the shared PostgreSQL (its own DB, separate
+  # from the LangGraph/DBOS database). For postgres.mode=standalone the chart
+  # creates it automatically; for cnpg/external you must provision it.
+  databaseName: "openwebui"
   autoscaling:
     enabled: false
     minReplicas: 2
@@ -877,7 +886,7 @@ pydanticai:
 # cluster. Install via: helm install cnpg cloudnative-pg/cloudnative-pg
 # =============================================================================
 postgres:
-  enabled: false  # Enable together with langgraph (or any future PG consumer)
+  enabled: true  # Core dependency: Open WebUI HA state (DATABASE_URL) + LangGraph/DBOS checkpoints. Disable only for an ephemeral single-pod lab (Open WebUI falls back to SQLite).
 
   # -- PostgreSQL provisioning mode: standalone | cnpg | external
   mode: standalone

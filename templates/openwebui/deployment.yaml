@@ -57,6 +57,8 @@ spec:
             {{- end }}
             {{- end }}
             {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
+            {{- /* --- High-availability state: WEBUI_SECRET_KEY + shared Postgres + Valkey websocket manager --- */ -}}
+            {{- include "ai-stack.webuiHaEnv" . | nindent 12 }}
             {{- /* --- OpenAI-compatible provider wiring (external APIs and/or the internal Pydantic AI agent) --- */ -}}
             {{- if or (and .Values.externalAPIs.enabled .Values.externalAPIs.providers) (and .Values.pydanticai.enabled .Values.pydanticai.exposeToOpenWebUI) }}
             {{- if and .Values.externalAPIs.enabled .Values.externalAPIs.providers }}

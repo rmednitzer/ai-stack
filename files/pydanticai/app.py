@@ -330,9 +330,11 @@ async def chat_completions(
                         async for text in result.stream_text(delta=True):
                             if text:
                                 yield _chunk({"content": text}, None)
-            except Exception as exc:  # noqa: BLE001 — surface as a final SSE error
+            except Exception:  # noqa: BLE001 — surface a generic final SSE error
+                # Detail is logged server-side only; never echo exception text to
+                # the client (information exposure).
                 log.exception("agent stream failed")
-                yield _chunk({"content": f"\n[error: {exc}]"}, None)
+                yield _chunk({"content": "\n[error: agent run failed]"}, None)
                 yield _chunk({}, "stop")
                 yield "data: [DONE]\n\n"
                 return
@@ -345,7 +347,7 @@ async def chat_completions(
         output = await _run_agent(prompt, history)
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="agent run failed") from exc
 
     return {
         "id": cid,
@@ -370,4 +372,4 @@ async def run(req: RunRequest, authorization: str | None = Header(default=None))
         return RunResponse(output=await _run_agent(req.prompt), durable=DURABLE)
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="agent run failed") from exc
