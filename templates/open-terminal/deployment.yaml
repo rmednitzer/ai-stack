@@ -24,6 +24,9 @@ spec:
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}
       automountServiceAccountToken: false
+      {{- with .Values.openTerminal.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
       {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
       {{- include "ai-stack.dnsConfig" . | nindent 6 }}
       securityContext:
@@ -49,6 +52,8 @@ spec:
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
+            - name: OPEN_TERMINAL_CORS_ALLOWED_ORIGINS
+              value: {{ include "ai-stack.openTerminalCorsOrigins" . | quote }}
             - name: OPEN_TERMINAL_API_KEY
               valueFrom:
                 secretKeyRef:

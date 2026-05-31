@@ -27,10 +27,14 @@ README.md
 HOWTO.md
 CONTRIBUTING.md
 SECURITY.md
+LIMITATIONS.md
 CODE_OF_CONDUCT.md
 CHANGELOG.md
 LICENSE
 docs/
+
+# Chart unit tests (helm-unittest; not part of the released chart)
+tests/
 
 # Supply chain artefacts (distributed separately)
 sbom.cdx.json

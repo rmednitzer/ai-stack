@@ -580,3 +580,35 @@ spec:
 {{- end }}
 {{- end }}
 
+{{/*
+Resolve the CORS allowed-origins for Open Terminal. Never returns "*": a
+wildcard CORS policy on a code-executing service is an OWASP A05
+misconfiguration. Precedence:
+  1. explicit openTerminal.corsAllowedOrigins
+  2. Open WebUI browser origin(s) derived from its ingress/httpRoute hosts
+  3. the in-cluster Open WebUI Service origin (safe fallback)
+Usage: {{ include "ai-stack.openTerminalCorsOrigins" . }}
+*/}}
+{{- define "ai-stack.openTerminalCorsOrigins" -}}
+{{- if .Values.openTerminal.corsAllowedOrigins -}}
+{{- .Values.openTerminal.corsAllowedOrigins -}}
+{{- else -}}
+{{- $origins := list -}}
+{{- if .Values.openwebui.ingress.enabled -}}
+{{- range .Values.openwebui.ingress.hosts -}}
+{{- $origins = append $origins (printf "https://%s" .host) -}}
+{{- end -}}
+{{- end -}}
+{{- if .Values.openwebui.httpRoute.enabled -}}
+{{- range .Values.openwebui.httpRoute.hostnames -}}
+{{- $origins = append $origins (printf "https://%s" .) -}}
+{{- end -}}
+{{- end -}}
+{{- if $origins -}}
+{{- join "," $origins -}}
+{{- else -}}
+{{- printf "http://%s:%v" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui")) .Values.openwebui.service.port -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+

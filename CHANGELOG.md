@@ -5,6 +5,60 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-05-31
+
+Tool/command-plane hardening for the model-driven components (MCPO and Open
+Terminal), derived from a cross-checked review against the MCP authorization
+spec, OWASP LLM "excessive agency", the NSA/CISA Kubernetes hardening guidance,
+and the untrusted-code sandboxing consensus. Hardening patterns are integrated
+natively; no external projects are bundled.
+
+### Added
+
+- **Sandbox runtime for model-generated code** — new `openTerminal.runtimeClassName`
+  and `mcpo.runtimeClassName` (default empty = cluster default). Set to a
+  hardened RuntimeClass (e.g. `gvisor`/`kata`) to add a kernel/VM boundary
+  around model-executed code; standard containers are only the minimum-viable
+  isolation for untrusted code.
+- **Scoped CORS for Open Terminal** — new `openTerminal.corsAllowedOrigins`.
+  `OPEN_TERMINAL_CORS_ALLOWED_ORIGINS` is now templated from it and **never
+  emits `*`** (OWASP A05); empty derives the Open WebUI origin from its
+  ingress/httpRoute host (else the in-cluster Service).
+- **Secret redaction in telemetry** — the OTel Collector redaction processor now
+  also strips bearer tokens, JWTs, PEM private keys, and provider API-key shapes
+  (OpenAI, AWS, GitHub, GitLab, Google, Slack, Stripe) in addition to PII.
+- **Threat model** in `SECURITY.md` (indirect prompt injection → excessive
+  agency at the tool/command plane; compensating controls; residual risk) and a
+  new top-level **`LIMITATIONS.md`** with per-component scope boundaries.
+- **`helm-unittest` test suite** (`tests/`) asserting the security claims —
+  restricted `securityContext`, no token automount, scoped CORS, opt-in
+  `runtimeClassName`, ephemeral storage default, governance tier/boundary
+  labels, and default-deny/tool-plane NetworkPolicy isolation — wired into CI
+  (`helm-unittest` job) and `make unittest` / `make test`.
+
+### Changed
+
+- **Open Terminal storage is now ephemeral by default** —
+  `openTerminal.persistence.enabled` defaults to `false` so a payload written by
+  model-generated code does not survive a restart. **Upgrade note:** set
+  `openTerminal.persistence.enabled=true` to retain the previous behaviour; the
+  PVC keeps `helm.sh/resource-policy: keep`, so existing data is not deleted.
+- Expanded `docs/components/{open-terminal,mcpo}.md` Security sections
+  (sandbox-first framing, Authelia-when-exposed, no token passthrough).
+
+### Fixed
+
+- Documentation drift: `docs/components/open-terminal.md` and `mcpo.md` now state
+  the actual deployment `boundary` annotations (`execution` and `decision`
+  respectively, not `internal`), and `mcpo.md` references the real values key
+  `mcpo.config.mcpServers` (not `mcpo.servers`).
+
+### Security
+
+- Hardened the two components that execute or broker model-driven actions; see
+  `SECURITY.md` (Threat model) and `LIMITATIONS.md` for the residual-risk
+  posture and the controls that remain the operator's responsibility.
+
 ## [2.5.0] - 2026-05-31
 
 ### Added

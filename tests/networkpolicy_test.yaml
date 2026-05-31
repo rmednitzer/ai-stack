@@ -1,0 +1,53 @@
+suite: network policy default-deny and tool-plane isolation
+templates:
+  - templates/common/networkpolicies.yaml
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: renders a default-deny policy for ingress and egress
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-default-deny
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.podSelector.matchLabels["app.kubernetes.io/part-of"]
+          value: ai-stack
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - notExists:
+          path: spec.ingress
+
+  - it: restricts Open Terminal ingress to Open WebUI (least privilege)
+    set:
+      openTerminal.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-open-terminal
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/name"]
+          value: openwebui
+
+  - it: restricts MCPO ingress to Open WebUI (least privilege)
+    set:
+      mcpo.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-mcpo
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/name"]
+          value: openwebui

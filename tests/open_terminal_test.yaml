@@ -1,0 +1,103 @@
+suite: open-terminal security invariants
+templates:
+  - templates/open-terminal/deployment.yaml
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: enforces a restricted container security context
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.seccompProfile.type
+          value: RuntimeDefault
+
+  - it: does not automount the service account token
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: carries the governance tier and boundary labels
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "execution"
+
+  - it: never exposes a wildcard CORS origin and defaults to the Open WebUI origin
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          pattern: '\*'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          pattern: 'openwebui'
+
+  - it: honours an explicit corsAllowedOrigins override
+    set:
+      openTerminal.enabled: true
+      openTerminal.corsAllowedOrigins: "https://ai.example.com"
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OPEN_TERMINAL_CORS_ALLOWED_ORIGINS")].value
+          value: "https://ai.example.com"
+
+  - it: wires a sandbox runtimeClassName when set
+    set:
+      openTerminal.enabled: true
+      openTerminal.runtimeClassName: gvisor
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.runtimeClassName
+          value: gvisor
+
+  - it: omits runtimeClassName by default (uses the cluster default runtime)
+    set:
+      openTerminal.enabled: true
+    documentIndex: 0
+    asserts:
+      - notExists:
+          path: spec.template.spec.runtimeClassName
+
+  - it: uses ephemeral storage by default (no PVC rendered)
+    set:
+      openTerminal.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - exists:
+          path: spec.template.spec.volumes[?(@.name=="data")].emptyDir
+        documentIndex: 0
+
+  - it: renders a retained PVC only when persistence is explicitly enabled
+    set:
+      openTerminal.enabled: true
+      openTerminal.persistence.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 3

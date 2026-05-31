@@ -575,6 +575,17 @@ openTerminal:
   replicaCount: 1
   # -- Override API key (auto-generated if empty; stored in Secret)
   apiKey: ""
+  # -- Optional sandbox runtime for model-generated code. Open Terminal executes
+  # attacker-controlled (model-generated) commands, so standard container
+  # isolation is the *minimum* posture. Set to a hardened RuntimeClass
+  # (e.g. "gvisor" or "kata") to add a kernel/VM boundary; empty = cluster
+  # default runtime. See docs/components/open-terminal.md (Security).
+  runtimeClassName: ""
+  # -- CORS allowed origins for the terminal/notebook UI. Empty derives the
+  # Open WebUI origin (its ingress/httpRoute host, else its in-cluster Service);
+  # set explicitly to your browser origin(s), comma-separated. Never use "*" on
+  # this code-executing service (OWASP A05 misconfiguration).
+  corsAllowedOrigins: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
     tag: "0.11.34"  # Fallback when digest is not set
@@ -583,8 +594,9 @@ openTerminal:
     type: ClusterIP
     port: 8000
   env:
-    # -- CORS origins for Open WebUI integration
-    OPEN_TERMINAL_CORS_ALLOWED_ORIGINS: "*"
+    # -- OPEN_TERMINAL_CORS_ALLOWED_ORIGINS is templated from
+    # openTerminal.corsAllowedOrigins (above) by the deployment — do not
+    # hardcode "*" here.
     # -- Disable telemetry
     SCARF_NO_ANALYTICS: "true"
     DO_NOT_TRACK: "true"
@@ -595,7 +607,11 @@ openTerminal:
     # -- Max concurrent terminal sessions
     OPEN_TERMINAL_MAX_SESSIONS: "10"
   persistence:
-    enabled: true
+    # -- Ephemeral by default: a code-execution sandbox should not retain
+    # model-written state across restarts (a dropped payload in $HOME would
+    # survive). Set true only when a durable home directory is required; the
+    # PVC keeps helm.sh/resource-policy: keep so prior data is never deleted.
+    enabled: false
     size: 10Gi
     accessMode: ReadWriteOnce
     mountPath: /home/user
@@ -633,6 +649,10 @@ mcpo:
   replicaCount: 1
   # -- Override API key (auto-generated if empty; stored in Secret)
   apiKey: ""
+  # -- Optional sandbox runtime. MCPO can spawn stdio MCP server subprocesses
+  # (mcpo.config.mcpServers), so a hardened RuntimeClass ("gvisor"/"kata") adds
+  # a kernel boundary around them; empty = cluster default runtime.
+  runtimeClassName: ""
   image:
     repository: ghcr.io/open-webui/mcpo
     # Upstream mcpo publishes no semver container tags — only `latest`/`main`
@@ -1185,6 +1205,28 @@ otelCollector:
       - '\b\d{4}\s?\d{6}\b'
       # Credit card numbers
       - '\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+      # --- Secrets / credentials in tool-call args and outputs. MCPO and Open
+      # Terminal traffic carries tokens; anchored on prefix+shape, RE2-safe.
+      # Authorization: Bearer <token>
+      - '(?i)bearer\s+[A-Za-z0-9._~+/-]+=*'
+      # JSON Web Tokens
+      - 'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}'
+      # PEM private-key blocks
+      - '-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----'
+      # OpenAI / project keys
+      - 'sk-[A-Za-z0-9_-]{20,}'
+      # AWS access key id
+      - 'AKIA[0-9A-Z]{16}'
+      # GitHub tokens (ghp_/gho_/ghu_/ghs_/ghr_)
+      - 'gh[pousr]_[A-Za-z0-9]{36,}'
+      # GitLab personal access tokens
+      - 'glpat-[A-Za-z0-9_-]{20,}'
+      # Google API keys
+      - 'AIza[0-9A-Za-z_-]{35}'
+      # Slack tokens
+      - 'xox[baprs]-[A-Za-z0-9-]{10,}'
+      # Stripe secret / restricted keys
+      - '(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}'
   exporters:
     # -- Forward to platform OTel Collector (Thanos/VictoriaMetrics/Tempo/Loki)
     otlp:
