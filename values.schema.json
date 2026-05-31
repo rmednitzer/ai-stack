@@ -32,6 +32,14 @@
             "enabled": { "type": "boolean" }
           }
         },
+        "gateway": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Gateway API defaults for opt-in HTTPRoutes (see per-component `httpRoute`).",
+          "properties": {
+            "namespace": { "type": "string" }
+          }
+        },
         "otel": {
           "type": "object",
           "additionalProperties": true,
@@ -161,13 +169,39 @@
         }
       }
     },
+    "httpRoute": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Gateway API HTTPRoute (gateway.networking.k8s.io/v1). Opt-in alternative to `ingress`.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "namespace": { "type": "string" },
+              "sectionName": { "type": "string" },
+              "port": { "type": "integer" }
+            }
+          }
+        },
+        "hostnames": { "type": "array", "items": { "type": "string" } },
+        "annotations": { "type": "object" },
+        "rules": { "type": "array" }
+      }
+    },
     "component": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
         "enabled": { "type": "boolean" },
         "replicaCount": { "type": "integer", "minimum": 0 },
-        "image": { "$ref": "#/$defs/image" }
+        "image": { "$ref": "#/$defs/image" },
+        "httpRoute": { "$ref": "#/$defs/httpRoute" }
       }
     },
     "componentWithGpu": {
@@ -177,6 +211,7 @@
         "enabled": { "type": "boolean" },
         "replicaCount": { "type": "integer", "minimum": 0 },
         "image": { "$ref": "#/$defs/image" },
+        "httpRoute": { "$ref": "#/$defs/httpRoute" },
         "gpu": {
           "type": "object",
           "additionalProperties": true,

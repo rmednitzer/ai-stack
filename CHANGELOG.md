@@ -7,7 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-05-31
+
 ### Added
+
+- **Gateway API support (opt-in `HTTPRoute`).** Each externally-exposed component
+  (`openwebui`, `workbench`, `langgraph`, `authelia`) can now emit a
+  `gateway.networking.k8s.io/v1` `HTTPRoute` as a modern alternative to `Ingress`
+  (both may be enabled simultaneously). A shared `ai-stack.httpRoute` helper renders
+  the route and attaches it to a pre-existing `Gateway` via `parentRefs` (default
+  namespace `global.gateway.namespace`, falling back to `global.ingressNamespace`).
+  Default-off, so existing deployments are unchanged. `values.schema.json` and the
+  kubeconform `-skip` list updated; rendered routes were validated against the
+  upstream Gateway API v1 JSON schema. See README "Gateway API (HTTPRoute)".
+- **Valkey persistence.** `valkey.persistence.enabled=true` now provisions a PVC
+  (RDB snapshots under `/data`) and switches the Deployment to the `Recreate`
+  strategy, so Valkey Streams and in-flight ingestion tasks survive pod restarts.
+  Adds `valkey.persistence.{size,accessMode,mountPath}`. (See Fixed: the flag was
+  previously a no-op.)
+- **Ingestion worker prebuilt-image path (`ingestionWorker.buildDeps`).** Set to
+  `false` to skip the runtime `pip install` initContainer and supply an image with
+  dependencies baked in (new `files/ingestion-worker/Dockerfile`), removing PyPI
+  egress at pod startup for air-gapped/hardened clusters.
+- **kube-linter CI job** (`.github/workflows/lint.yaml`) policy-lints rendered
+  manifests for the lab, prod, and all-optional-components profiles; tuned via
+  `.kube-linter.yaml` (documented exclusions only). Pinned to v0.8.3 with a
+  SHA-256 checksum.
+- **CI image-digest parity check** in the `sbom-validate` job: enforces that every
+  component's manifest digest is present and identical across `values.yaml`,
+  `sbom.cdx.json`, and `zarf.yaml`. Closes the ADR-002 §Consequences follow-up
+  (the prior parity step compared tags only).
+- **PodDisruptionBudgets** now set `unhealthyPodEvictionPolicy: AlwaysAllow`
+  (policy/v1, GA K8s 1.27) so node drains are not deadlocked by unready pods.
+
+### Changed
+
+- **Chart `version` 2.2.0 → 2.3.0** (minor — new opt-in features) and **`appVersion`
+  2026.4 → 2026.5**; version-bearing artifacts resynced (`Chart.yaml`, `zarf.yaml`,
+  `sbom.cdx.json`, README badges, and the compliance/enterprise/governance doc
+  headers) per ADR-001.
+- **`kubeVersion` raised `>=1.25.0-0` → `>=1.27.0-0`** (README badge → `1.27+`) —
+  required by the new PDB `unhealthyPodEvictionPolicy` (GA 1.27) and matching the
+  README's long-standing `1.27+` prerequisite.
+- **Image bumps** (registry-verified digests, synced across `values.yaml`,
+  `sbom.cdx.json`, `zarf.yaml`, the ADR-002 digest table, and `LICENSE_COMPLIANCE.md`
+  per ADR-001/ADR-002): Tika `3.3.0.0 → 3.3.1.0`, SearXNG
+  `2026.5.26-0037d43d8 → 2026.5.31-300695de5`, LangGraph Server `0.8-py3.12 → 0.9-py3.12`.
+- **CloudNativePG image** `postgresql:16 → postgresql:18`, aligning `postgres.mode: cnpg`
+  with the standalone `postgres:18` image so switching modes does not change the
+  engine major version.
+- **Ingestion worker source extracted** from the inline ConfigMap to
+  `files/ingestion-worker/worker.py` (+ `requirements.txt` with major-version upper
+  bounds), loaded via `.Files.Get`. The deployment's `checksum/config` now hashes the
+  worker source (see Fixed).
+- **README "Dependency Management"** rewritten: container images are managed by
+  Renovate (`helm-values`, `pinDigests: true`), not "manually".
+
+### Fixed
+
+- **MCPO broken image pin — resolved.** The chart referenced
+  `ghcr.io/open-webui/mcpo:0.0.20`, a tag that does not exist upstream
+  (`ImagePullBackOff` whenever `mcpo.enabled=true`; masked by the default
+  `mcpo.enabled: false`). Now pinned to the `main` channel by immutable digest
+  (`main@sha256:1e82c955…`) across `values.yaml`, `sbom.cdx.json`, `zarf.yaml`,
+  and the ADR-002 table — so all 14 images are digest-pinned, which is what lets
+  the new digest-parity check run with no exceptions. Supersedes the prior
+  "out-of-scope flag".
+- **Valkey persistence was silently ignored.** `valkey.persistence.enabled=true`
+  had no effect — the data volume was hard-coded to `emptyDir`, so documented
+  Stream durability never worked. Now backed by a PVC (see Added).
+- **LangGraph `ingress` was never rendered.** `langgraph.ingress` existed in
+  `values.yaml` and the docs, but the deployment template omitted the Ingress
+  resource entirely; it is now wired (alongside the new `httpRoute`).
+- **Ingestion worker `checksum/config`** hashed only `ingestionWorker.env`, so
+  edits to the worker code never triggered a pod rollout. It now hashes the
+  worker source and requirements as well.
+
+### Added (carried from earlier unreleased work)
 
 - Reference architecture document (`docs/architecture/REFERENCE.md`) codifying the
   best-practice patterns for the conversational + RAG flow (Open WebUI) and the
@@ -42,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `values.schema.json` extended with a `digest` field on the `image` def
   (pattern `^$|^sha256:[a-f0-9]{64}$`).
 
-### Changed
+### Changed (carried from earlier unreleased work)
 
 - README architecture diagram: clarified legend (default-enabled vs opt-in vs
   conditional edges) and marked Authelia → Valkey / Postgres edges as conditional
@@ -78,17 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chart ships no preset Authelia access rules; user-managed rules should be
   reviewed during the next Authelia config touchpoint.
 
-### Fixed
+### Fixed (carried from earlier unreleased work)
 
-- **MCPO upstream tag finding (not yet fixed; out-of-scope flag).** While
-  populating ADR-002 digests, `ghcr.io/open-webui/mcpo` was found to publish
-  only `git-<sha>` tags plus `latest`/`dev`/`main`. The `0.0.20` tag the
-  chart references does not exist in that registry. The chart's default
-  `mcpo.enabled: false` has masked this; deployments that enable MCPO would
-  encounter `ImagePullBackOff`. ADR-002 records the finding and leaves the
-  digest empty (template falls back to the tag, preserving the pre-existing
-  behaviour rather than masking the bug). Fix is deferred to a separate PR;
-  see ADR-002 §MCPO-digest-unresolved for the options.
 - **SBOM drift fixed (again)** — five image versions in `sbom.cdx.json` were lagging
   `values.yaml`. Resynced: open-webui `v0.9.2 → v0.9.5`, ollama `0.23.1 → 0.24.0`,
   qdrant `v1.17.1 → v1.18.0`, valkey `8.1.6 → 9.1.0`, opentelemetry-collector-contrib
@@ -104,7 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2026.1 to 2.2.0 / 2026.4.
 - **HOWTO.md §1.3 air-gap example** — stale image references (`v0.8.10`, `0.18.2`,
   `0.18.0`) replaced with current pins (`v0.9.5`, `0.24.0`).
-- **docs/components/tika.md** — upstream REST API URL repointed from `3.1.1` to `3.3.0`
+- **docs/components/tika.md** — upstream REST API URL repointed from `3.1.1` to `3.3.1`
   to match the deployed image tag.
 - **docs/governance/CONTROLS.md** — registry version footer bumped from 2.0 to 2.2 to
   track `Chart.yaml`.
@@ -120,10 +187,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drift without the absorption commit). New comment describes the actual
   dual-bot overlap, the rate-limit-based tolerance, and the preference for
   Renovate's PR when both bots fire on the same image.
-- **README Kubernetes badge** corrected from `1.27+` to `1.25+` to match
-  `Chart.yaml`'s `kubeVersion: ">=1.25.0-0"`. PSA restricted, NetworkPolicy
-  `networking.k8s.io/v1`, `autoscaling/v2` HPA, and `policy/v1` PDB are all
-  GA at or before K8s 1.25, so `1.25` is the correct documented floor.
+- **README Kubernetes badge** was realigned to `1.25+` during this cycle; it is
+  raised to `1.27+` in 2.3.0 (see Changed → `kubeVersion`) now that the chart
+  emits PDB `unhealthyPodEvictionPolicy` (GA 1.27).
 
 ## [2.2.0] - 2026-04-29
 
@@ -253,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/rmednitzer/ai-stack/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/rmednitzer/ai-stack/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/rmednitzer/ai-stack/compare/v2.0.0...v2.1.0

@@ -172,4 +172,5 @@ spec:
       storage: {{ .Values.authelia.persistence.size }}
 {{- end }}
 {{- include "ai-stack.ingress" (dict "root" . "component" "authelia" "ingress" .Values.authelia.ingress) }}
+{{- include "ai-stack.httpRoute" (dict "root" . "component" "authelia" "httpRoute" .Values.authelia.httpRoute "servicePort" .Values.authelia.service.port) }}
 {{- end }}

@@ -155,4 +155,5 @@ spec:
       storage: {{ .Values.openwebui.persistence.size }}
 {{- end }}
 {{- include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
+{{- include "ai-stack.httpRoute" (dict "root" . "component" "openwebui" "httpRoute" .Values.openwebui.httpRoute "servicePort" .Values.openwebui.service.port) }}
 {{- end }}

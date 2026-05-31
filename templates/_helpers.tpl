@@ -466,3 +466,63 @@ spec:
 {{- end }}
 {{- end }}
 
+{{/*
+Gateway API HTTPRoute (gateway.networking.k8s.io/v1, GA since Gateway API v1.0).
+Opt-in modern alternative to the Ingress resource for clusters running a
+Gateway API implementation (e.g. Envoy Gateway, the chart's reference edge).
+The chart emits only the per-app HTTPRoute and attaches it to a pre-existing
+Gateway via parentRefs — mirroring how the Ingress path relies on an external
+IngressClass/controller rather than provisioning one.
+Usage:
+  {{ include "ai-stack.httpRoute" (dict "root" . "component" "openwebui" "httpRoute" .Values.openwebui.httpRoute "servicePort" .Values.openwebui.service.port) }}
+*/}}
+{{- define "ai-stack.httpRoute" -}}
+{{- if .httpRoute.enabled }}
+{{- if not .httpRoute.parentRefs }}
+{{- fail (printf "%s.httpRoute.enabled=true requires at least one httpRoute.parentRefs entry (the Gateway to attach to)" .component) }}
+{{- end }}
+{{- $defaultNs := .root.Values.global.gateway.namespace | default .root.Values.global.ingressNamespace }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .root.Release "Chart" .root.Chart "component" .component) }}
+  labels:
+    {{- include "ai-stack.labels" .root | nindent 4 }}
+  {{- with .httpRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range .httpRoute.parentRefs }}
+    - name: {{ required "httpRoute.parentRefs[].name is required (the Gateway name)" .name }}
+      namespace: {{ .namespace | default $defaultNs | quote }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- with .httpRoute.hostnames }}
+  hostnames:
+    {{- range . }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .httpRoute.rules }}
+    {{- toYaml .httpRoute.rules | nindent 4 }}
+    {{- else }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "ai-stack.componentName" (dict "Release" .root.Release "Chart" .root.Chart "component" .component) }}
+          port: {{ .servicePort }}
+    {{- end }}
+{{- end }}
+{{- end }}
+

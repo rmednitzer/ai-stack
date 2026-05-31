@@ -204,6 +204,76 @@ jobs:
           print(f"::notice::Image-tag parity OK for {len(all_keys)} component(s) across values.yaml, sbom.cdx.json, zarf.yaml.")
           PY
 
+      - name: Verify image-digest parity across values.yaml, sbom.cdx.json, zarf.yaml
+        # Closes the ADR-002 §Consequences follow-up. The tag-parity step above
+        # ignores the digest: field; this step enforces that every component's
+        # manifest digest is present and identical across all three artifacts.
+        # Enforceable with no exceptions now that MCPO is digest-pinned
+        # (see ADR-002 "MCPO digest resolved").
+        run: |
+          python3 <<'PY'
+          import sys, re, json
+          import yaml
+
+          def basename(s):
+              return s.rsplit('/', 1)[-1] if '/' in s else s
+
+          def values_digests(node, out=None):
+              if out is None:
+                  out = {}
+              if isinstance(node, dict):
+                  if isinstance(node.get('repository'), str):
+                      out[basename(node['repository'])] = node.get('digest', '') or ''
+                  for v in node.values():
+                      values_digests(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      values_digests(it, out)
+              return out
+
+          def sbom_digests(bom):
+              out = {}
+              for c in bom.get('components', []):
+                  m = re.match(r'pkg:docker/([^@?]+)@', c.get('purl', ''))
+                  if not m:
+                      continue
+                  h = [x for x in c.get('hashes', []) if x.get('alg') == 'SHA-256']
+                  out[basename(m.group(1))] = 'sha256:' + h[0]['content'] if h else ''
+              return out
+
+          def zarf_digests(text):
+              out = {}
+              for m in re.finditer(r'^\s+-\s+([A-Za-z0-9_.\-/]+):[A-Za-z0-9_.\-]+@(sha256:[a-f0-9]{64})\s*$', text, re.M):
+                  out[basename(m.group(1))] = m.group(2)
+              # Record digest-less entries too, so a missing pin is caught.
+              for m in re.finditer(r'^\s+-\s+([A-Za-z0-9_.\-/]+):[A-Za-z0-9_.\-]+\s*$', text, re.M):
+                  out.setdefault(basename(m.group(1)), '')
+              return out
+
+          with open('values.yaml') as f:
+              vals = yaml.safe_load(f)
+          with open('sbom.cdx.json') as f:
+              bom = json.load(f)
+          with open('zarf.yaml') as f:
+              ztext = f.read()
+
+          v = values_digests(vals)
+          b = sbom_digests(bom)
+          z = zarf_digests(ztext)
+
+          all_keys = sorted(set(v) | set(b) | set(z))
+          bad = False
+          for k in all_keys:
+              dv, db, dz = v.get(k, ''), b.get(k, ''), z.get(k, '')
+              if not (dv == db == dz and dv):
+                  print(f"::error::Digest drift/missing {k!r}: values.yaml={dv or '<none>'}, sbom.cdx.json={db or '<none>'}, zarf.yaml={dz or '<none>'}", file=sys.stderr)
+                  bad = True
+          if bad:
+              print("::error::Image-digest parity failed. Per ADR-002 every image must be digest-pinned identically across values.yaml, sbom.cdx.json, and zarf.yaml.", file=sys.stderr)
+              sys.exit(1)
+          print(f"::notice::Image-digest parity OK for {len(all_keys)} component(s).")
+          PY
+
   syft-sbom:
     # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
     if: github.event_name == 'push'
@@ -427,7 +497,7 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway
 
       - name: Validate manifests (prod profile)
         env:
@@ -437,4 +507,53 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway
+
+  kube-linter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          version: v3.20.0  # helm/helm
+
+      - name: Cache kube-linter binary
+        id: cache-kube-linter
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /usr/local/bin/kube-linter
+          key: kube-linter-v0.8.3
+
+      - name: Install kube-linter
+        if: steps.cache-kube-linter.outputs.cache-hit != 'true'
+        env:
+          KUBE_LINTER_VERSION: "v0.8.3"  # renovate: depName=stackrox/kube-linter
+          KUBE_LINTER_SHA256: "1a6d8419b11971372971fdbc22682b684ebfb7cf1c39591662d1b6ca736c41df"
+        run: |
+          curl -fsSLo kube-linter.tar.gz "https://github.com/stackrox/kube-linter/releases/download/${KUBE_LINTER_VERSION}/kube-linter-linux.tar.gz"
+          echo "${KUBE_LINTER_SHA256}  kube-linter.tar.gz" | sha256sum -c -
+          tar xzf kube-linter.tar.gz kube-linter
+          sudo mv kube-linter /usr/local/bin/
+          kube-linter version
+
+      # Policy linting of rendered manifests, complementing kubeconform's schema
+      # check. Config (.kube-linter.yaml) documents the few checks excluded to
+      # match the chart's security model; all other default checks are blocking.
+      - name: kube-linter (lab profile)
+        run: helm template ai-stack . | kube-linter lint --config .kube-linter.yaml -
+
+      - name: kube-linter (prod profile)
+        run: helm template ai-stack . -f values.yaml -f values-prod.yaml | kube-linter lint --config .kube-linter.yaml -
+
+      - name: kube-linter (all optional components enabled)
+        run: |
+          helm template ai-stack . \
+            --set workbench.enabled=true,openTerminal.enabled=true,mcpo.enabled=true \
+            --set langgraph.enabled=true,postgres.enabled=true,ingestionWorker.enabled=true \
+            --set authelia.enabled=true,global.otel.enabled=true \
+            | kube-linter lint --config .kube-linter.yaml -

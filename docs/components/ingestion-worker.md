@@ -5,8 +5,8 @@ Async document-ingestion worker. Consumes tasks from a Valkey Stream (`ingestion
 - **Tier**: T2 (productivity)
 - **Boundary**: `internal`
 - **Default**: opt-in (`ingestionWorker.enabled=false`)
-- **Upstream**: in-chart Python worker (see `templates/ingestion-worker/`)
-- **Default image**: `python` slim base, with the worker script mounted from a ConfigMap
+- **Upstream**: in-chart Python worker — source in [`files/ingestion-worker/worker.py`](../../files/ingestion-worker/worker.py), loaded into a ConfigMap via `.Files.Get`
+- **Default image**: `python` slim base; dependencies installed at startup, or bake a prebuilt image via [`files/ingestion-worker/Dockerfile`](../../files/ingestion-worker/Dockerfile) and set `buildDeps: false`
 - **Chart path**: [`templates/ingestion-worker/`](../../templates/ingestion-worker/)
 
 ## Key `values.yaml` keys
@@ -14,7 +14,8 @@ Async document-ingestion worker. Consumes tasks from a Valkey Stream (`ingestion
 | Key | Purpose |
 |-----|---------|
 | `ingestionWorker.enabled` | Toggle the component |
-| `ingestionWorker.image.{repository,tag}` | Base Python image |
+| `ingestionWorker.image.{repository,tag}` | Base Python image (or a prebuilt worker image) |
+| `ingestionWorker.buildDeps` | `true` (default): install deps at startup via initContainer. `false`: deps are baked into the image (air-gapped) |
 | `ingestionWorker.replicaCount` | Number of worker pods |
 | `ingestionWorker.chunkSize`, `ingestionWorker.chunkOverlap` | Text splitter parameters |
 | `ingestionWorker.embedModel` | Ollama embedding model (e.g. `nomic-embed-text`) |

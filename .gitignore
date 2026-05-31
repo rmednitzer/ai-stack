@@ -38,3 +38,7 @@ grype-reports/
 
 # Zarf packages (large binaries)
 zarf-package-*.tar.zst
+
+# Python bytecode (e.g. files/ingestion-worker compiled during local checks)
+__pycache__/
+*.py[cod]

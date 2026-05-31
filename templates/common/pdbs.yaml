@@ -3,6 +3,11 @@ PodDisruptionBudgets — ensures availability during voluntary disruptions.
   - Scalable T1 components: minAvailable=1 when replicas > 1 or HPA active
   - Stateful/GPU components: maxUnavailable=1 always
   - T0 authentication: maxUnavailable=1 always
+
+unhealthyPodEvictionPolicy: AlwaysAllow (policy/v1, GA in K8s 1.27) lets the
+node drain / eviction API remove pods that are not Ready even while the budget
+is unmet, avoiding the classic deadlock where an unhealthy pod cannot be
+evicted because the PDB is already breached. Healthy pods remain protected.
 */}}
 
 {{/* Scalable components — PDB only when multi-replica or HPA */}}
@@ -20,6 +25,7 @@ metadata:
     {{- include "ai-stack.labels" $ | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 4 }}
 spec:
+  unhealthyPodEvictionPolicy: AlwaysAllow
   minAvailable: 1
   selector:
     matchLabels:
@@ -39,6 +45,7 @@ metadata:
   labels:
     {{- include "ai-stack.labels" $ | nindent 4 }}
 spec:
+  unhealthyPodEvictionPolicy: AlwaysAllow
   maxUnavailable: 1
   selector:
     matchLabels:
@@ -56,6 +63,7 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
 spec:
+  unhealthyPodEvictionPolicy: AlwaysAllow
   maxUnavailable: 1
   selector:
     matchLabels:
