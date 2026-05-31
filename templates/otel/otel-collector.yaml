@@ -58,7 +58,7 @@ data:
         limit_mib: {{ .Values.otelCollector.memoryLimitMiB | default 400 }}
         spike_limit_mib: {{ .Values.otelCollector.spikeMemoryLimitMiB | default 100 }}
       # Resource detection — enrich with K8s metadata
-      resourcedetection:
+      resource_detection:
         detectors: [env]
         timeout: 5s
       # Add standard attributes
@@ -124,7 +124,7 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, resourcedetection, resource, attributes/genai{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
+          processors: [memory_limiter, resource_detection, resource, attributes/genai{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
@@ -134,7 +134,7 @@ data:
             {{- end }}
         metrics:
           receivers: [otlp, prometheus]
-          processors: [memory_limiter, resourcedetection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
+          processors: [memory_limiter, resource_detection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
@@ -147,7 +147,7 @@ data:
             {{- end }}
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, resourcedetection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
+          processors: [memory_limiter, resource_detection, resource{{- if .Values.otelCollector.redaction.enabled }}, redaction{{- end }}, batch]
           exporters:
             {{- if .Values.otelCollector.exporters.otlp.enabled }}
             - otlp
