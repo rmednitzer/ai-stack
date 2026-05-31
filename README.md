@@ -3,7 +3,7 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.6.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.7.0-blue.svg)](Chart.yaml)
 [![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -596,12 +596,20 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 
 ## GitOps / ArgoCD
 
-Pre-built ArgoCD Application manifests are provided in `argocd/`:
+Pre-built ArgoCD manifests are provided in `argocd/`:
 
 | File | Profile | Notes |
 |------|---------|-------|
-| `argocd/application-lab.yaml` | Lab | Auto-sync disabled — suitable for development |
+| `argocd/appproject.yaml` | — | Dedicated least-privilege `AppProject` (apply first) |
+| `argocd/application-lab.yaml` | Lab | Auto-sync enabled (prune + selfHeal) — suitable for development |
 | `argocd/application-prod.yaml` | Production | Manual sync — change-control compliance |
+
+Both Applications run under the dedicated `ai-stack` `AppProject`, which scopes
+the controller to this repository and the `ai-stack` namespace and denies
+cluster-scoped resources other than `Namespace`. Apply `argocd/appproject.yaml`
+before the Application manifests. The chart's workloads carry
+`argocd.argoproj.io/sync-wave` annotations so a first sync rolls out in
+dependency order (secrets/identity → datastores → platform services).
 
 ## Dependency Management
 

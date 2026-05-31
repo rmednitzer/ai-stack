@@ -9,6 +9,8 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 4 }}
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
+  annotations:
+    {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.openwebui) }}
   replicas: {{ .Values.openwebui.replicaCount }}

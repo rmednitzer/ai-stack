@@ -24,6 +24,8 @@ metadata:
   labels:
     {{- include "ai-stack.labels" $ | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" $component) | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.syncWave" "policy" | nindent 4 }}
 spec:
   unhealthyPodEvictionPolicy: AlwaysAllow
   minAvailable: 1
@@ -44,6 +46,8 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" $.Release "Chart" $.Chart "component" $component) }}
   labels:
     {{- include "ai-stack.labels" $ | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.syncWave" "policy" | nindent 4 }}
 spec:
   unhealthyPodEvictionPolicy: AlwaysAllow
   maxUnavailable: 1
@@ -62,6 +66,8 @@ metadata:
   name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.syncWave" "policy" | nindent 4 }}
 spec:
   unhealthyPodEvictionPolicy: AlwaysAllow
   maxUnavailable: 1

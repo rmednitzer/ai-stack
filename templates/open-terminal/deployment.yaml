@@ -9,7 +9,15 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "execution"
+  annotations:
+    {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
+  {{- if .Values.openTerminal.persistence.enabled }}
+  # RWO PVC (opt-in persistence): Recreate avoids a rollout deadlock where the
+  # new pod cannot mount the volume still held by the old pod.
+  strategy:
+    type: Recreate
+  {{- end }}
   replicas: {{ .Values.openTerminal.replicaCount }}
   selector:
     matchLabels:
