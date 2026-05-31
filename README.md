@@ -53,7 +53,6 @@ graph LR
 
   subgraph Experience["Experience (T1)"]
     OpenWebUI["Open WebUI<br/>chat · pipelines · RAG"]
-    Workbench["Workbench<br/>GPU notebooks"]
   end
 
   subgraph Inference["Inference (T1) — OpenAI-compatible"]
@@ -87,7 +86,6 @@ graph LR
   Client --> Ingress
   Ingress --> Authelia
   Ingress --> OpenWebUI
-  Ingress --> Workbench
   Authelia -.->|OIDC| OpenWebUI
   Authelia -.->|sessions, if enabled| Valkey
   Authelia -.->|storage=postgres| Postgres
@@ -103,11 +101,6 @@ graph LR
   OpenWebUI -->|tool calls| MCPO
   OpenWebUI -->|sessions| Valkey
   OpenWebUI -.->|sandbox exec| OpenTerminal
-
-  Workbench --> Ollama
-  Workbench --> Qdrant
-  Workbench --> Tika
-  Workbench --> SearXNG
 
   %% Agentic path: shared tool surface, persistent memory
   LangGraph -->|inference| Ollama
@@ -136,7 +129,6 @@ graph LR
 
   %% Telemetry
   OpenWebUI -.->|OTLP| OTel
-  Workbench -.->|OTLP| OTel
   LangGraph -.->|OTLP| OTel
   PydanticAI -.->|OTLP| OTel
   MCPO -.->|OTLP| OTel
@@ -146,7 +138,7 @@ graph LR
   Authelia -.->|OTLP| OTel
 
   classDef optIn stroke-dasharray: 5 5
-  class Authelia,Workbench,LangGraph,PydanticAI,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
+  class Authelia,LangGraph,PydanticAI,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
 ```
 
 ### Best-practice notes
@@ -174,7 +166,7 @@ Components are classified by operational criticality:
 | Tier | Meaning | Components |
 |------|---------|------------|
 | T0 | Safety / Integrity — non-negotiable for security and compliance | OTel Collector, Authelia |
-| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, Workbench, LangGraph, Pydantic AI |
+| T1 | Operational — core inference and decision-making services | Open WebUI, Ollama, Qdrant, LangGraph, Pydantic AI |
 | T2 | Productivity — supporting services and optional tooling | Tika, SearXNG, Valkey, Open Terminal, MCPO, PostgreSQL, Ingestion Worker |
 
 ### Default Images
@@ -186,7 +178,7 @@ Image versions are defined in [`values.yaml`](values.yaml) per component. For a 
 - Kubernetes 1.27+
 - Helm 3.12+
 - A StorageClass for PersistentVolumeClaims (or use `emptyDir` for lab)
-- (Optional) NVIDIA GPU Operator for Ollama / Workbench GPU acceleration
+- (Optional) NVIDIA GPU Operator for Ollama GPU acceleration
 - (Optional) Prometheus Operator CRDs for ServiceMonitor resources
 - (Optional) cert-manager for automated TLS certificate provisioning
 - (Optional) CloudNativePG operator v1.25+ for HA PostgreSQL (`postgres.mode: cnpg`)
@@ -260,8 +252,6 @@ searxng:
   enabled: true     # Web search (default: true)
 valkey:
   enabled: true     # Session cache (default: true)
-workbench:
-  enabled: false    # GPU ML workbench (opt-in)
 openTerminal:
   enabled: false    # Sandboxed terminal for AI agents (opt-in)
 mcpo:
@@ -284,7 +274,6 @@ The chart auto-generates secrets on first install for:
 
 - **Qdrant API key** (`qdrant-secret`)
 - **SearXNG secret key** (`searxng-secret`)
-- **Workbench token** (`workbench-secret`)
 - **Open Terminal API key** (`open-terminal-secret`)
 - **MCPO API key** (`mcpo-secret`)
 - **LangGraph API key** (`langgraph-secret`)
@@ -316,13 +305,6 @@ ollama:
     enabled: true
     count: 1
     resourceName: nvidia.com/gpu
-
-workbench:
-  enabled: true
-  gpu:
-    enabled: true
-    count: 1
-    resourceName: nvidia.com/gpu
 ```
 
 ### Ingress
@@ -346,7 +328,7 @@ openwebui:
 ### Gateway API (HTTPRoute)
 
 As a modern, opt-in alternative to `Ingress`, each externally-exposed component
-(`openwebui`, `workbench`, `langgraph`, `pydanticai`, `authelia`) can emit a Gateway API
+(`openwebui`, `langgraph`, `pydanticai`, `authelia`) can emit a Gateway API
 [`HTTPRoute`](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io/v1`,
 GA since Gateway API v1.0). The chart renders only the per-app `HTTPRoute` and
 attaches it to a **pre-existing** `Gateway` via `parentRefs` — mirroring how the

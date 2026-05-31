@@ -302,7 +302,7 @@ Cross-checked against EUR-Lex full texts (CELEX 32024R1689, 32024R2847, 32022L25
 12. **CRA Chapter IV label** — Corrected "Market surveillance" to "Conformity assessment body notification". Chapter IV (Art. 35-51) covers notification of conformity assessment bodies, not market surveillance.
 13. **Incident response Art. 73 authority** — Corrected remaining "National AI supervisory authority" references in INCIDENT_RESPONSE.md to "Market surveillance authority" per Art. 73(1).
 14. **Incident response Art. 73 death timeline** — Clarified that death reporting requires immediate notification upon suspected causal link, with 10-day outer limit (Art. 73(4)), not just the outer limit.
-15. **LICENSE_COMPLIANCE.md version alignment** — Updated 9 component versions to match values.yaml: Ollama 0.18.2, Qdrant v1.17.0, Tika 3.3.0.0, SearXNG 2026.3.23, OTel 0.148.0, PostgreSQL 17-alpine, Workbench cuda12-python-3.13, Open Terminal 0.11.27, Ingestion Worker 3.13-slim.
+15. **LICENSE_COMPLIANCE.md version alignment** — Updated 8 component versions to match values.yaml: Ollama 0.18.2, Qdrant v1.17.0, Tika 3.3.0.0, SearXNG 2026.3.23, OTel 0.148.0, PostgreSQL 17-alpine, Open Terminal 0.11.27, Ingestion Worker 3.13-slim.
 
 ### Limitations
 

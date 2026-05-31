@@ -62,7 +62,6 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" .Values.tika.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" .Values.searxng.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.valkey.enabled "name" "valkey" "port" .Values.valkey.service.port) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.workbench.enabled "name" "workbench" "port" .Values.workbench.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" .Values.openTerminal.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.mcpo.enabled "name" "mcpo" "port" .Values.mcpo.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" .Values.langgraph.service.port) | nindent 4 }}
@@ -265,9 +264,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: langgraph
         {{- if $.Values.pydanticai.enabled }}
         - podSelector:
@@ -313,9 +309,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
@@ -366,9 +359,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: langgraph
         {{- if $.Values.pydanticai.enabled }}
         - podSelector:
@@ -413,9 +403,6 @@ spec:
               app.kubernetes.io/name: openwebui
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: workbench
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: langgraph
         {{- if $.Values.pydanticai.enabled }}
         - podSelector:
@@ -435,63 +422,6 @@ spec:
           port: 443
         - protocol: TCP
           port: 80
-{{- end }}
-
-# =============================================================================
-# Workbench — widest egress in stack; full access to all AI services + internet
-# =============================================================================
-{{- if .Values.workbench.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "ai-stack.fullname" . }}-workbench
-  labels:
-    {{- include "ai-stack.labels" . | nindent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "workbench") | nindent 6 }}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
-      ports:
-        - protocol: TCP
-          port: 8888
-    - from:
-        - podSelector: {}
-      ports:
-        - protocol: TCP
-          port: 8888
-  egress:
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
-    {{- if .Values.qdrant.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: qdrant
-      ports:
-        - protocol: TCP
-          port: 6333
-        - protocol: TCP
-          port: 6334
-    {{- end }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
-    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" 8000) | nindent 4 }}
-    # Internet (pip install, git clone, HuggingFace Hub, dataset downloads)
-    - ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 22
 {{- end }}
 
 # =============================================================================
@@ -590,14 +520,11 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Accept from Open WebUI and Workbench
+    # Accept from Open WebUI
     - from:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: connection-test
@@ -662,14 +589,11 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Accept from Open WebUI and Workbench
+    # Accept from Open WebUI
     - from:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: openwebui
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: workbench
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: connection-test

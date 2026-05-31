@@ -118,7 +118,6 @@
     "qdrant":          { "$ref": "#/$defs/component" },
     "tika":            { "$ref": "#/$defs/component" },
     "searxng":         { "$ref": "#/$defs/component" },
-    "workbench":       { "$ref": "#/$defs/componentWithGpu" },
     "openTerminal":    { "$ref": "#/$defs/component" },
     "mcpo":            { "$ref": "#/$defs/component" },
     "langgraph":       { "$ref": "#/$defs/component" },

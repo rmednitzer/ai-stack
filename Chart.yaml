@@ -2,8 +2,8 @@ apiVersion: v2
 name: ai-stack
 description: >-
   EU-regulated AI inference stack: Open WebUI, Ollama, Qdrant, Tika,
-  SearXNG, Valkey. Optional: LangGraph or Pydantic AI (agentic), Workbench
-  (GPU/Jupyter), MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async
+  SearXNG, Valkey. Optional: LangGraph or Pydantic AI (agentic),
+  MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async
   ingestion worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
 version: 2.5.0
@@ -27,7 +27,7 @@ keywords:
   - qdrant
   - searxng
   - tika
-  - workbench
+
   - valkey
   - open-terminal
   - mcpo

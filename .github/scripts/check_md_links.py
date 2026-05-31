@@ -33,13 +33,32 @@ def slug(heading: str) -> str:
     return kept.strip().replace(" ", "-")
 
 
+def heading_slugs(text: str) -> set[str]:
+    """All anchor slugs GitHub generates for a file's headings.
+
+    GitHub disambiguates repeated headings by appending ``-1``, ``-2`, … to the
+    second and later occurrences of an identical slug (the first stays bare), so
+    e.g. three ``### Changed`` headings yield ``changed``, ``changed-1``,
+    ``changed-2``. We reproduce that so links to a later duplicate section are
+    not falsely flagged as broken.
+    """
+    seen: dict[str, int] = {}
+    out: set[str] = set()
+    for m in HEADING_RE.finditer(text):
+        base = slug(m.group(1))
+        n = seen.get(base, 0)
+        out.add(base if n == 0 else f"{base}-{n}")
+        seen[base] = n + 1
+    return out
+
+
 def main(root: str = ".") -> int:
     base = pathlib.Path(root)
     mds = [p for p in base.rglob("*.md") if ".git" not in p.parts]
     headings: dict[pathlib.Path, set[str]] = {}
     for p in mds:
         text = p.read_text(encoding="utf-8", errors="replace")
-        headings[p.resolve()] = {slug(m.group(1)) for m in HEADING_RE.finditer(text)}
+        headings[p.resolve()] = heading_slugs(text)
 
     broken: list[tuple[str, str, str]] = []
     for p in mds:

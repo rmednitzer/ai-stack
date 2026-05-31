@@ -424,7 +424,7 @@ Usage: {{ include "ai-stack.autheliaOauthEnv" . | nindent N }}
 {{- end }}
 
 {{/*
-Ingress resource template (shared by openwebui, workbench, langgraph, etc.).
+Ingress resource template (shared by openwebui, langgraph, etc.).
 Usage: {{ include "ai-stack.ingress" (dict "root" . "component" "openwebui" "ingress" .Values.openwebui.ingress) }}
 */}}
 {{- define "ai-stack.ingress" -}}

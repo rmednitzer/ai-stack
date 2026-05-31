@@ -37,8 +37,7 @@ Practical, task-oriented guide for deploying, operating, and maintaining the ai-
    - [Use an external secret manager](#64-use-an-external-secret-manager)
 7. [GPU Acceleration](#7-gpu-acceleration)
    - [Enable GPU for Ollama](#71-enable-gpu-for-ollama)
-   - [Enable the GPU Workbench](#72-enable-the-gpu-workbench)
-   - [Verify GPU access](#73-verify-gpu-access)
+   - [Verify GPU access](#72-verify-gpu-access)
 8. [Agentic Workloads (LangGraph)](#8-agentic-workloads-langgraph-or-pydantic-ai)
    - [Enable LangGraph with PostgreSQL](#81-enable-langgraph-with-postgresql)
    - [Deploy a custom graph](#82-deploy-a-custom-graph)
@@ -204,7 +203,7 @@ global:
 
 [Zarf](https://zarf.dev/) automates air-gapped deployments by packaging the Helm chart, all container images, and configuration into a single signed, declarative tarball. This eliminates the manual image mirroring described in [Section 1.3](#13-air-gapped--offline-install).
 
-The repository includes a `zarf.yaml` package definition with the core stack as a required component and optional components (Workbench, LangGraph, MCPO, OTel Collector) that can be selected at deploy time.
+The repository includes a `zarf.yaml` package definition with the core stack as a required component and optional components (LangGraph, MCPO, OTel Collector) that can be selected at deploy time.
 
 **Prerequisites:**
 
@@ -594,39 +593,11 @@ ollama:
 helm upgrade ai-stack . -n ai-stack
 ```
 
-### 7.2 Enable the GPU Workbench
-
-The Workbench provides a JupyterLab environment with CUDA and PyTorch for ML experimentation:
-
-```yaml
-workbench:
-  enabled: true
-  gpu:
-    enabled: true
-    count: 1
-```
-
-Access the Workbench:
-
-```bash
-# Get the auto-generated token
-kubectl get secret -n ai-stack ai-stack-workbench-secret \
-  -o jsonpath='{.data.token}' | base64 -d
-
-# Port-forward
-kubectl port-forward -n ai-stack svc/ai-stack-workbench 8888:8888
-# Open http://localhost:8888 and enter the token
-```
-
-### 7.3 Verify GPU Access
+### 7.2 Verify GPU Access
 
 ```bash
 # Check Ollama GPU detection
 kubectl exec -n ai-stack deploy/ai-stack-ollama -- nvidia-smi
-
-# Check Workbench GPU access
-kubectl exec -n ai-stack deploy/ai-stack-workbench -- python3 -c \
-  "import torch; print(f'CUDA available: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}')"
 ```
 
 ---

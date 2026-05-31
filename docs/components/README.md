@@ -20,7 +20,7 @@ For the authoritative list of tiers and control references, see [../governance/C
 | Open WebUI | enabled | [openwebui.md](openwebui.md) |
 | Ollama | enabled | [ollama.md](ollama.md) |
 | Qdrant | enabled | [qdrant.md](qdrant.md) |
-| Workbench | opt-in | [workbench.md](workbench.md) |
+
 | LangGraph | opt-in | [langgraph.md](langgraph.md) |
 | Pydantic AI | opt-in | [pydanticai.md](pydanticai.md) |
 

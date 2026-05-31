@@ -23,11 +23,8 @@ metadata:
 # Deploy-time toggles for the optional components below. Each is mapped to the
 # matching Helm `enabled` value by a component's chart `variables` entry and
 # defaults to "true", so selecting an optional Zarf component enables it.
-# Override at deploy time, e.g. `zarf package deploy ... --set WORKBENCH_ENABLED=false`.
+# Override at deploy time, e.g. `zarf package deploy ... --set LANGGRAPH_ENABLED=false`.
 variables:
-  - name: WORKBENCH_ENABLED
-    description: "Set workbench.enabled when deploying the workbench component"
-    default: "true"
   - name: LANGGRAPH_ENABLED
     description: "Set langgraph.enabled when deploying the langgraph component"
     default: "true"
@@ -78,26 +75,6 @@ components:
       - valkey/valkey:9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
       # Ingestion worker
       - python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
-
-  # ---------------------------------------------------------------------------
-  # Optional: GPU Workbench
-  # ---------------------------------------------------------------------------
-  - name: workbench
-    required: false
-    description: "GPU-enabled JupyterLab workbench for ML experimentation"
-    charts:
-      - name: ai-stack
-        localPath: "."
-        namespace: ai-stack
-        version: 2.5.0
-        valuesFiles:
-          - values.yaml
-        variables:
-          - name: WORKBENCH_ENABLED
-            description: "Maps the WORKBENCH_ENABLED variable to workbench.enabled"
-            path: workbench.enabled
-    images:
-      - quay.io/jupyter/pytorch-notebook:cuda12-python-3.13@sha256:ad080f315dfc2e0730b8aec02330405a8fb90d42ccb1965a2bf3a4128e27dc78
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows

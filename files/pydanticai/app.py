@@ -228,8 +228,42 @@ def _text(content: Any) -> str:
     return str(content)
 
 
-async def _run_agent(prompt: str) -> str:
-    result = await runner.run(prompt)
+def _to_history(messages: list[ChatMessage]) -> tuple[str, list[Any]]:
+    """Split an OpenAI-style messages array into (latest_user_prompt, history).
+
+    The trailing user turn becomes the new prompt; everything before it is
+    converted to Pydantic AI ``ModelRequest``/``ModelResponse`` history so
+    multi-turn chats from Open WebUI keep their context (system + prior turns)
+    instead of being treated as a fresh stateless prompt.
+    """
+    from pydantic_ai.messages import (
+        ModelRequest,
+        ModelResponse,
+        SystemPromptPart,
+        TextPart,
+        UserPromptPart,
+    )
+
+    if not messages or messages[-1].role != "user":
+        raise HTTPException(status_code=400, detail="last message must be from 'user'")
+    prompt = _text(messages[-1].content)
+
+    history: list[Any] = []
+    for m in messages[:-1]:
+        text = _text(m.content)
+        if not text:
+            continue
+        if m.role == "assistant":
+            history.append(ModelResponse(parts=[TextPart(content=text)]))
+        elif m.role == "system":
+            history.append(ModelRequest(parts=[SystemPromptPart(content=text)]))
+        else:  # user (and any other inbound role) -> user prompt
+            history.append(ModelRequest(parts=[UserPromptPart(content=text)]))
+    return prompt, history
+
+
+async def _run_agent(prompt: str, history: list[Any] | None = None) -> str:
+    result = await runner.run(prompt, message_history=history or None)
     return str(result.output)
 
 
@@ -264,37 +298,54 @@ async def chat_completions(
 ):
     """OpenAI-compatible chat completion so Open WebUI can use the agent as a model."""
     _check_auth(authorization)
-    user_msgs = [m for m in req.messages if m.role == "user"]
-    if not user_msgs:
-        raise HTTPException(status_code=400, detail="no user message provided")
-    prompt = _text(user_msgs[-1].content)
-    try:
-        output = await _run_agent(prompt)
-    except Exception as exc:  # noqa: BLE001
-        log.exception("agent run failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    prompt, history = _to_history(req.messages)
 
     model_id = req.model or OPENAI_MODEL_ID
     created = int(time.time())
     cid = f"chatcmpl-{uuid.uuid4().hex}"
 
+    def _chunk(delta: dict[str, Any], finish: str | None) -> str:
+        payload = {
+            "id": cid, "object": "chat.completion.chunk", "created": created,
+            "model": model_id,
+            "choices": [{"index": 0, "delta": delta, "finish_reason": finish}],
+        }
+        return f"data: {json.dumps(payload)}\n\n"
+
     if req.stream:
-        def _sse():
-            chunk = {
-                "id": cid, "object": "chat.completion.chunk", "created": created,
-                "model": model_id,
-                "choices": [{"index": 0, "delta": {"role": "assistant", "content": output}, "finish_reason": None}],
-            }
-            yield f"data: {json.dumps(chunk)}\n\n"
-            stop = {
-                "id": cid, "object": "chat.completion.chunk", "created": created,
-                "model": model_id,
-                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
-            }
-            yield f"data: {json.dumps(stop)}\n\n"
+        # True token streaming via Pydantic AI's run_stream(). DBOS durable
+        # execution checkpoints whole steps and is incompatible with streaming
+        # partial output, so when DURABLE we fall back to running to completion
+        # and emitting the result as a single chunk (still valid SSE).
+        async def _sse():
+            yield _chunk({"role": "assistant"}, None)
+            try:
+                if DURABLE:
+                    output = await _run_agent(prompt, history)
+                    yield _chunk({"content": output}, None)
+                else:
+                    async with agent.run_stream(
+                        prompt, message_history=history or None
+                    ) as result:
+                        async for text in result.stream_text(delta=True):
+                            if text:
+                                yield _chunk({"content": text}, None)
+            except Exception as exc:  # noqa: BLE001 — surface as a final SSE error
+                log.exception("agent stream failed")
+                yield _chunk({"content": f"\n[error: {exc}]"}, None)
+                yield _chunk({}, "stop")
+                yield "data: [DONE]\n\n"
+                return
+            yield _chunk({}, "stop")
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(_sse(), media_type="text/event-stream")
+
+    try:
+        output = await _run_agent(prompt, history)
+    except Exception as exc:  # noqa: BLE001
+        log.exception("agent run failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "id": cid,

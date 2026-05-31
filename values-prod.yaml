@@ -121,9 +121,6 @@ searxng:
       limiter: true
       image_proxy: false
 
-workbench:
-  enabled: false  # Disable in prod by default; enable per-request with GPU scheduling
-
 valkey:
   resources:
     requests:
