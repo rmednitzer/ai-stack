@@ -11,7 +11,7 @@ evicted because the PDB is already breached. Healthy pods remain protected.
 */}}
 
 {{/* Scalable components — PDB only when multi-replica or HPA */}}
-{{- $scalable := dict "openwebui" .Values.openwebui "tika" .Values.tika "langgraph" .Values.langgraph "ingestion-worker" .Values.ingestionWorker }}
+{{- $scalable := dict "openwebui" .Values.openwebui "tika" .Values.tika "langgraph" .Values.langgraph "ingestion-worker" .Values.ingestionWorker "pydanticai" .Values.pydanticai }}
 {{- range $component, $spec := $scalable }}
 {{- $multiReplica := gt (int $spec.replicaCount) 1 }}
 {{- $hpaActive := and (hasKey $spec "autoscaling") $spec.autoscaling.enabled }}

@@ -853,6 +853,101 @@ langgraph:
       periodSeconds: 10
 
 # =============================================================================
+# Pydantic AI — Agentic workflow runtime (MIT-licensed alternative to LangGraph)
+# Tier: T1 (operational) | Boundary: decision (agentic orchestration)
+#
+# A self-hosted Pydantic AI agent server with durable execution via DBOS,
+# checkpointed in the shared PostgreSQL. Provided as a fully MIT-licensed
+# alternative to the LangGraph runtime — whose server image is Elastic License
+# 2.0 and gates production self-hosting behind a commercial key (see
+# docs/compliance/LICENSE_COMPLIANCE.md). Enable either or both; they share the
+# same Ollama, Qdrant, SearXNG, and OTel surface.
+#
+# The agent lives in files/pydanticai/app.py (loaded via .Files.Get) and is a
+# reference you extend. Recommended with postgres.enabled=true for durable,
+# resumable runs; degrades to non-durable if PostgreSQL is absent.
+# =============================================================================
+pydanticai:
+  enabled: false  # Opt-in; recommended together with postgres for durable execution
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  image:
+    # uv-based Python image (fast, deterministic installs). Override with a
+    # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
+    repository: ghcr.io/astral-sh/uv
+    tag: "python3.13-trixie-slim"
+    digest: "sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e"
+  # -- Install Python deps at startup via an initContainer (default). Set false
+  # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
+  buildDeps: true
+  service:
+    type: ClusterIP
+    port: 8000
+  # -- Override API key (auto-generated if empty; stored in Secret). When set,
+  # enforced as a bearer token on POST /run.
+  apiKey: ""
+  env:
+    # -- Ollama backend URL (OpenAI-compatible via /v1)
+    OLLAMA_BASE_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}:11434'
+    # -- Default model the agent uses (pull it in Ollama first)
+    AGENT_MODEL: "llama3.2"
+    # -- System prompt / instructions
+    AGENT_SYSTEM_PROMPT: "You are a helpful assistant running on a self-hosted, EU-regulated AI stack."
+    # -- Qdrant vector store (enables the knowledge-base retrieval tool)
+    QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
+    QDRANT_COLLECTION: "documents"
+    RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    RAG_TOP_K: "5"
+    # -- SearXNG web search (enables the web_search tool)
+    SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
+    LOG_LEVEL: "INFO"
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: agent.example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  # -- Gateway API HTTPRoute (modern alternative to ingress; see global.gateway).
+  httpRoute:
+    enabled: false
+    parentRefs: []
+      # - name: eg
+      #   sectionName: https
+    hostnames: []
+      # - agent.example.com
+    annotations: {}
+    rules: []
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# =============================================================================
 # PostgreSQL — Relational database for stateful services
 # Tier: T2 (productivity) | Boundary: storage
 #

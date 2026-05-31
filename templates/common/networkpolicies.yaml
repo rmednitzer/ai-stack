@@ -66,6 +66,7 @@ spec:
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.openTerminal.enabled "name" "open-terminal" "port" .Values.openTerminal.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.mcpo.enabled "name" "mcpo" "port" .Values.mcpo.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.langgraph.enabled "name" "langgraph" "port" .Values.langgraph.service.port) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.pydanticai.enabled "name" "pydanticai" "port" .Values.pydanticai.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" (and .Values.postgres.enabled (eq .Values.postgres.mode "standalone")) "name" "postgres" "port" .Values.postgres.service.port) | nindent 4 }}
     {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.authelia.enabled "name" "authelia" "port" .Values.authelia.service.port) | nindent 4 }}
     {{- if .Values.global.otel.enabled }}
@@ -268,6 +269,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.pydanticai.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pydanticai
+        {{- end }}
         {{- if $.Values.ingestionWorker.enabled }}
         - podSelector:
             matchLabels:
@@ -313,6 +319,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.pydanticai.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pydanticai
+        {{- end }}
         {{- if $.Values.ingestionWorker.enabled }}
         - podSelector:
             matchLabels:
@@ -359,6 +370,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.pydanticai.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pydanticai
+        {{- end }}
         {{- if $.Values.ingestionWorker.enabled }}
         - podSelector:
             matchLabels:
@@ -401,6 +417,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- if $.Values.pydanticai.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pydanticai
+        {{- end }}
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: connection-test
@@ -621,9 +642,84 @@ spec:
 {{- end }}
 
 # =============================================================================
-# PostgreSQL — accepts from LangGraph only (standalone mode)
-# CNPG mode: operator manages its own NetworkPolicies.
-# External mode: no in-cluster PostgreSQL pods to protect.
+# Pydantic AI — agentic runtime (MIT alternative to LangGraph); needs
+# PostgreSQL, Ollama, Qdrant, SearXNG, and internet (PyPI for dep install +
+# external model providers)
+# =============================================================================
+{{- if .Values.pydanticai.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-stack.fullname" . }}-pydanticai
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "pydanticai") | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept from Open WebUI and Workbench
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openwebui
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: workbench
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Accept from the ingress controller / Gateway data plane (if exposed)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.global.ingressNamespace }}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    {{- if .Values.postgres.enabled }}
+    {{- if eq .Values.postgres.mode "external" }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.postgres.external.port | default 5432 }}
+    {{- else }}
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- if eq .Values.postgres.mode "cnpg" }}
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+              {{- else }}
+              app.kubernetes.io/name: postgres
+              {{- end }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
+    {{- end }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.ollama.enabled "name" "ollama" "port" 11434) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.qdrant.enabled "name" "qdrant" "port" 6333) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.tika.enabled "name" "tika" "port" 9998) | nindent 4 }}
+    {{- include "ai-stack.netpolEgress" (dict "enabled" .Values.searxng.enabled "name" "searxng" "port" 8080) | nindent 4 }}
+    # Internet: PyPI for the install-deps initContainer + external model providers
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+{{- end }}
+
+# =============================================================================
+# PostgreSQL — accepts from LangGraph, Pydantic AI, the ingestion worker, and
+# Authelia (standalone mode). CNPG mode: operator manages its own
+# NetworkPolicies. External mode: no in-cluster PostgreSQL pods to protect.
 # =============================================================================
 {{- if and .Values.postgres.enabled (eq .Values.postgres.mode "standalone") }}
 ---
@@ -645,6 +741,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: langgraph
+        {{- end }}
+        {{- if .Values.pydanticai.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pydanticai
         {{- end }}
         {{- if .Values.ingestionWorker.enabled }}
         - podSelector:

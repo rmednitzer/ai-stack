@@ -122,6 +122,7 @@
     "openTerminal":    { "$ref": "#/$defs/component" },
     "mcpo":            { "$ref": "#/$defs/component" },
     "langgraph":       { "$ref": "#/$defs/component" },
+    "pydanticai":      { "$ref": "#/$defs/component" },
     "valkey":          { "$ref": "#/$defs/component" },
     "ingestionWorker": { "$ref": "#/$defs/component" },
     "otelCollector":   { "$ref": "#/$defs/component" },

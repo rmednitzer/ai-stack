@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-05-31
+
+### Added
+
+- **Pydantic AI agentic runtime** (`pydanticai`, opt-in) — a fully
+  **MIT/Apache-2.0**-licensed alternative to the LangGraph runtime (whose server
+  image is ELv2 and gates production self-hosting behind a commercial key).
+  Built on [Pydantic AI](https://ai.pydantic.dev/) with durable execution via
+  **DBOS**, checkpointed in the shared PostgreSQL (degrades to non-durable when
+  Postgres is absent). Exposes `GET /health` and `POST /run`, connects to Ollama
+  (OpenAI-compatible inference) with optional SearXNG web-search and Qdrant
+  retrieval tools, and emits OpenTelemetry traces. The agent source lives in
+  `files/pydanticai/app.py` (loaded via `.Files.Get`) as a reference to extend;
+  deps install at startup (`buildDeps: true`) or bake into a prebuilt image
+  (`files/pydanticai/Dockerfile`, `buildDeps: false`). Ships ServiceAccount,
+  API-key Secret, default-deny NetworkPolicy, optional HPA/PDB, Service, and
+  Ingress + Gateway API HTTPRoute wiring. Base image
+  `ghcr.io/astral-sh/uv:python3.13-trixie-slim` (digest-pinned) is catalogued in
+  `sbom.cdx.json`, `zarf.yaml` (new optional component), `values.schema.json`,
+  and the license matrix. See `docs/components/pydanticai.md`.
+
+### Changed
+
+- **Chart `version` 2.3.0 → 2.4.0** (minor — new opt-in component); version-bearing
+  artifacts resynced (`Chart.yaml`, `zarf.yaml`, `sbom.cdx.json`, README badge,
+  and the compliance/enterprise/governance doc headers) per ADR-001. `appVersion`
+  stays `2026.5`.
+- **OTel Collector**: renamed the `resourcedetection` processor to
+  `resource_detection` (definition + all three pipelines). The old name is a
+  deprecated upstream alias; this clears the deprecation warning and the
+  follow-up flagged in the 2.3.0 notes. No behavioural change.
+- **LangGraph licensing documentation strengthened** (closing a compliance gap):
+  `LICENSE_COMPLIANCE.md`, the `sbom.cdx.json` license-note, and the README now
+  distinguish the MIT `langgraph` library from the ELv2 `langgraph-server`
+  runtime and state that production self-hosting requires a commercial LangGraph
+  Platform license key beyond the free Developer tier (per LangChain's published
+  terms 2026-05; verify for your version/tier). Cross-references the new MIT
+  Pydantic AI alternative.
+
+### Fixed
+
+- **`LICENSE_COMPLIANCE.md` dependency-tracking note** corrected from "container
+  images tracked manually" to Renovate (`helm-values`, `pinDigests`).
+
 ## [2.3.0] - 2026-05-31
 
 ### Added
@@ -319,7 +363,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/rmednitzer/ai-stack/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/rmednitzer/ai-stack/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/rmednitzer/ai-stack/compare/v2.1.0...v2.1.1
