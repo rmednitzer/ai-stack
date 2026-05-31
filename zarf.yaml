@@ -20,6 +20,33 @@ metadata:
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
+# Deploy-time toggles for the optional components below. Each is mapped to the
+# matching Helm `enabled` value by a component's chart `variables` entry and
+# defaults to "true", so selecting an optional Zarf component enables it.
+# Override at deploy time, e.g. `zarf package deploy ... --set WORKBENCH_ENABLED=false`.
+variables:
+  - name: WORKBENCH_ENABLED
+    description: "Set workbench.enabled when deploying the workbench component"
+    default: "true"
+  - name: LANGGRAPH_ENABLED
+    description: "Set langgraph.enabled when deploying the langgraph component"
+    default: "true"
+  - name: PYDANTICAI_ENABLED
+    description: "Set pydanticai.enabled when deploying the pydanticai component"
+    default: "true"
+  - name: POSTGRES_ENABLED
+    description: "Set postgres.enabled (required by the langgraph and pydanticai components)"
+    default: "true"
+  - name: MCPO_ENABLED
+    description: "Set mcpo.enabled when deploying the mcpo component"
+    default: "true"
+  - name: OTEL_ENABLED
+    description: "Set global.otel.enabled when deploying the otel-collector component"
+    default: "true"
+  - name: AUTHELIA_ENABLED
+    description: "Set authelia.enabled when deploying the authelia component"
+    default: "true"
+
 components:
   # ---------------------------------------------------------------------------
   # Core stack — always deployed
@@ -67,8 +94,8 @@ components:
           - values.yaml
         variables:
           - name: WORKBENCH_ENABLED
+            description: "Maps the WORKBENCH_ENABLED variable to workbench.enabled"
             path: workbench.enabled
-            default: "true"
     images:
       - quay.io/jupyter/pytorch-notebook:cuda12-python-3.13@sha256:ad080f315dfc2e0730b8aec02330405a8fb90d42ccb1965a2bf3a4128e27dc78
 
@@ -87,11 +114,11 @@ components:
           - values.yaml
         variables:
           - name: LANGGRAPH_ENABLED
+            description: "Maps the LANGGRAPH_ENABLED variable to langgraph.enabled"
             path: langgraph.enabled
-            default: "true"
           - name: POSTGRES_ENABLED
+            description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
-            default: "true"
     images:
       - docker.io/langchain/langgraph-server:0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
@@ -111,11 +138,11 @@ components:
           - values.yaml
         variables:
           - name: PYDANTICAI_ENABLED
+            description: "Maps the PYDANTICAI_ENABLED variable to pydanticai.enabled"
             path: pydanticai.enabled
-            default: "true"
           - name: POSTGRES_ENABLED
+            description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
-            default: "true"
     images:
       - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
@@ -135,8 +162,8 @@ components:
           - values.yaml
         variables:
           - name: MCPO_ENABLED
+            description: "Maps the MCPO_ENABLED variable to mcpo.enabled"
             path: mcpo.enabled
-            default: "true"
     images:
       - ghcr.io/open-webui/mcpo:main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467
 
@@ -155,8 +182,8 @@ components:
           - values.yaml
         variables:
           - name: OTEL_ENABLED
+            description: "Maps the OTEL_ENABLED variable to global.otel.enabled"
             path: global.otel.enabled
-            default: "true"
     images:
       - otel/opentelemetry-collector-contrib:0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa
 
@@ -175,7 +202,7 @@ components:
           - values.yaml
         variables:
           - name: AUTHELIA_ENABLED
+            description: "Maps the AUTHELIA_ENABLED variable to authelia.enabled"
             path: authelia.enabled
-            default: "true"
     images:
       - ghcr.io/authelia/authelia:4.39.20@sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b

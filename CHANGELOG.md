@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI `zarf-lint` job** (`.github/workflows/lint.yaml`): validates `zarf.yaml`
+  with `zarf dev lint` (pinned Zarf v0.77.0 + SHA-256 checksum) against the Zarf
+  package schema — catching package-definition drift the image-parity check
+  cannot see. Also broadened the workflow's `paths` trigger to include
+  `zarf.yaml`, `files/**`, `values.schema.json`, and `.kube-linter.yaml`
+  (edits to those previously skipped CI on PRs), and added `pydanticai` to the
+  all-optional-components kube-linter run.
+
+### Fixed
+
+- **`zarf.yaml` chart variables were invalid** against the Zarf package schema
+  (`zarf dev lint` reported 16 errors across the optional components): each
+  `charts[].variables[]` entry was missing the required `description` and
+  carried a `default` key that `ZarfChartVariable` does not permit. Moved the
+  defaults to package-level `variables` (which legitimately carry `default`) and
+  gave every variable a `description`. Previously `zarf package create` would
+  have failed for the optional components (workbench, langgraph, pydanticai,
+  mcpo, otel-collector, authelia); `zarf dev lint` now passes cleanly. No change
+  to rendered chart output.
+
 ## [2.4.0] - 2026-05-31
 
 ### Added

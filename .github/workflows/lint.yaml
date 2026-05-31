@@ -6,9 +6,13 @@ on:
     paths:
       - "Chart.yaml"
       - "values*.yaml"
+      - "values.schema.json"
       - "templates/**"
+      - "files/**"
       - "sbom.cdx.json"
+      - "zarf.yaml"
       - "ct.yaml"
+      - ".kube-linter.yaml"
       - ".github/workflows/lint.yaml"
   push:
     branches: [main]
@@ -554,6 +558,42 @@ jobs:
         run: |
           helm template ai-stack . \
             --set workbench.enabled=true,openTerminal.enabled=true,mcpo.enabled=true \
-            --set langgraph.enabled=true,postgres.enabled=true,ingestionWorker.enabled=true \
+            --set langgraph.enabled=true,pydanticai.enabled=true,postgres.enabled=true,ingestionWorker.enabled=true \
             --set authelia.enabled=true,global.otel.enabled=true \
             | kube-linter lint --config .kube-linter.yaml -
+
+  zarf-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          version: v3.20.0  # helm/helm
+
+      - name: Cache Zarf binary
+        id: cache-zarf
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /usr/local/bin/zarf
+          key: zarf-v0.77.0
+
+      - name: Install Zarf
+        if: steps.cache-zarf.outputs.cache-hit != 'true'
+        env:
+          ZARF_VERSION: "v0.77.0"  # renovate: depName=zarf-dev/zarf
+          ZARF_SHA256: "7e335ffe9861d6ce254d75b31fde9c96c0fa83469c82cd20228b27e63d18dd85"
+        run: |
+          curl -fsSLo zarf "https://github.com/zarf-dev/zarf/releases/download/${ZARF_VERSION}/zarf_${ZARF_VERSION}_Linux_amd64"
+          echo "${ZARF_SHA256}  zarf" | sha256sum -c -
+          sudo install -m 0755 zarf /usr/local/bin/zarf
+          zarf version
+
+      # Validate zarf.yaml against the Zarf package schema (catches the
+      # chart-variable / metadata drift that the image-parity check cannot see).
+      - name: Zarf dev lint
+        run: zarf dev lint
