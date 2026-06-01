@@ -7,10 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "ingestion"
+    {{- include "ai-stack.governanceLabels" "tika" | nindent 4 }}
   annotations:
-    assurance.platform/control-refs: "CTL-002,POL-001"
+    {{- include "ai-stack.governanceControlRefs" "tika" | nindent 4 }}
 spec:
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.tika) }}
   replicas: {{ .Values.tika.replicaCount }}
@@ -22,10 +21,12 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "tika") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "tika" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         assurance.platform/security-exception: "tika-requires-root"
         assurance.platform/security-exception-reason: "Upstream Tika image runs as root for Java process management"
+        {{- include "ai-stack.governanceControlRefs" "tika" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}

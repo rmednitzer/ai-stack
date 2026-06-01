@@ -7,10 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "storage"
+    {{- include "ai-stack.governanceLabels" "valkey" | nindent 4 }}
   annotations:
-    assurance.platform/control-refs: "CTL-002,POL-001"
+    {{- include "ai-stack.governanceControlRefs" "valkey" | nindent 4 }}
 spec:
   replicas: {{ .Values.valkey.replicaCount }}
   {{- if .Values.valkey.persistence.enabled }}
@@ -24,8 +23,10 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "valkey" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        {{- include "ai-stack.governanceControlRefs" "valkey" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}

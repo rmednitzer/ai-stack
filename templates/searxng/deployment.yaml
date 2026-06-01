@@ -31,10 +31,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "ingestion"
+    {{- include "ai-stack.governanceLabels" "searxng" | nindent 4 }}
   annotations:
-    assurance.platform/control-refs: "CTL-002,POL-001"
+    {{- include "ai-stack.governanceControlRefs" "searxng" | nindent 4 }}
 spec:
   replicas: {{ .Values.searxng.replicaCount }}
   selector:
@@ -44,11 +43,13 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "searxng") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "searxng" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         checksum/config: {{ .Values.searxng.settings | toYaml | sha256sum }}
         assurance.platform/security-exception: "searxng-requires-root"
         assurance.platform/security-exception-reason: "Upstream SearXNG image requires root and SETUID/SETGID for privilege drop at startup"
+        {{- include "ai-stack.governanceControlRefs" "searxng" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}

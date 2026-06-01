@@ -50,8 +50,10 @@ but neither complete nor machine-checked, so it drifted.
    `tier` (`T0`–`T2`) and `boundary` values are defined in one authoritative
    place — `docs/governance/CONTROLS.md` → *Governance label vocabulary*. The
    rendered templates are the source of truth; the per-component docs and the
-   registry mirror them. The coarse `internal`/`decision`-only boundary
-   vocabulary is **retired**.
+   registry mirror them. The per-component values live once in the
+   `ai-stack.governanceMap` helper (`templates/_helpers.tpl`), consumed by both
+   the controller metadata and the pod template so the two cannot diverge. The
+   coarse `internal`/`decision`-only boundary vocabulary is **retired**.
 
 2. **`control-refs` is a mandatory annotation on every workload.** Every
    `Deployment` (plus the CloudNativePG `Cluster`/`Pooler` and the Valkey and
@@ -67,6 +69,16 @@ but neither complete nor machine-checked, so it drifted.
      `POL-001` traceable in-cluster for the first time.
    - **`CTL-001`** — observability/redaction: the OTel Collector (the control's
      implementer), which therefore carries `CTL-001,CTL-002,POL-001`.
+
+   The tier/boundary labels and the control-refs annotation are emitted on
+   **both the controller object and its pod template** — Kubernetes does not copy
+   controller metadata onto the Pods a controller creates, so a pod-scanning
+   evidence pipeline would otherwise see none of it. The previously stale,
+   profile-wide `assurance.platform/control-refs: "CTL-002"` in `values-prod.yaml`'s
+   `global.podAnnotations` (which would overwrite the per-workload annotation on
+   every prod pod, dropping `POL-001` everywhere and `CTL-001` on the Collector)
+   is removed. CNPG `Cluster`/`Pooler` are CRs without a pod template, so they
+   carry the metadata on the CR object only.
 
 3. **Enforce both, so they cannot drift again.**
    - `tests/governance_labels_test.yaml` asserts the full tier/boundary/control-refs
@@ -107,8 +119,10 @@ but neither complete nor machine-checked, so it drifted.
 ## Related artifacts
 
 - `docs/governance/CONTROLS.md` — *Governance label vocabulary*; CTL-002 / POL-001 rows
-- `templates/**` — `assurance.platform/control-refs` on every workload; Valkey `boundary`
-- `tests/governance_labels_test.yaml` — the enforcement suite
+- `templates/_helpers.tpl` — `ai-stack.governanceMap` / `governanceLabels` / `governanceControlRefs` (single source)
+- `templates/**` — governance metadata on each workload's controller and pod template; Valkey `boundary`
+- `values-prod.yaml` — removed the redundant profile-wide `control-refs` pod annotation
+- `tests/governance_labels_test.yaml` — the enforcement suite (controller + pod)
 - `.github/workflows/lint.yaml` — `sbom-validate` package-version parity step
 - `docs/components/*.md` — boundary values aligned to templates; `Control refs` lines
 - `AGENTS.md` §6 — SBOM package-version added to the version-bump checklist

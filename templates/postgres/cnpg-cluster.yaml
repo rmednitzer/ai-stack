@@ -7,10 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "storage"
+    {{- include "ai-stack.governanceLabels" "postgres" | nindent 4 }}
   annotations:
-    assurance.platform/control-refs: "CTL-002,POL-001"
+    {{- include "ai-stack.governanceControlRefs" "postgres" | nindent 4 }}
 spec:
   instances: {{ .Values.postgres.cnpg.instances }}
   imageName: {{ .Values.postgres.cnpg.imageName | quote }}

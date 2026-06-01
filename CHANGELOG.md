@@ -19,6 +19,11 @@ drift enforcement.
   and `POL-001` (least-privilege identity); the OTel Collector adds `CTL-001`.
   `POL-001` is now traceable in-cluster for the first time. (AGENTS.md §2.6
   already required this; it was previously present only on the OTel Collector.)
+  Tier/boundary labels and the control-refs annotation are emitted on **both the
+  controller and the pod template** (via the `ai-stack.governanceMap` helper), so
+  a pod-scanning evidence pipeline sees the same metadata a controller scan does;
+  the now-redundant profile-wide `control-refs` in `values-prod.yaml`'s
+  `global.podAnnotations` is removed so it can't overwrite the per-workload value.
 - **Canonical governance label vocabulary** in `docs/governance/CONTROLS.md` — the
   authoritative `tier` (T0–T2) and `boundary` (8 values) tables, naming the
   rendered templates as the source of truth.

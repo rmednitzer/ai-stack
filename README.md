@@ -563,8 +563,9 @@ Control and policy identifiers used in this chart are defined in
 | AI Act | Risk classification | Tier and boundary labeling |
 
 Every workload carries `assurance.platform/tier` and `boundary` labels plus a
-`control-refs` annotation (resolving to the [governance label vocabulary](docs/governance/CONTROLS.md#governance-label-vocabulary)),
-and pods additionally carry an `assurance.platform/version` annotation — driving
+`control-refs` annotation — on **both the controller and its pods** — resolving to
+the [governance label vocabulary](docs/governance/CONTROLS.md#governance-label-vocabulary);
+pods also carry an `assurance.platform/version` annotation. These drive
 evidence-pipeline integration and audit traceability.
 
 ## SBOM and License Compliance

@@ -48,7 +48,9 @@ technical enforcement.
 
 Every workload — every `Deployment`, plus the CloudNativePG `Cluster`/`Pooler`
 and the Valkey and OTel Collector Deployments — carries two governance **labels**
-(`tier`, `boundary`) and one **annotation** (`control-refs`).
+(`tier`, `boundary`) and one **annotation** (`control-refs`), on both the
+controller object and (for Deployments) its pod template, so controller and pod
+scans see identical governance metadata.
 The rendered templates are the **source of truth**; the per-component docs and
 this registry mirror them, and `tests/governance_labels_test.yaml` asserts the
 mapping so the three can no longer drift apart.
