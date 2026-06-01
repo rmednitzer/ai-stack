@@ -11,8 +11,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 4 }}
-    assurance.platform/tier: "T0"
-    assurance.platform/boundary: "authentication"
+    {{- include "ai-stack.governanceLabels" "authelia" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "authelia" | nindent 4 }}
 spec:
   {{- if .Values.authelia.persistence.enabled }}
   # Single-replica component on an RWO PVC: Recreate avoids a rollout deadlock
@@ -31,9 +32,11 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "authelia" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/authelia/configmap.yaml") . | sha256sum }}
+        {{- include "ai-stack.governanceControlRefs" "authelia" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}

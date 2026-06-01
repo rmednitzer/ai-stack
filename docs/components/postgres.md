@@ -3,7 +3,8 @@
 Relational database backing **Open WebUI's high-availability state**, LangGraph / Pydantic AI checkpoints, and (optionally) Authelia session storage. The chart supports three provisioning modes so you can stay in a single Helm release from lab to HA production to external managed services.
 
 - **Tier**: T2 (productivity)
-- **Boundary**: `internal`
+- **Boundary**: `storage`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled (`postgres.enabled=true`). Set `false` for an ephemeral single-pod lab — Open WebUI then falls back to local SQLite.
 - **Upstream**: <https://www.postgresql.org/> · [CloudNativePG](https://cloudnative-pg.io/)
 - **Default image**: `docker.io/library/postgres` (see `values.yaml` for pinned tag)

@@ -7,8 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "storage"
+    {{- include "ai-stack.governanceLabels" "postgres" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "postgres" | nindent 4 }}
 spec:
   replicas: {{ .Values.postgres.standalone.replicaCount }}
   strategy:
@@ -20,8 +21,10 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "postgres") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "postgres" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        {{- include "ai-stack.governanceControlRefs" "postgres" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "postgres") }}

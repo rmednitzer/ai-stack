@@ -158,6 +158,55 @@ Automatically adds assurance.platform/version from Chart.AppVersion.
 {{- end }}
 
 {{/*
+Governance classification per component — the single source of truth for the
+assurance.platform tier / boundary / control-refs metadata. Keep in sync with
+docs/governance/CONTROLS.md (Governance label vocabulary); asserted by
+tests/governance_labels_test.yaml. Emitted on BOTH the workload controller and
+its pod template, so controllers and the Pods they create carry identical,
+self-describing governance metadata (Kubernetes does not copy controller
+metadata onto pods). `control-refs` is an annotation, not a label: its value is a
+comma-separated list, which is not a valid label value.
+*/}}
+{{- define "ai-stack.governanceMap" -}}
+authelia: {tier: "T0", boundary: "authentication", controlRefs: "CTL-002,POL-001"}
+openwebui: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+ollama: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
+qdrant: {tier: "T1", boundary: "retrieval", controlRefs: "CTL-002,POL-001"}
+tika: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
+searxng: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
+valkey: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001"}
+mcpo: {tier: "T2", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+open-terminal: {tier: "T2", boundary: "execution", controlRefs: "CTL-002,POL-001"}
+langgraph: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+pydanticai: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+ingestion-worker: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
+postgres: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001"}
+otel-collector: {tier: "T0", boundary: "observability", controlRefs: "CTL-001,CTL-002,POL-001"}
+{{- end }}
+
+{{/*
+Governance tier + boundary labels for a component (labels: valid values,
+selector-capable). Usage:
+{{- include "ai-stack.governanceLabels" "openwebui" | nindent 4 }}
+*/}}
+{{- define "ai-stack.governanceLabels" -}}
+{{- $g := index (include "ai-stack.governanceMap" . | fromYaml) . -}}
+{{- if not $g }}{{- fail (printf "ai-stack.governanceLabels: unknown component %q (add it to ai-stack.governanceMap)" .) }}{{- end }}
+assurance.platform/tier: {{ $g.tier | quote }}
+assurance.platform/boundary: {{ $g.boundary | quote }}
+{{- end }}
+
+{{/*
+Governance control-refs annotation for a component. Usage:
+{{- include "ai-stack.governanceControlRefs" "openwebui" | nindent 4 }}
+*/}}
+{{- define "ai-stack.governanceControlRefs" -}}
+{{- $g := index (include "ai-stack.governanceMap" . | fromYaml) . -}}
+{{- if not $g }}{{- fail (printf "ai-stack.governanceControlRefs: unknown component %q (add it to ai-stack.governanceMap)" .) }}{{- end }}
+assurance.platform/control-refs: {{ $g.controlRefs | quote }}
+{{- end }}
+
+{{/*
 Topology spread constraints for prod multi-replica deployments.
 "autoscaling" is the string result of "ai-stack.autoscalingEnabled"
 ("true" / ""); a map or bool is also tolerated for robustness.

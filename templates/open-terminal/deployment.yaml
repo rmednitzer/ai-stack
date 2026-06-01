@@ -7,9 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "execution"
+    {{- include "ai-stack.governanceLabels" "open-terminal" | nindent 4 }}
   annotations:
+    {{- include "ai-stack.governanceControlRefs" "open-terminal" | nindent 4 }}
     {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   {{- if .Values.openTerminal.persistence.enabled }}
@@ -29,8 +29,10 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "open-terminal") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "open-terminal" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        {{- include "ai-stack.governanceControlRefs" "open-terminal" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "open-terminal") }}

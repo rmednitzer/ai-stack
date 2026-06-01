@@ -22,7 +22,9 @@ global:
   podAnnotations:
     assurance.platform/chart: "ai-stack"
     assurance.platform/profile: "prod"
-    assurance.platform/control-refs: "CTL-002"
+    # control-refs is emitted per-workload by ai-stack.governanceControlRefs on
+    # both the controller and the pod template (ADR-005) — no global value here,
+    # which would otherwise overwrite the per-component annotation on every pod.
 
 
 # External inference API providers: see HOWTO.md §6 for configuration examples.

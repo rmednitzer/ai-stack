@@ -4,6 +4,7 @@ MCP-to-OpenAPI proxy. Exposes Model Context Protocol (MCP) servers as standard O
 
 - **Tier**: T2 (productivity)
 - **Boundary**: `decision`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`mcpo.enabled=false`)
 - **Upstream**: <https://github.com/open-webui/mcpo>
 - **Default image**: `ghcr.io/open-webui/mcpo` (see `values.yaml` for pinned tag)

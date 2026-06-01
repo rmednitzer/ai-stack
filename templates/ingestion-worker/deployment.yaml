@@ -24,9 +24,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "ingestion"
+    {{- include "ai-stack.governanceLabels" "ingestion-worker" | nindent 4 }}
   annotations:
+    {{- include "ai-stack.governanceControlRefs" "ingestion-worker" | nindent 4 }}
     {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.ingestionWorker) }}
@@ -39,8 +39,10 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "ingestion-worker" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        {{- include "ai-stack.governanceControlRefs" "ingestion-worker" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
         checksum/config: {{ printf "%s%s%s" (.Files.Get "files/ingestion-worker/worker.py") (.Files.Get "files/ingestion-worker/requirements.txt") (toJson .Values.ingestionWorker.env) | sha256sum }}
     spec:

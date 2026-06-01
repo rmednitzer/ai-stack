@@ -7,8 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
-    assurance.platform/tier: "T1"
-    assurance.platform/boundary: "retrieval"
+    {{- include "ai-stack.governanceLabels" "qdrant" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "qdrant" | nindent 4 }}
 spec:
   replicas: {{ .Values.qdrant.replicaCount }}
   strategy:
@@ -20,8 +21,10 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "qdrant" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
+        {{- include "ai-stack.governanceControlRefs" "qdrant" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}

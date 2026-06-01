@@ -43,10 +43,12 @@ chart.
    justified exception in `.kube-linter.yaml` with an annotation.
 5. **Every component is opt-in/-out via `.Values.<component>.enabled`** and the
    chart must render with all optional components disabled.
-6. **Governance labels are mandatory** on every Deployment:
-   `assurance.platform/tier` (T0/T1/T2), `assurance.platform/boundary`, and
-   `assurance.platform/control-refs` — each `control-refs` value must exist in
-   `docs/governance/CONTROLS.md`.
+6. **Governance metadata is mandatory** on every workload: the
+   `assurance.platform/tier` (T0/T1/T2) and `assurance.platform/boundary`
+   **labels**, plus the `assurance.platform/control-refs` **annotation** (an
+   annotation, not a label — its value is a comma-separated list, which is not a
+   valid label value). Each `tier`/`boundary` value and every `control-refs` id
+   must exist in `docs/governance/CONTROLS.md`.
 7. **Assert security claims as tests.** Any security-relevant template change
    gets a `helm-unittest` assertion in `tests/`.
 8. **Version bumps are a documentation event.** See §6.
@@ -96,8 +98,9 @@ chart.
 ## 5) CI gates (`.github/workflows/`)
 
 - **lint.yaml** — `helm-lint`, `helm-unittest`, `chart-testing` (`ct lint`),
-  `kubeconform`, `kube-linter`, `sbom-validate` (CycloneDX 1.6 schema + image
-  tag/digest parity across `values.yaml` ↔ `sbom.cdx.json` ↔ `zarf.yaml`),
+  `kubeconform`, `kube-linter`, `sbom-validate` (CycloneDX 1.6 schema +
+  package-version parity with `Chart.yaml` + image tag/digest parity across
+  `values.yaml` ↔ `sbom.cdx.json` ↔ `zarf.yaml`),
   `zarf-lint`; `syft-sbom` + `cve-scan` (Grype) on merge to `main`.
 - **docs.yaml** — `markdown-links` (offline relative-link + `#anchor` checker).
 - **release.yaml** — tag-gated OCI push + SLSA build provenance.
@@ -116,6 +119,8 @@ same PR (parity is partly CI-enforced, partly not — do all of them):
 - `zarf.yaml` — `metadata.version`, every local-chart `version:` entry, and the
   deploy-filename comment (`zarf dev lint` only schema-checks, so it will **not**
   catch a stale version here).
+- `sbom.cdx.json` — `metadata.component.version` (and `metadata.timestamp`); the
+  `sbom-validate` CI job now fails if this drifts from `Chart.yaml` `version:`.
 - Version-bearing docs: `docs/enterprise/ENTERPRISE_EVALUATION.md`,
   `docs/governance/CONTROLS.md` (footer), `docs/compliance/LICENSE_COMPLIANCE.md`,
   `docs/compliance/EU_COMPLIANCE_CHECK.md`.

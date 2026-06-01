@@ -4,6 +4,7 @@ LangGraph Platform runtime for stateful agentic workflows. Requires PostgreSQL f
 
 - **Tier**: T1 (operational)
 - **Boundary**: `decision`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`langgraph.enabled=false`)
 - **License**: **Elastic License 2.0 (ELv2)** — see [LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md). Permits self-hosted use; prohibits offering as a managed service.
 - **Upstream**: <https://langchain-ai.github.io/langgraph/> · [Platform docs](https://langchain-ai.github.io/langgraph/cloud/)

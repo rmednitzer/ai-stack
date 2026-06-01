@@ -5,6 +5,65 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-06-01
+
+Governance-label integrity and supply-chain version parity, from a full-repo
+audit (ADR-005). No security default changes — additive governance metadata plus
+drift enforcement.
+
+### Added
+
+- **`assurance.platform/control-refs` annotation on every workload.** Each
+  Deployment (plus the CNPG `Cluster`/`Pooler` and the Valkey and OTel Collector
+  Deployments) now references the controls it implements — `CTL-002` (network-boundary governance)
+  and `POL-001` (least-privilege identity); the OTel Collector adds `CTL-001`.
+  `POL-001` is now traceable in-cluster for the first time. (AGENTS.md §2.6
+  already required this; it was previously present only on the OTel Collector.)
+  Tier/boundary labels and the control-refs annotation are emitted on **both the
+  controller and the pod template** (via the `ai-stack.governanceMap` helper), so
+  a pod-scanning evidence pipeline sees the same metadata a controller scan does;
+  the now-redundant profile-wide `control-refs` in `values-prod.yaml`'s
+  `global.podAnnotations` is removed so it can't overwrite the per-workload value.
+- **Canonical governance label vocabulary** in `docs/governance/CONTROLS.md` — the
+  authoritative `tier` (T0–T2) and `boundary` (8 values) tables, naming the
+  rendered templates as the source of truth.
+- **`tests/governance_labels_test.yaml`** — asserts tier/boundary/control-refs for
+  every workload (16 cases), so templates, docs, and the CTL/POL registry can no
+  longer drift apart.
+- **SBOM package-version parity check** in the `sbom-validate` CI job — fails if
+  `sbom.cdx.json` `metadata.component.version` differs from `Chart.yaml` `version`.
+- **ADR-005** — governance label integrity: canonical vocabulary, control-refs on
+  every workload, and the test + CI enforcement.
+
+### Changed
+
+- **Boundary annotations aligned across docs and templates.** The `boundary` value
+  in 9 component docs (`authelia`, `ingestion-worker`, `ollama`, `otel`,
+  `postgres`, `qdrant`, `searxng`, `tika`, `valkey`) now matches the rendered
+  template; the v2.6.0 fix had only covered `mcpo` and `open-terminal`. Each
+  component doc gained a `Control refs` line.
+- `CONTROLS.md` CTL-002 / POL-001 rows now reference the canonical vocabulary and
+  the in-cluster `control-refs` traceability; the dead `internal`/`decision`-only
+  boundary wording is retired.
+- `AGENTS.md` §5/§6 document the new SBOM package-version check and checklist item.
+- `SECURITY.md` — refreshed the Supported Versions table (2.7.x/2.8.x) and added a
+  governance-traceability control bullet.
+
+### Fixed
+
+- **OTel Collector `control-refs` was an invalid Kubernetes label** (`"CTL-001,CTL-002"`
+  — commas are not valid in a label value, so a cluster apply would reject it;
+  `kubeconform`/`kube-linter` are schema-only and never caught it). `control-refs`
+  is now an **annotation** on every workload; `tier`/`boundary` remain labels.
+- **Valkey Deployment was missing its `assurance.platform/boundary` label** — now
+  `storage`, matching the other datastores.
+- **SBOM package-version drift** — `sbom.cdx.json` `metadata.component.version` was
+  stale at `2.5.0` while the chart was `2.7.0`; corrected to `2.8.0` and now
+  CI-enforced.
+- Synced all version-bearing artifacts to `2.8.0` (Chart, README badge, `zarf.yaml`
+  package + local-chart versions + deploy comment, SBOM, and the
+  compliance/enterprise/governance doc headers) per ADR-001.
+
 ## [2.7.0] - 2026-05-31
 
 ArgoCD / GitOps optimization and deployment-rollout hardening.

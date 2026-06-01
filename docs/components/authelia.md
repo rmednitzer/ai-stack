@@ -3,7 +3,8 @@
 OpenID Connect identity provider for Open WebUI SSO and optional MFA. Uses Valkey for session storage and either SQLite (lab) or PostgreSQL (prod) as the persistent backend.
 
 - **Tier**: T0 (safety / integrity)
-- **Boundary**: `decision`
+- **Boundary**: `authentication`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`authelia.enabled=false`)
 - **Upstream**: <https://www.authelia.com/> · [docs](https://www.authelia.com/configuration/)
 - **Default image**: `ghcr.io/authelia/authelia` (see `values.yaml` for pinned tag)

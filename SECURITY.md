@@ -4,9 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.2.x | Yes |
-| 2.1.x | Yes |
-| 2.0.x | No |
+| 2.8.x | Yes |
+| 2.7.x | Yes |
+| ≤ 2.6.x | No |
 
 ## Reporting a Vulnerability
 
@@ -113,6 +113,10 @@ The ai-stack implements the following security controls by default:
 - **Network isolation:** Default-deny NetworkPolicy with per-component allowlists
 - **Secret management:** Auto-generated 64-byte keys; external secret manager support
 - **Service account isolation:** Per-component, `automountServiceAccountToken: false`
+- **Governance traceability:** Every workload carries `assurance.platform/tier`
+  and `boundary` labels plus a `control-refs` annotation (on both the controller
+  and its pods) that resolve to the CTL/POL registry in
+  [CONTROLS.md](docs/governance/CONTROLS.md)
 - **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
 - **CORS:** Open Terminal origins are scoped to the Open WebUI origin (never `*`)
 - **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, CVE scanning (Grype),

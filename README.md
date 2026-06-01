@@ -3,7 +3,7 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.7.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.8.0-blue.svg)](Chart.yaml)
 [![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -556,13 +556,17 @@ Control and policy identifiers used in this chart are defined in
 | Control | Description | Implementation |
 |---------|-------------|----------------|
 | CTL-001 | Observability | OTel Collector, ServiceMonitors |
-| CTL-002 | AI gateway policy | NetworkPolicy, tier labels, boundary annotations |
+| CTL-002 | AI gateway policy | NetworkPolicy, tier/boundary labels + control-refs annotation on every workload |
 | POL-001 | Least-privilege | Per-component ServiceAccounts, no automount |
 | GDPR Art 5(1)(c) | Data minimisation | PII redaction in OTel pipeline |
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |
 
-All pods carry `assurance.platform/*` annotations for evidence pipeline integration and audit traceability.
+Every workload carries `assurance.platform/tier` and `boundary` labels plus a
+`control-refs` annotation — on **both the controller and its pods** — resolving to
+the [governance label vocabulary](docs/governance/CONTROLS.md#governance-label-vocabulary);
+pods also carry an `assurance.platform/version` annotation. These drive
+evidence-pipeline integration and audit traceability.
 
 ## SBOM and License Compliance
 
@@ -588,7 +592,7 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 |-----|--------------|
 | **helm-lint** | `helm lint` and `helm template` for both lab and prod profiles |
 | **chart-testing** | `ct lint` with chart-testing for standards compliance |
-| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; cross-checks component count against `values.yaml`; enforces **tag and digest parity** across `values.yaml`, `sbom.cdx.json`, and `zarf.yaml` (ADR-001/ADR-002) |
+| **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; checks the SBOM **package version** matches `Chart.yaml`; cross-checks component count against `values.yaml`; enforces **tag and digest parity** across `values.yaml`, `sbom.cdx.json`, and `zarf.yaml` (ADR-001/ADR-002) |
 | **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
 | **cve-scan** | Scans all container images for CVEs using Grype; emits warnings on critical vulnerabilities |
 | **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
@@ -673,6 +677,7 @@ ct lint --config ct.yaml --charts .
 | [docs/architecture/ADR-002-image-digest-pinning.md](docs/architecture/ADR-002-image-digest-pinning.md) | ADR — every image pinned by manifest digest, with CI digest parity |
 | [docs/architecture/ADR-003-gateway-api-httproute.md](docs/architecture/ADR-003-gateway-api-httproute.md) | ADR — opt-in Gateway API `HTTPRoute` alongside Ingress |
 | [docs/architecture/ADR-004-pydantic-ai-runtime.md](docs/architecture/ADR-004-pydantic-ai-runtime.md) | ADR — Pydantic AI as an MIT-licensed agentic-runtime alternative to LangGraph |
+| [docs/architecture/ADR-005-governance-label-integrity.md](docs/architecture/ADR-005-governance-label-integrity.md) | ADR — canonical tier/boundary vocabulary, `control-refs` on every workload, and drift enforcement in tests + CI |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |

@@ -171,9 +171,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
-    assurance.platform/tier: "T0"
-    assurance.platform/boundary: "observability"
-    assurance.platform/control-refs: "CTL-001,CTL-002"
+    {{- include "ai-stack.governanceLabels" "otel-collector" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "otel-collector" | nindent 4 }}
 spec:
   replicas: {{ .Values.otelCollector.replicaCount | default 1 }}
   selector:
@@ -183,9 +183,11 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "otel-collector" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         checksum/config: {{ .Values.otelCollector | toYaml | sha256sum }}
+        {{- include "ai-stack.governanceControlRefs" "otel-collector" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
         prometheus.io/scrape: "true"
         prometheus.io/port: "8888"

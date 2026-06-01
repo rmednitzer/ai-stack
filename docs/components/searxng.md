@@ -3,7 +3,8 @@
 Privacy-respecting metasearch engine used by Open WebUI and LangGraph for web search in RAG workflows.
 
 - **Tier**: T2 (productivity)
-- **Boundary**: `internal`
+- **Boundary**: `ingestion`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled
 - **License**: **AGPL-3.0** — see [LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md) for copyleft analysis
 - **Upstream**: <https://docs.searxng.org/>

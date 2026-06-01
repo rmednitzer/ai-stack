@@ -7,9 +7,9 @@ metadata:
   labels:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 4 }}
-    assurance.platform/tier: "T2"
-    assurance.platform/boundary: "decision"
+    {{- include "ai-stack.governanceLabels" "mcpo" | nindent 4 }}
   annotations:
+    {{- include "ai-stack.governanceControlRefs" "mcpo" | nindent 4 }}
     {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   replicas: {{ .Values.mcpo.replicaCount }}
@@ -20,9 +20,11 @@ spec:
     metadata:
       labels:
         {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "mcpo") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "mcpo" | nindent 8 }}
         app.kubernetes.io/part-of: ai-stack
       annotations:
         checksum/config: {{ .Values.mcpo.config | toJson | sha256sum }}
+        {{- include "ai-stack.governanceControlRefs" "mcpo" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "mcpo") }}

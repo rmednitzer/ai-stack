@@ -5,7 +5,7 @@
   "serialNumber": "urn:uuid:2e7c46c5-20e8-4296-bca6-73ab329758ce",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-05-27T15:28:55Z",
+    "timestamp": "2026-06-01T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.5.0",
+      "version": "2.8.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
