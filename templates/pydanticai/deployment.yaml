@@ -26,6 +26,7 @@ metadata:
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "decision"
   annotations:
+    assurance.platform/control-refs: "CTL-002,POL-001"
     {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   {{- if not (include "ai-stack.autoscalingEnabled" .Values.pydanticai) }}

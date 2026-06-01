@@ -4,6 +4,7 @@ Sandboxed terminal service for AI agents. Executes shell commands on behalf of O
 
 - **Tier**: T2 (productivity)
 - **Boundary**: `execution`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`openTerminal.enabled=false`)
 - **Upstream**: <https://github.com/open-webui/open-terminal>
 - **Default image**: `ghcr.io/open-webui/open-terminal` (see `values.yaml` for pinned tag)

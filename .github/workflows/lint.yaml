@@ -119,6 +119,27 @@ jobs:
             --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
             sbom.cdx.json
 
+      - name: Verify SBOM package version matches Chart.yaml
+        # metadata.component.version is the chart-artifact version the SBOM
+        # describes — version-bearing per AGENTS.md §6, but the parity checks
+        # below only cover image entries, so this field has drifted unnoticed
+        # before (left at 2.5.0 while the chart was already 2.7.0). Enforce it.
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          sbom_v = json.load(open('sbom.cdx.json')).get('metadata', {}).get('component', {}).get('version', '')
+          chart_v = ''
+          for line in open('Chart.yaml'):
+              m = re.match(r'^version:\s*(\S+)', line)
+              if m:
+                  chart_v = m.group(1).strip().strip('"\'')
+                  break
+          if sbom_v != chart_v:
+              print(f"::error::sbom.cdx.json metadata.component.version={sbom_v!r} != Chart.yaml version={chart_v!r}. Sync the SBOM package version on every chart bump (AGENTS.md §6).", file=sys.stderr)
+              sys.exit(1)
+          print(f"::notice::SBOM package version matches Chart.yaml ({chart_v}).")
+          PY
+
       - name: Verify SBOM component count matches values.yaml images
         run: |
           # Count unique image repositories in values.yaml

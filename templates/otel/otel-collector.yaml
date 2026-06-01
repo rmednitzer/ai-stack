@@ -173,7 +173,8 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "otel-collector") | nindent 4 }}
     assurance.platform/tier: "T0"
     assurance.platform/boundary: "observability"
-    assurance.platform/control-refs: "CTL-001,CTL-002"
+  annotations:
+    assurance.platform/control-refs: "CTL-001,CTL-002,POL-001"
 spec:
   replicas: {{ .Values.otelCollector.replicaCount | default 1 }}
   selector:

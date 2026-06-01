@@ -3,7 +3,8 @@
 Async document-ingestion worker. Consumes tasks from a Valkey Stream (`ingestion:documents`) and orchestrates the pipeline: Tika extract → chunk → Ollama embed → Qdrant upsert. Lets users upload documents without blocking the UI.
 
 - **Tier**: T2 (productivity)
-- **Boundary**: `internal`
+- **Boundary**: `ingestion`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`ingestionWorker.enabled=false`)
 - **Upstream**: in-chart Python worker — source in [`files/ingestion-worker/worker.py`](../../files/ingestion-worker/worker.py), loaded into a ConfigMap via `.Files.Get`
 - **Default image**: `python` slim base; dependencies installed at startup, or bake a prebuilt image via [`files/ingestion-worker/Dockerfile`](../../files/ingestion-worker/Dockerfile) and set `buildDeps: false`

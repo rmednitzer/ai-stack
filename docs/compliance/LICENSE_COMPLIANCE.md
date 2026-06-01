@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.7.0 | **Last reviewed:** 2026-05-31
+**Chart version:** 2.8.0 | **Last reviewed:** 2026-06-01
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.

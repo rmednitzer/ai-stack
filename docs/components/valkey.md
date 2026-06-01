@@ -3,7 +3,8 @@
 In-memory key/value store used for session caching (Open WebUI, Authelia) and as the Stream backend for the ingestion worker. BSD-licensed fork of Redis.
 
 - **Tier**: T2 (productivity)
-- **Boundary**: `internal`
+- **Boundary**: `storage`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled
 - **Upstream**: <https://valkey.io/>
 - **Default image**: `valkey/valkey` (see `values.yaml` for pinned tag)

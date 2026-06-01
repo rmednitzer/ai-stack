@@ -8,6 +8,9 @@ metadata:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "valkey") | nindent 4 }}
     assurance.platform/tier: "T2"
+    assurance.platform/boundary: "storage"
+  annotations:
+    assurance.platform/control-refs: "CTL-002,POL-001"
 spec:
   replicas: {{ .Values.valkey.replicaCount }}
   {{- if .Values.valkey.persistence.enabled }}

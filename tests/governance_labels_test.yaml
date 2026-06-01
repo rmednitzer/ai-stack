@@ -1,0 +1,307 @@
+suite: governance label integrity (tier / boundary / control-refs on every workload)
+# Asserts the governance-as-code contract documented in
+# docs/governance/CONTROLS.md (Governance label vocabulary) and ADR-005:
+# every workload carries assurance.platform/{tier,boundary,control-refs} with
+# canonical values, and every workload references CTL-002 (network-boundary
+# governance) and POL-001 (least-privilege identity). This is the structural
+# guard that keeps the templates, the per-component docs, and the CTL/POL
+# registry from drifting apart again (they did for 8 components before v2.8.0).
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: authelia carries T0 / authentication / CTL-002,POL-001
+    templates:
+      - templates/authelia/deployment.yaml
+    set:
+      authelia.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T0"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "authentication"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: openwebui carries T1 / decision / CTL-002,POL-001
+    templates:
+      - templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T1"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "decision"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: ollama carries T1 / model-serving / CTL-002,POL-001
+    templates:
+      - templates/ollama/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T1"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "model-serving"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: qdrant carries T1 / retrieval / CTL-002,POL-001
+    templates:
+      - templates/qdrant/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T1"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "retrieval"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: tika carries T2 / ingestion / CTL-002,POL-001
+    templates:
+      - templates/tika/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "ingestion"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: searxng carries T2 / ingestion / CTL-002,POL-001
+    templates:
+      - templates/searxng/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "ingestion"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: valkey carries T2 / storage / CTL-002,POL-001
+    templates:
+      - templates/common/valkey.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "storage"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: ingestion-worker carries T2 / ingestion / CTL-002,POL-001
+    templates:
+      - templates/ingestion-worker/deployment.yaml
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "ingestion"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: mcpo carries T2 / decision / CTL-002,POL-001
+    templates:
+      - templates/mcpo/deployment.yaml
+    set:
+      mcpo.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "decision"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: open-terminal carries T2 / execution / CTL-002,POL-001
+    templates:
+      - templates/open-terminal/deployment.yaml
+    set:
+      openTerminal.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "execution"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: langgraph carries T1 / decision / CTL-002,POL-001
+    templates:
+      - templates/langgraph/deployment.yaml
+    set:
+      langgraph.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T1"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "decision"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: pydanticai carries T1 / decision / CTL-002,POL-001
+    templates:
+      - templates/pydanticai/deployment.yaml
+    set:
+      pydanticai.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T1"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "decision"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: standalone postgres carries T2 / storage / CTL-002,POL-001
+    templates:
+      - templates/postgres/deployment.yaml
+    set:
+      postgres.enabled: true
+      postgres.mode: standalone
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "storage"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: CNPG postgres Cluster carries T2 / storage / CTL-002,POL-001
+    templates:
+      - templates/postgres/cnpg-cluster.yaml
+    set:
+      postgres.enabled: true
+      postgres.mode: cnpg
+    documentSelector:
+      path: kind
+      value: Cluster
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "storage"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: CNPG postgres Pooler carries T2 / storage / CTL-002,POL-001
+    templates:
+      - templates/postgres/cnpg-pooler.yaml
+    set:
+      postgres.enabled: true
+      postgres.mode: cnpg
+      postgres.cnpg.pooler.enabled: true
+    documentSelector:
+      path: kind
+      value: Pooler
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T2"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "storage"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-002,POL-001"
+
+  - it: OTel Collector carries T0 / observability and the CTL-001 observability ref
+    templates:
+      - templates/otel/otel-collector.yaml
+    set:
+      global.otel.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: metadata.labels["assurance.platform/tier"]
+          value: "T0"
+      - equal:
+          path: metadata.labels["assurance.platform/boundary"]
+          value: "observability"
+      - equal:
+          path: metadata.annotations["assurance.platform/control-refs"]
+          value: "CTL-001,CTL-002,POL-001"

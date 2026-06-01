@@ -3,7 +3,8 @@
 Local large-language-model inference engine. Serves an OpenAI-compatible HTTP API consumed by Open WebUI, LangGraph, and the ingestion worker.
 
 - **Tier**: T1 (operational)
-- **Boundary**: `decision`
+- **Boundary**: `model-serving`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled
 - **Upstream**: <https://ollama.com/> · [docs](https://github.com/ollama/ollama/tree/main/docs)
 - **Default image**: `ollama/ollama` (see `values.yaml` for pinned tag)

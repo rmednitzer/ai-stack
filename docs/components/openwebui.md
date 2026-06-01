@@ -4,6 +4,7 @@ Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentic
 
 - **Tier**: T1 (operational)
 - **Boundary**: `decision`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled
 - **Upstream**: <https://github.com/open-webui/open-webui> · [docs](https://docs.openwebui.com/)
 - **Default image**: `ghcr.io/open-webui/open-webui` (see `values.yaml` for pinned tag)

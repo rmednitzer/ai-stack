@@ -11,6 +11,7 @@ surface.
 
 - **Tier**: T1 (operational)
 - **Boundary**: `decision`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: opt-in (`pydanticai.enabled=false`)
 - **License**: MIT/Apache-2.0 throughout (Pydantic AI, DBOS, FastAPI; `uv`/Python base image)
 - **Upstream**: <https://ai.pydantic.dev/> · [DBOS durable execution](https://ai.pydantic.dev/durable_execution/dbos/)

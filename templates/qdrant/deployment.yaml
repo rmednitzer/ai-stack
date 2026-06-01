@@ -9,6 +9,8 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
     assurance.platform/tier: "T1"
     assurance.platform/boundary: "retrieval"
+  annotations:
+    assurance.platform/control-refs: "CTL-002,POL-001"
 spec:
   replicas: {{ .Values.qdrant.replicaCount }}
   strategy:

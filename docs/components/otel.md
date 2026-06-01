@@ -3,8 +3,8 @@
 Centralises logs, metrics, and traces from every ai-stack component, enriches them with GenAI semantic conventions, and redacts PII before forwarding to the observability backend. Gated by `global.otel.enabled`.
 
 - **Tier**: T0 (safety / integrity)
-- **Boundary**: `internal`
-- **Control refs**: [CTL-001](../governance/CONTROLS.md#controls-ctl), [CTL-002](../governance/CONTROLS.md#controls-ctl)
+- **Boundary**: `observability`
+- **Control refs**: [CTL-001](../governance/CONTROLS.md#controls-ctl), [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: deployed when `global.otel.enabled=true`
 - **Upstream**: <https://opentelemetry.io/docs/collector/> · [Contrib distro](https://github.com/open-telemetry/opentelemetry-collector-contrib)
 - **Default image**: `otel/opentelemetry-collector-contrib` (see `values.yaml` for pinned tag)

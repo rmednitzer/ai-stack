@@ -3,7 +3,7 @@
 Explicit scope boundaries and known gaps for the ai-stack chart. Each entry
 states the current state, the implication for an operator, and where it is
 tracked. This is a living document; the list is expected to change as the chart
-evolves. Last reviewed: 2026-05-31 (v2.6.0, tool/command-plane hardening).
+evolves. Last reviewed: 2026-06-01 (v2.8.0, governance label integrity).
 
 The focus here is the **tool/command plane** (MCPO and Open Terminal) and the
 **agentic runtimes**, where the chart ships capability that operators must

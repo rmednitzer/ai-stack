@@ -13,6 +13,8 @@ metadata:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 4 }}
     assurance.platform/tier: "T0"
     assurance.platform/boundary: "authentication"
+  annotations:
+    assurance.platform/control-refs: "CTL-002,POL-001"
 spec:
   {{- if .Values.authelia.persistence.enabled }}
   # Single-replica component on an RWO PVC: Recreate avoids a rollout deadlock

@@ -10,6 +10,7 @@ metadata:
     assurance.platform/tier: "T2"
     assurance.platform/boundary: "execution"
   annotations:
+    assurance.platform/control-refs: "CTL-002,POL-001"
     {{- include "ai-stack.syncWave" "app" | nindent 4 }}
 spec:
   {{- if .Values.openTerminal.persistence.enabled }}

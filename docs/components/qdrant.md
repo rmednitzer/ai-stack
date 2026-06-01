@@ -3,7 +3,8 @@
 Vector database backing RAG retrieval for Open WebUI, LangGraph, and the ingestion worker.
 
 - **Tier**: T1 (operational)
-- **Boundary**: `decision`
+- **Boundary**: `retrieval`
+- **Control refs**: [CTL-002](../governance/CONTROLS.md#controls-ctl), [POL-001](../governance/CONTROLS.md#policies-pol)
 - **Default**: enabled
 - **Upstream**: <https://qdrant.tech/> · [docs](https://qdrant.tech/documentation/)
 - **Default image**: `qdrant/qdrant` (see `values.yaml` for pinned tag)
