@@ -30,9 +30,14 @@ updates:
     # Keep major updates as individual PRs for careful review
     open-pull-requests-limit: 5
 
-  # --- Docker (container images in Dockerfile / docker-compose) ---
+  # --- Docker (base images in the repo's Dockerfiles only) ---
+  # Scoped to the actual Dockerfile dirs so Dependabot does NOT scan
+  # values.yaml; Helm values image updates (tag+digest, ADR-002) are
+  # owned by Renovate (renovate.json5, helm-values + pinDigests).
   - package-ecosystem: "docker"
-    directory: "/"
+    directories:
+      - "/files/ingestion-worker"
+      - "/files/pydanticai"
     schedule:
       interval: "weekly"
       day: "wednesday"
