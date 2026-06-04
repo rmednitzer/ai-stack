@@ -41,7 +41,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "tika" "replicaCount" .Values.tika.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.tika)) | nindent 6 }}
       containers:
         - name: tika
-          image: "{{ .Values.tika.image.repository }}{{- if .Values.tika.image.digest }}@{{ .Values.tika.image.digest }}{{- else }}:{{ .Values.tika.image.tag }}{{- end }}"
+          image: "{{ .Values.tika.image.repository }}:{{ .Values.tika.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

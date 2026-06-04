@@ -63,7 +63,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: searxng
-          image: "{{ .Values.searxng.image.repository }}{{- if .Values.searxng.image.digest }}@{{ .Values.searxng.image.digest }}{{- else }}:{{ .Values.searxng.image.tag }}{{- end }}"
+          image: "{{ .Values.searxng.image.repository }}:{{ .Values.searxng.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

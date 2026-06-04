@@ -4,6 +4,10 @@
 Run directly: `python3 .github/scripts/test_sync_image_artifacts.py`. No pytest
 dependency: the script's CI step already installs PyYAML and nothing else, so
 this module sticks to the standard library + the modules the script imports.
+
+The tag is the single source of truth: values.yaml carries `tag` as the full
+string (version, optionally `@sha256:<hex>`), and there is NO separate
+`digest:` field. Fixtures here mirror that model.
 """
 from __future__ import annotations
 
@@ -14,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sync_image_artifacts import update_zarf  # noqa: E402
+from sync_image_artifacts import collect_values_images, update_zarf  # noqa: E402
 
 # Mirrors the parity-check regex in .github/workflows/lint.yaml's
 # `Verify image-tag parity ...` step. The script's output MUST match this
@@ -38,12 +42,70 @@ def _image_lines(text: str) -> list[str]:
     ]
 
 
+class CollectValuesImages(unittest.TestCase):
+    def test_parses_digest_from_tag(self) -> None:
+        """A tag with @sha256:<hex> yields digest="sha256:<hex>" and the full
+        tag string is preserved verbatim."""
+        doc = {
+            "ollama": {
+                "image": {
+                    "repository": "ollama/ollama",
+                    "tag": f"0.30.4@sha256:{DIGEST_A}",
+                }
+            }
+        }
+        images = collect_values_images(doc)
+        self.assertEqual(len(images), 1)
+        self.assertEqual(images[0]["repository"], "ollama/ollama")
+        self.assertEqual(images[0]["tag"], f"0.30.4@sha256:{DIGEST_A}")
+        self.assertEqual(images[0]["digest"], f"sha256:{DIGEST_A}")
+
+    def test_unpinned_tag_has_empty_digest(self) -> None:
+        """A tag without @sha256 yields an empty digest, and the tag is kept
+        as-is."""
+        doc = {
+            "x": {
+                "image": {
+                    "repository": "library/foo",
+                    "tag": "1.2.3",
+                }
+            }
+        }
+        images = collect_values_images(doc)
+        self.assertEqual(len(images), 1)
+        self.assertEqual(images[0]["tag"], "1.2.3")
+        self.assertEqual(images[0]["digest"], "")
+
+    def test_no_separate_digest_field_is_read(self) -> None:
+        """Any stray `digest:` key in values.yaml is ignored — the tag is
+        authoritative. This is the regression the refactor introduces: the
+        old code drifted because a separate digest field existed; the new
+        code derives digest solely from the tag."""
+        doc = {
+            "x": {
+                "image": {
+                    "repository": "ollama/ollama",
+                    "tag": f"0.30.4@sha256:{DIGEST_A}",
+                    # Pretend a stale digest field is still present.
+                    "digest": f"sha256:{DIGEST_B}",
+                }
+            }
+        }
+        images = collect_values_images(doc)
+        self.assertEqual(images[0]["digest"], f"sha256:{DIGEST_A}")
+
+
 class UpdateZarfRegression(unittest.TestCase):
     def test_replaces_existing_digest_with_new_one(self) -> None:
-        """A line with digest A must end up with digest B — never both."""
+        """A line with digest A must end up with digest B — never both. The
+        new digest comes from the tag string, not a separate field."""
         text = f"      - ollama/ollama:0.24.0@sha256:{DIGEST_A}\n"
         images = [
-            {"repository": "ollama/ollama", "tag": "0.24.0", "digest": f"sha256:{DIGEST_B}"}
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.24.0@sha256:{DIGEST_B}",
+                "digest": f"sha256:{DIGEST_B}",
+            }
         ]
         out = update_zarf(text, images)
         self.assertEqual(out.count("@sha256:"), 1, f"doubled digest in: {out!r}")
@@ -61,7 +123,7 @@ class UpdateZarfRegression(unittest.TestCase):
         images = [
             {
                 "repository": "ghcr.io/astral-sh/uv",
-                "tag": "python3.13-trixie-slim",
+                "tag": f"python3.13-trixie-slim@sha256:{DIGEST_B}",
                 "digest": f"sha256:{DIGEST_B}",
             }
         ]
@@ -71,19 +133,24 @@ class UpdateZarfRegression(unittest.TestCase):
         self.assertRegex(out.rstrip("\n"), VALIDATOR)
 
     def test_adds_digest_when_line_had_none(self) -> None:
-        """A digest-less line picks up exactly one @sha256:<hex>."""
+        """A digest-less line picks up exactly one @sha256:<hex> when the
+        values.yaml tag is digest-pinned."""
         text = "      - ollama/ollama:0.24.0\n"
         images = [
-            {"repository": "ollama/ollama", "tag": "0.24.0", "digest": f"sha256:{DIGEST_A}"}
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.24.0@sha256:{DIGEST_A}",
+                "digest": f"sha256:{DIGEST_A}",
+            }
         ]
         out = update_zarf(text, images)
         self.assertEqual(out.count("@sha256:"), 1)
         self.assertRegex(out.rstrip("\n"), VALIDATOR)
 
-    def test_strips_digest_when_values_has_no_digest(self) -> None:
-        """If values.yaml has no digest, the rewritten line must not retain
-        the stale one — and the validator (which allows zero or one digest)
-        must still accept it."""
+    def test_strips_digest_when_values_tag_is_unpinned(self) -> None:
+        """If the values.yaml tag has no @sha256:, the rewritten line must
+        not retain the stale digest — the validator (which allows zero or one
+        digest) must still accept it."""
         text = f"      - ollama/ollama:0.24.0@sha256:{DIGEST_A}\n"
         images = [{"repository": "ollama/ollama", "tag": "0.24.0", "digest": ""}]
         out = update_zarf(text, images)
@@ -93,7 +160,11 @@ class UpdateZarfRegression(unittest.TestCase):
     def test_idempotent_when_already_synced(self) -> None:
         text = f"      - ollama/ollama:0.24.0@sha256:{DIGEST_A}\n"
         images = [
-            {"repository": "ollama/ollama", "tag": "0.24.0", "digest": f"sha256:{DIGEST_A}"}
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.24.0@sha256:{DIGEST_A}",
+                "digest": f"sha256:{DIGEST_A}",
+            }
         ]
         self.assertEqual(update_zarf(text, images), text)
 
@@ -108,7 +179,11 @@ class UpdateZarfRegression(unittest.TestCase):
             "      - other/image:1.2.3\n"
         )
         images = [
-            {"repository": "ollama/ollama", "tag": "0.25.0", "digest": f"sha256:{DIGEST_B}"}
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.25.0@sha256:{DIGEST_B}",
+                "digest": f"sha256:{DIGEST_B}",
+            }
         ]
         out = update_zarf(text, images)
         self.assertIn("# Ollama", out)
@@ -117,23 +192,22 @@ class UpdateZarfRegression(unittest.TestCase):
         for line in _image_lines(out):
             self.assertRegex(line, VALIDATOR)
 
-
-
-    def test_strips_digest_carried_in_values_tag(self) -> None:
-        """collect_values_images yields a tag WITH the digest attached (e.g.
-        0.24.0@sha256:...); the rewrite must strip it, not re-append, so the
-        line never doubles. This is the real-world case the earlier fix missed."""
+    def test_writes_single_digest_from_tag(self) -> None:
+        """End-to-end: the tag string carries the digest, the zarf line gets
+        exactly one @sha256:<hex>, no doubling."""
         text = f"      - ollama/ollama:0.24.0@sha256:{DIGEST_A}"
         images = [
             {
                 "repository": "ollama/ollama",
-                "tag": f"0.24.0@sha256:{DIGEST_A}",
-                "digest": f"sha256:{DIGEST_A}",
+                "tag": f"0.25.0@sha256:{DIGEST_B}",
+                "digest": f"sha256:{DIGEST_B}",
             }
         ]
         out = update_zarf(text, images)
         self.assertEqual(out.count("@sha256:"), 1, f"doubled digest in: {out!r}")
         self.assertRegex(out, VALIDATOR)
-        self.assertEqual(out.strip(), f"- ollama/ollama:0.24.0@sha256:{DIGEST_A}")
+        self.assertEqual(out.strip(), f"- ollama/ollama:0.25.0@sha256:{DIGEST_B}")
+
+
 if __name__ == "__main__":
     unittest.main()

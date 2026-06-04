@@ -261,10 +261,11 @@ jobs:
 
       - name: Verify image-digest parity across values.yaml, sbom.cdx.json, zarf.yaml
         # Closes the ADR-002 §Consequences follow-up. The tag-parity step above
-        # ignores the digest: field; this step enforces that every component's
+        # strips any @sha256 suffix; this step enforces that every component's
         # manifest digest is present and identical across all three artifacts.
-        # Enforceable with no exceptions now that MCPO is digest-pinned
-        # (see ADR-002 "MCPO digest resolved").
+        # The values.yaml tag is the single source of truth (Renovate appends
+        # @sha256:<hex> to it when pin-digesting), so the digest is parsed
+        # straight out of the tag — there is no separate `digest:` field.
         run: |
           python3 <<'PY'
           import sys, re, json
@@ -278,7 +279,13 @@ jobs:
                   out = {}
               if isinstance(node, dict):
                   if isinstance(node.get('repository'), str):
-                      out[basename(node['repository'])] = node.get('digest', '') or ''
+                      tag = str(node.get('tag', ''))
+                      digest = ''
+                      if '@' in tag:
+                          _, suffix = tag.split('@', 1)
+                          if suffix.startswith('sha256:'):
+                              digest = suffix
+                      out[basename(node['repository'])] = digest
                   for v in node.values():
                       values_digests(v, out)
               elif isinstance(node, list):

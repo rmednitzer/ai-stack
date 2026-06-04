@@ -42,7 +42,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: valkey
-          image: "{{ .Values.valkey.image.repository }}{{- if .Values.valkey.image.digest }}@{{ .Values.valkey.image.digest }}{{- else }}:{{ .Values.valkey.image.tag }}{{- end }}"
+          image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
