@@ -1,36 +1,37 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    ":semanticCommits",
-    ":timezone(Europe/Vienna)"
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:best-practices',
+    ':semanticCommits',
+    ':timezone(Europe/Vienna)',
   ],
-  "labels": ["dependencies"],
-  // Renovate owns helm-values (values.yaml / values-prod.yaml image tags).
-  // Dependabot (.github/dependabot.yml) owns github-actions updates and
-  // also opens PRs against values.yaml under its `docker` ecosystem
-  // (Dependabot evidently discovers image references in YAML manifests
-  // even without a Dockerfile / docker-compose.yml in this repo). The
-  // overlap is tolerated: Renovate's prConcurrentLimit and prHourlyLimit
-  // keep contention low. When both bots propose the same bump, prefer
-  // the Renovate PR for values.yaml changes. Either way, ADR-001
-  // §Decision[1] requires atomic SBOM/Zarf sync alongside any image
-  // bump, which is a maintainer step regardless of which bot proposes it
-  // (now enforced by the sbom-validate parity step in lint.yaml).
-  "enabledManagers": ["helm-values"],
-  "helm-values": {
-    "fileMatch": ["(^|/)values\\.yaml$", "(^|/)values-prod\\.yaml$"]
+  labels: [
+    'dependencies',
+  ],
+  enabledManagers: [
+    'helm-values',
+  ],
+  'helm-values': {
+    managerFilePatterns: [
+      '/(^|/)values\\.yaml$/',
+      '/(^|/)values-prod\\.yaml$/',
+    ],
   },
-  // Pin digests alongside tags per ADR-002. Renovate will populate `digest:`
-  // fields whenever it bumps `tag:`, keeping the two in lockstep.
-  "pinDigests": true,
-  "prConcurrentLimit": 8,
-  "prHourlyLimit": 2,
-  "packageRules": [
+  pinDigests: true,
+  prConcurrentLimit: 8,
+  prHourlyLimit: 2,
+  packageRules: [
     {
-      "matchManagers": ["helm-values"],
-      "groupName": "helm values image updates",
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
-    }
-  ]
+      matchManagers: [
+        'helm-values',
+      ],
+      groupName: 'helm values image updates',
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+        'pin',
+        'digest',
+      ],
+    },
+  ],
 }
