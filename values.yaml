@@ -243,7 +243,7 @@ openwebui:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: ghcr.io/open-webui/open-webui
-    tag: "v0.9.5@sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3"
+    tag: "v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158"
     digest: "sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3"
   service:
     type: ClusterIP
@@ -375,7 +375,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
+    tag: "0.30.4@sha256:7a3fe51cf50e0a6ddbcd054247d160baa90eb1935700bb59f3e96aa9a6da5025"
     digest: "sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
   service:
     type: ClusterIP
@@ -431,7 +431,7 @@ qdrant:
   apiKey: ""
   image:
     repository: qdrant/qdrant
-    tag: "v1.18.1@sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89"
+    tag: "v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c"
     digest: "sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89"
   service:
     type: ClusterIP
