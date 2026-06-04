@@ -118,5 +118,22 @@ class UpdateZarfRegression(unittest.TestCase):
             self.assertRegex(line, VALIDATOR)
 
 
+
+    def test_strips_digest_carried_in_values_tag(self) -> None:
+        """collect_values_images yields a tag WITH the digest attached (e.g.
+        0.24.0@sha256:...); the rewrite must strip it, not re-append, so the
+        line never doubles. This is the real-world case the earlier fix missed."""
+        text = f"      - ollama/ollama:0.24.0@sha256:{DIGEST_A}"
+        images = [
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.24.0@sha256:{DIGEST_A}",
+                "digest": f"sha256:{DIGEST_A}",
+            }
+        ]
+        out = update_zarf(text, images)
+        self.assertEqual(out.count("@sha256:"), 1, f"doubled digest in: {out!r}")
+        self.assertRegex(out, VALIDATOR)
+        self.assertEqual(out.strip(), f"- ollama/ollama:0.24.0@sha256:{DIGEST_A}")
 if __name__ == "__main__":
     unittest.main()
