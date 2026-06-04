@@ -52,7 +52,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: authelia
-          image: "{{ .Values.authelia.image.repository }}{{- if .Values.authelia.image.digest }}@{{ .Values.authelia.image.digest }}{{- else }}:{{ .Values.authelia.image.tag }}{{- end }}"
+          image: "{{ .Values.authelia.image.repository }}:{{ .Values.authelia.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}

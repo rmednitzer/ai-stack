@@ -61,7 +61,7 @@ spec:
       {{- if .Values.pydanticai.buildDeps }}
       initContainers:
         - name: install-deps
-          image: "{{ .Values.pydanticai.image.repository }}{{- if .Values.pydanticai.image.digest }}@{{ .Values.pydanticai.image.digest }}{{- else }}:{{ .Values.pydanticai.image.tag }}{{- end }}"
+          image: "{{ .Values.pydanticai.image.repository }}:{{ .Values.pydanticai.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command: ['sh', '-c', 'uv pip install --target=/deps --require-hashes -r /app/requirements.txt']
           securityContext:
@@ -95,7 +95,7 @@ spec:
       {{- end }}
       containers:
         - name: pydanticai
-          image: "{{ .Values.pydanticai.image.repository }}{{- if .Values.pydanticai.image.digest }}@{{ .Values.pydanticai.image.digest }}{{- else }}:{{ .Values.pydanticai.image.tag }}{{- end }}"
+          image: "{{ .Values.pydanticai.image.repository }}:{{ .Values.pydanticai.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 1000) | nindent 12 }}

@@ -60,11 +60,11 @@ components:
           - values.yaml
     images:
       # Open WebUI
-      - ghcr.io/open-webui/open-webui:v0.9.6@sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3
+      - ghcr.io/open-webui/open-webui:v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158
       # Ollama
-      - ollama/ollama:0.30.4@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4
+      - ollama/ollama:0.30.4@sha256:7a3fe51cf50e0a6ddbcd054247d160baa90eb1935700bb59f3e96aa9a6da5025
       # Qdrant
-      - qdrant/qdrant:v1.18.2@sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89
+      - qdrant/qdrant:v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c
       # Apache Tika
       - apache/tika:3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
       # SearXNG
@@ -121,7 +121,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------

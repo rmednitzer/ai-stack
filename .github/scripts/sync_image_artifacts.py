@@ -2,11 +2,16 @@
 """
 Sync sbom.cdx.json and zarf.yaml to the image references in values.yaml.
 
-values.yaml is the single source of truth for image refs (ADR-001). This
-script reads every {repository, tag, digest} mapping in values.yaml and
-rewrites the matching component in sbom.cdx.json (version, purl, SHA-256
-hash) and the matching entry in zarf.yaml (repo:tag@sha256:<hex>), so the
-sbom-validate parity job in CI is satisfied without manual edits.
+values.yaml is the single source of truth for image refs (ADR-001). The image
+tag is the single source of truth for both version and digest — when Renovate
+pin-digests an image, it appends @sha256:<hex> to the tag string, so
+`tag: "0.30.4@sha256:..."` carries both. There is no separate `digest:` field
+to drift out of sync.
+
+This script reads every {repository, tag} mapping in values.yaml, parses the
+optional @sha256:<hex> suffix from the tag, and rewrites the matching
+component in sbom.cdx.json (version, purl, SHA-256 hash) and the matching
+entry in zarf.yaml (repo:tag — the tag already carries the digest when pinned).
 
 Component identity is basename(repository): ghcr.io/open-webui/open-webui
 matches the SBOM component whose `name` (or, failing that, `bom-ref`) is
@@ -49,17 +54,29 @@ def basename(repo: str) -> str:
 
 
 def collect_values_images(node: Any, out: list[dict[str, str]] | None = None) -> list[dict[str, str]]:
-    """Walk values.yaml for every {repository, tag} mapping (digest optional)."""
+    """Walk values.yaml for every {repository, tag} mapping.
+
+    The tag is the single source of truth: when Renovate pin-digests an image
+    it appends @sha256:<hex> to the tag (e.g. `0.30.4@sha256:7a3f...`). We
+    return the FULL tag string verbatim and a derived `digest` parsed from the
+    @sha256:<hex> suffix (or `""` when the tag is not digest-pinned).
+    """
     if out is None:
         out = []
     if isinstance(node, dict):
         repo = node.get("repository")
         tag = node.get("tag")
         if isinstance(repo, str) and isinstance(tag, (str, int, float)):
+            tag_s = str(tag)
+            if "@" in tag_s:
+                _, suffix = tag_s.split("@", 1)
+                digest = suffix if suffix.startswith(DIGEST_PREFIX) else ""
+            else:
+                digest = ""
             out.append({
                 "repository": repo,
-                "tag": str(tag),
-                "digest": str(node.get("digest", "") or ""),
+                "tag": tag_s,
+                "digest": digest,
             })
         for v in node.values():
             collect_values_images(v, out)
@@ -154,9 +171,11 @@ def update_zarf(text: str, images: list[dict[str, str]]) -> str:
     """Rewrite every `- <repo>:<tag>[@sha256:<hex>]` line for repos in values.yaml.
 
     Line-level editing, not YAML round-trip: zarf.yaml carries `# Component`
-    comments and a yaml-language-server schema pragma we must not lose. Any
-    existing "@..." suffix on a matched line is dropped before the new digest
-    (if any) is appended, so re-runs cannot accumulate digests.
+    comments and a yaml-language-server schema pragma we must not lose. The
+    values.yaml tag already carries the @sha256:<hex> suffix when pinned, so
+    we emit `repo:{tag}` directly — no separate digest field, no
+    split-and-re-append. Any existing "@..." suffix on a matched line is
+    dropped before the tag is written, so re-runs cannot accumulate digests.
     """
     lines = text.splitlines(keepends=True)
     by_repo: dict[str, dict[str, str]] = {img["repository"]: img for img in images}
@@ -171,12 +190,7 @@ def update_zarf(text: str, images: list[dict[str, str]]) -> str:
         img = by_repo.get(repo)
         if img is None:
             continue
-        tag = img["tag"].split("@", 1)[0]  # values.yaml tag may carry the digest; strip before re-appending
-        hex_ = digest_hex(img["digest"])
-        if hex_:
-            new_ref = f"{repo}:{tag}@sha256:{hex_}"
-        else:
-            new_ref = f"{repo}:{tag}"
+        new_ref = f"{repo}:{img['tag']}"
         new_line = f"{m.group('lead')}{new_ref}{m.group('trail')}{nl}"
         lines[i] = new_line
     return "".join(lines)

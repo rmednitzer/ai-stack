@@ -43,7 +43,7 @@ spec:
       {{- include "ai-stack.topologySpread" (dict "Values" .Values "Release" .Release "component" "openwebui" "replicaCount" .Values.openwebui.replicaCount "autoscaling" (include "ai-stack.autoscalingEnabled" .Values.openwebui)) | nindent 6 }}
       containers:
         - name: openwebui
-          image: "{{ .Values.openwebui.image.repository }}{{- if .Values.openwebui.image.digest }}@{{ .Values.openwebui.image.digest }}{{- else }}:{{ .Values.openwebui.image.tag }}{{- end }}"
+          image: "{{ .Values.openwebui.image.repository }}:{{ .Values.openwebui.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" false "runAsUser" 1000) | nindent 12 }}
