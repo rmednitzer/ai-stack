@@ -139,25 +139,32 @@ def update_sbom(bom: dict[str, Any], images: list[dict[str, str]]) -> tuple[dict
     return bom, issues
 
 
+_ZARF_IMAGE_LINE = re.compile(
+    # Leading whitespace, "- ", repository, ":", a tag (no @, no whitespace),
+    # then ANY remaining "@"-prefixed suffix (well-formed digest, malformed
+    # digest, or a previously-doubled "@sha256:...@sha256:..." from an earlier
+    # buggy sync) is captured into `rest` and discarded — the rewrite always
+    # emits at most one "@sha256:<hex>" so the sbom-validate parity regex
+    # (which permits a single optional digest) keeps matching.
+    r"^(?P<lead>\s+-\s+)(?P<repo>[A-Za-z0-9_.\-/]+):(?P<tag>[^@\s]+)(?P<rest>@\S*)?(?P<trail>\s*)$"
+)
+
+
 def update_zarf(text: str, images: list[dict[str, str]]) -> str:
     """Rewrite every `- <repo>:<tag>[@sha256:<hex>]` line for repos in values.yaml.
 
     Line-level editing, not YAML round-trip: zarf.yaml carries `# Component`
-    comments and a yaml-language-server schema pragma we must not lose.
+    comments and a yaml-language-server schema pragma we must not lose. Any
+    existing "@..." suffix on a matched line is dropped before the new digest
+    (if any) is appended, so re-runs cannot accumulate digests.
     """
     lines = text.splitlines(keepends=True)
-    # Pre-build per-repo replacements.
     by_repo: dict[str, dict[str, str]] = {img["repository"]: img for img in images}
-    # Match: leading whitespace, "- ", repository, ":", a tag (no @, no whitespace),
-    # optional @sha256:<hex>, optional trailing whitespace.
     for i, line in enumerate(lines):
         stripped = line.rstrip("\n")
         # Keep trailing newline separate so we can reattach.
         nl = line[len(stripped):]
-        m = re.match(
-            r"^(?P<lead>\s+-\s+)(?P<repo>[A-Za-z0-9_.\-/]+):(?P<tag>[^@\s]+)(?P<digest>@sha256:[a-f0-9]{64})?(?P<trail>\s*)$",
-            stripped,
-        )
+        m = _ZARF_IMAGE_LINE.match(stripped)
         if not m:
             continue
         repo = m.group("repo")
