@@ -171,7 +171,7 @@ def update_zarf(text: str, images: list[dict[str, str]]) -> str:
         img = by_repo.get(repo)
         if img is None:
             continue
-        tag = img["tag"]
+        tag = img["tag"].split("@", 1)[0]  # values.yaml tag may carry the digest; strip before re-appending
         hex_ = digest_hex(img["digest"])
         if hex_:
             new_ref = f"{repo}:{tag}@sha256:{hex_}"
