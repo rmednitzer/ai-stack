@@ -224,9 +224,14 @@ jobs:
                   print(f"::error::sbom.cdx.json {name!r}: component.version={vv!r} but purl version={pv!r}", file=sys.stderr)
               sys.exit(2)
 
-          vk = {basename(k): t for k, t in v.items()}
-          bk = {basename(k): t for k, t in b.items()}
-          zk = {basename(k): t for k, t in z.items()}
+          # Tag-only parity: strip any @sha256:<digest> carried in the
+          # values.yaml tag and SBOM component.version (zarf is already
+          # digest-stripped by zarf_images). Digest parity is enforced by
+          # the separate image-digest-parity step below.
+          _tag = lambda t: t.split("@", 1)[0]
+          vk = {basename(k): _tag(t) for k, t in v.items()}
+          bk = {basename(k): _tag(t) for k, t in b.items()}
+          zk = {basename(k): _tag(t) for k, t in z.items()}
 
           for label, src, norm in (('values.yaml', v, vk), ('sbom.cdx.json', b, bk), ('zarf.yaml', z, zk)):
               if len(src) != len(norm):
