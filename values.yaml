@@ -148,7 +148,7 @@ authelia:
   enabled: false  # Opt-in; when true, Open WebUI OAUTH_* env vars are auto-wired
   image:
     repository: ghcr.io/authelia/authelia
-    tag: "4.39.20"
+    tag: "4.39.20@sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b"
     digest: "sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b"
   service:
     type: ClusterIP
@@ -243,7 +243,7 @@ openwebui:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: ghcr.io/open-webui/open-webui
-    tag: "v0.9.5"
+    tag: "v0.9.5@sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3"
     digest: "sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3"
   service:
     type: ClusterIP
@@ -375,7 +375,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.24.0"
+    tag: "0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
     digest: "sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
   service:
     type: ClusterIP
@@ -431,7 +431,7 @@ qdrant:
   apiKey: ""
   image:
     repository: qdrant/qdrant
-    tag: "v1.18.1"
+    tag: "v1.18.1@sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89"
     digest: "sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89"
   service:
     type: ClusterIP
@@ -483,7 +483,7 @@ tika:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: apache/tika
-    tag: "3.3.1.0"
+    tag: "3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973"
     digest: "sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973"
   service:
     type: ClusterIP
@@ -520,7 +520,7 @@ searxng:
   secretKey: ""
   image:
     repository: searxng/searxng
-    tag: "2026.5.31-300695de5"
+    tag: "2026.5.31-300695de5@sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396"
     digest: "sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396"
   service:
     type: ClusterIP
@@ -590,7 +590,7 @@ openTerminal:
   corsAllowedOrigins: ""
   image:
     repository: ghcr.io/open-webui/open-terminal
-    tag: "0.11.34"  # Fallback when digest is not set
+    tag: "0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e"  # Fallback when digest is not set
     digest: "sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e"  # ADR-002: pinned digest; falls back to tag if cleared
   service:
     type: ClusterIP
@@ -662,7 +662,7 @@ mcpo:
     # pin did not exist and produced ImagePullBackOff (see ADR-002). We track the
     # `main` channel pinned by immutable digest; Renovate refreshes the digest as
     # `main` advances, keeping pulls deterministic per ADR-002.
-    tag: "main"
+    tag: "main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467"
     digest: "sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467"
   service:
     type: ClusterIP
@@ -723,7 +723,7 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.9-py3.12"
+    tag: "0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
     digest: "sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
   service:
     type: ClusterIP
@@ -817,7 +817,7 @@ pydanticai:
     # uv-based Python image (fast, deterministic installs). Override with a
     # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
     repository: ghcr.io/astral-sh/uv
-    tag: "python3.13-trixie-slim"
+    tag: "python3.13-trixie-slim@sha256:2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356"
     digest: "sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e"
   # -- Install Python deps at startup via an initContainer (default). Set false
   # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
@@ -942,7 +942,7 @@ postgres:
     replicaCount: 1
     image:
       repository: docker.io/library/postgres
-      tag: "18-alpine"
+      tag: "18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88"
       digest: "sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88"
     env: {}
     persistence:
@@ -1049,7 +1049,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "9.1.0"
+    tag: "9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9"
     digest: "sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9"
   service:
     type: ClusterIP
@@ -1114,7 +1114,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim"
+    tag: "3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
     digest: "sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
@@ -1185,7 +1185,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.153.0"
+    tag: "0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa"
     digest: "sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa"
   logLevel: info
   memoryLimitMiB: 450
