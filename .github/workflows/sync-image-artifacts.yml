@@ -1,0 +1,91 @@
+name: Sync Image Artifacts
+
+# Closes the ADR-001 §Consequences manual-sync gap. When Renovate (or a
+# maintainer) bumps an image tag/digest in values.yaml, this workflow runs
+# .github/scripts/sync_image_artifacts.py to rewrite sbom.cdx.json and
+# zarf.yaml to match, then pushes the synced artifacts back to the PR head
+# branch so the sbom-validate parity job in lint.yaml goes green without
+# manual intervention.
+#
+# Notes:
+#   * on: pull_request (NOT pull_request_target) — relies on the PR head
+#     being a same-repo branch (Renovate App, Dependabot, maintainer fork
+#     of *this* repo). Fork PRs cannot get write access by design.
+#   * Pushes made with the default GITHUB_TOKEN do NOT re-trigger downstream
+#     workflows, so the sbom-validate check on the synced commit will stay
+#     stale until a re-run unless AUTOSYNC_TOKEN (fine-grained PAT or a
+#     GitHub App token with `contents: write` on this repo) is configured.
+
+on:
+  pull_request:
+    paths:
+      - "values.yaml"
+      - "values-prod.yaml"
+
+permissions:
+  contents: write
+
+concurrency:
+  # Serialise per-PR so a second push can't race the first.
+  group: sync-image-artifacts-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Avoid self-trigger loops: skip when the bot's own sync commit is the
+    # last PR commit (we still listen to values.yaml changes, so a manual
+    # follow-up edit on the same PR is still picked up).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          # Maintainer-provided token re-triggers downstream workflows
+          # (sbom-validate). Default token works for the commit/push but
+          # leaves the parity check stale; see PR description.
+          token: ${{ secrets.AUTOSYNC_TOKEN || github.token }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # Need full history so push --force-with-lease style semantics
+          # work cleanly; default fetch-depth: 1 is fine for a fast-forward
+          # commit but we keep it explicit.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+
+      - name: Install Python deps (PyYAML)
+        run: pip install --quiet pyyaml
+
+      - name: Sync sbom.cdx.json and zarf.yaml to values.yaml
+        run: python3 .github/scripts/sync_image_artifacts.py
+
+      - name: Commit + push synced artifacts if changed
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- sbom.cdx.json zarf.yaml; then
+            echo "::notice::sbom.cdx.json and zarf.yaml already in sync with values.yaml — nothing to commit."
+            exit 0
+          fi
+
+          # Self-trigger guard: if HEAD is already a sync commit from this
+          # bot, do not push another one even if a diff appears (shouldn't
+          # happen since the script is idempotent, but belt + braces).
+          LAST_AUTHOR_EMAIL="$(git log -1 --pretty=%ae)"
+          LAST_MSG="$(git log -1 --pretty=%s)"
+          if [ "${LAST_AUTHOR_EMAIL}" = "41898282+github-actions[bot]@users.noreply.github.com" ] \
+            && [ "${LAST_MSG}" = "chore(sbom): sync sbom.cdx.json + zarf.yaml to values.yaml images" ]; then
+            echo "::warning::HEAD is already a sync commit by github-actions[bot]; refusing to push again."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sbom.cdx.json zarf.yaml
+          git commit -m "chore(sbom): sync sbom.cdx.json + zarf.yaml to values.yaml images"
+          git push origin "HEAD:${PR_HEAD_REF}"
