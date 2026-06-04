@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.x"
 
@@ -340,6 +340,7 @@ jobs:
     # Image pulls are expensive and hit registry rate-limits; run only on merged commits.
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -410,20 +411,50 @@ jobs:
             echo "::warning::${FAILED}/${TOTAL} image(s) could not be scanned (registry auth, rate-limit, or missing manifest)"
           fi
 
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - name: Cache CycloneDX CLI
+        id: cache-cyclonedx
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          python-version: "3.x"
+          path: /usr/local/bin/cyclonedx
+          key: cyclonedx-v0.32.0
+
+      - name: Install CycloneDX CLI
+        if: steps.cache-cyclonedx.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          CDX_VERSION="v0.32.0"  # CycloneDX/cyclonedx-cli
+          CDX_SHA256="454879e6a4a405c8a13bff49b8982adcb0596f3019b26b0811c66e4d7f0783e1"
+          curl -sSfL "https://github.com/CycloneDX/cyclonedx-cli/releases/download/${CDX_VERSION}/cyclonedx-linux-x64" \
+            -o /usr/local/bin/cyclonedx
+          echo "${CDX_SHA256}  /usr/local/bin/cyclonedx" | sha256sum -c -
+          chmod +x /usr/local/bin/cyclonedx
+          cyclonedx --version
 
       - name: Validate generated SBOMs against CycloneDX schema
         run: |
-          pip install --quiet check-jsonschema
+          # Native CycloneDX validation (seconds), replacing Python check-jsonschema
+          # which took ~1h on large deep SBOMs. Spec version is read per file so a
+          # future syft bump (1.6 -> 1.7) needs no workflow change.
+          shopt -s nullglob
+          sboms=(syft-sbom-output/*.cdx.json)
+          if [ "${#sboms[@]}" -eq 0 ]; then
+            echo "::error::No SBOMs were generated in syft-sbom-output/ (all image scans failed)"
+            exit 1
+          fi
           FAILED=0
-          for f in syft-sbom-output/*.cdx.json; do
+          for f in "${sboms[@]}"; do
             echo "Validating $(basename "$f")"
-            if ! check-jsonschema \
-              --schemafile "https://raw.githubusercontent.com/CycloneDX/specification/1.6/schema/bom-1.6.schema.json" \
-              "$f"; then
+            spec_version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["specVersion"])' "$f" 2>/dev/null) || true
+            if [ -z "${spec_version}" ]; then
+              echo "::error::$(basename "$f"): could not read specVersion (missing or invalid CycloneDX JSON)"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            if ! cyclonedx validate \
+              --input-file "$f" \
+              --input-format json \
+              --input-version "v${spec_version//./_}" \
+              --fail-on-errors; then
               FAILED=$((FAILED + 1))
             fi
           done

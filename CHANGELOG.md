@@ -5,6 +5,24 @@ All notable changes to the ai-stack Helm chart will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **CI: deep-SBOM validation now uses the CycloneDX CLI instead of Python
+  `check-jsonschema`.** The `syft-sbom` job validated each generated deep SBOM
+  against the remote CycloneDX 1.6 JSON schema with `check-jsonschema`, which
+  took roughly 56 minutes per run on large SBOMs; it now uses the pinned,
+  checksum-verified `cyclonedx-cli` (`validate --fail-on-errors`), which
+  completes in seconds. The job also gains an explicit `timeout-minutes: 20`
+  guard so a pathological input fails fast instead of running to the 6-hour
+  ceiling. Validation coverage is unchanged: the committed `sbom.cdx.json` is
+  still schema-validated by the `sbom-validate` job.
+- **CI: `actions/setup-python` pinned to `v6.2.0`** (Node.js 24 runtime) in
+  `lint.yaml`, `docs.yaml`, and `sync-image-artifacts.yml`, ahead of GitHub
+  forcing the Node.js 24 runtime on 2026-06-16 (Node 20 is removed from runners
+  on 2026-09-16). Aligns with the version already used fleet-wide.
+
 ## [2.8.0] - 2026-06-01
 
 Governance-label integrity and supply-chain version parity, from a full-repo
