@@ -19,8 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ceiling. Validation coverage is unchanged: the committed `sbom.cdx.json` is
   still schema-validated by the `sbom-validate` job.
 - **CI: `actions/setup-python` pinned to `v6.2.0`** (Node.js 24 runtime) in
-  `lint.yaml`, `docs.yaml`, and `sync-image-artifacts.yml`, ahead of GitHub's
-  2026-06-16 Node 20 removal. Aligns with the version already used fleet-wide.
+  `lint.yaml`, `docs.yaml`, and `sync-image-artifacts.yml`, ahead of GitHub
+  forcing the Node.js 24 runtime on 2026-06-16 (Node 20 is removed from runners
+  on 2026-09-16). Aligns with the version already used fleet-wide.
 
 ## [2.8.0] - 2026-06-01
 

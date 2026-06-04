@@ -435,10 +435,21 @@ jobs:
           # Native CycloneDX validation (seconds), replacing Python check-jsonschema
           # which took ~1h on large deep SBOMs. Spec version is read per file so a
           # future syft bump (1.6 -> 1.7) needs no workflow change.
+          shopt -s nullglob
+          sboms=(syft-sbom-output/*.cdx.json)
+          if [ "${#sboms[@]}" -eq 0 ]; then
+            echo "::error::No SBOMs were generated in syft-sbom-output/ (all image scans failed)"
+            exit 1
+          fi
           FAILED=0
-          for f in syft-sbom-output/*.cdx.json; do
+          for f in "${sboms[@]}"; do
             echo "Validating $(basename "$f")"
-            spec_version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["specVersion"])' "$f")
+            spec_version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["specVersion"])' "$f" 2>/dev/null) || true
+            if [ -z "${spec_version}" ]; then
+              echo "::error::$(basename "$f"): could not read specVersion (missing or invalid CycloneDX JSON)"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
             if ! cyclonedx validate \
               --input-file "$f" \
               --input-format json \
