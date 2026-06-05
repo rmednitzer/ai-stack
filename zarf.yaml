@@ -62,7 +62,7 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158
       # Ollama
-      - ollama/ollama:0.30.4@sha256:7a3fe51cf50e0a6ddbcd054247d160baa90eb1935700bb59f3e96aa9a6da5025
+      - ollama/ollama:0.30.5@sha256:72c60eb9e115e24078864c00274dc067fff2217b105918409856031cca7a7e92
       # Qdrant
       - qdrant/qdrant:v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c
       # Apache Tika
