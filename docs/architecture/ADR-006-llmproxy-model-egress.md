@@ -17,7 +17,7 @@ components — `pydanticai`, `langgraph`, `ingestionWorker` — each only know
 `OLLAMA_BASE_URL`. Two consequences follow:
 
 - **No single model-egress boundary.** Reaching an external provider is an
-  Open-WebUI-only privilege; the agentic runtimes cannot use governed external
+  Open WebUI-only privilege; the agentic runtimes cannot use governed external
   models without duplicating key wiring per component.
 - **Scattered credentials.** Each consumer that wanted an external provider would
   hold its own key in its own Secret — many egress points, no central policy or
@@ -36,8 +36,11 @@ Two implementations were evaluated:
   per-key/team budget enforcement, secret-detection guardrails, GDPR opt-out) are
   all enterprise-gated. Shipping it through the Helm chart **and** the Zarf
   air-gap package would **redistribute non-OSI files** to enforce policies an
-  operator must *separately license to enable*. This is the same liability
-  ADR-004 rejected in LangGraph's Elastic-2.0 runtime, applied to the egress path.
+  operator must *separately license to enable*. This is the same class of
+  licensing liability ADR-004 flagged in LangGraph's Elastic-2.0 runtime — there
+  answered by adding a permissive alternative (Pydantic AI) while keeping
+  LangGraph; here it is answered by declining LiteLLM in favour of a permissive
+  gateway.
 - **[Envoy AI Gateway](https://aigateway.envoyproxy.io/)** — **Apache-2.0, no
   carve-out** (envoyproxy / CNCF). Gateway-API-native, so it is continuous with
   the edge model ADR-003 already adopted (the chart's reference data plane is
@@ -58,7 +61,7 @@ Two implementations were evaluated:
    exclusive.** With the proxy on, external providers are configured **once on the
    proxy** and Open WebUI points at it (not at per-provider base URLs).
    `externalAPIs` is retained as the lightweight, implementation-agnostic,
-   Open-WebUI-only path for deployments that do not run Envoy Gateway; enabling
+   Open WebUI-only path for deployments that do not run Envoy Gateway; enabling
    both is a **fail-fast template error** (one egress path, one audit story). No
    behaviour changes for existing deployments that use neither.
 
@@ -78,8 +81,8 @@ Two implementations were evaluated:
 
 5. **Secure-by-default wiring, no weakened defaults.** Dedicated ServiceAccount
    (no token automount), `restrictedSecurityContext`, default-deny NetworkPolicy
-   (ingress only from model consumers; egress `443` to the configured providers +
-   in-cluster Ollama), governance metadata **tier `T1` / boundary `model-serving`
+   (ingress only from model consumers; egress `443` to the configured external
+   providers and `11434` to in-cluster Ollama), governance metadata **tier `T1` / boundary `model-serving`
    / control-refs `CTL-002,POL-001`** (existing vocabulary — no new boundary).
    The new image is **digest-pinned** and catalogued as a **single `Apache-2.0`
    row** in `sbom.cdx.json`, `zarf.yaml`, `values.schema.json`, and
