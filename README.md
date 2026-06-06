@@ -678,6 +678,7 @@ ct lint --config ct.yaml --charts .
 | [docs/architecture/ADR-003-gateway-api-httproute.md](docs/architecture/ADR-003-gateway-api-httproute.md) | ADR — opt-in Gateway API `HTTPRoute` alongside Ingress |
 | [docs/architecture/ADR-004-pydantic-ai-runtime.md](docs/architecture/ADR-004-pydantic-ai-runtime.md) | ADR — Pydantic AI as an MIT-licensed agentic-runtime alternative to LangGraph |
 | [docs/architecture/ADR-005-governance-label-integrity.md](docs/architecture/ADR-005-governance-label-integrity.md) | ADR — canonical tier/boundary vocabulary, `control-refs` on every workload, and drift enforcement in tests + CI |
+| [docs/architecture/ADR-006-llmproxy-model-egress.md](docs/architecture/ADR-006-llmproxy-model-egress.md) | ADR (Proposed) — opt-in Envoy AI Gateway `llmproxy` as a governed, Apache-2.0 model-egress boundary |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |
