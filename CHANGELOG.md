@@ -33,8 +33,11 @@ weakened.**
   AUTH, ingestion-worker URL allowlisting).
 - **Valkey `PodDisruptionBudget`.** Valkey was the only single-replica
   session/Streams store without a PDB; it now joins the other protected
-  components (`maxUnavailable: 1`, `unhealthyPodEvictionPolicy: AlwaysAllow`),
-  so a node drain no longer drops every active Open WebUI session unguarded.
+  components (`maxUnavailable: 1`, `unhealthyPodEvictionPolicy: AlwaysAllow`) —
+  the chart's documented single-replica PDB pattern: drain-safe (no eviction
+  deadlock) and disruption-budget-aware once Valkey is scaled out. Surviving a
+  node drain with zero session loss still requires a multi-replica / clustered
+  Valkey.
 - **`tests/hardening_test.yaml`.** Asserts the Valkey PDB and that the OTel
   Collector ships its **credential** redaction patterns (bearer tokens, JWTs,
   PEM private keys, provider API-key shapes), not only the three PII patterns —

@@ -159,4 +159,4 @@ Key points:
 - [ ] GPU workloads pinned to GPU nodes; `OLLAMA_KEEP_ALIVE` tuned; model cache persisted.
 - [ ] External-model token rate-limiting enabled (`aiGateway.rateLimit`).
 - [ ] OTel exported off-cluster to an append-only sink with a forensic retention floor.
-- [ ] PostgreSQL `mode: cnpg` (HA) and Valkey PDB present (shipped) so a node drain does not drop all sessions.
+- [ ] PostgreSQL `mode: cnpg` (HA); for session survival across a node drain run Valkey multi-replica / clustered (the shipped single-replica PDB is drain-safe but does not by itself prevent the reschedule).

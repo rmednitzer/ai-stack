@@ -12,7 +12,7 @@ templates:
   - templates/common/pdbs.yaml
   - templates/otel/otel-collector.yaml
 tests:
-  - it: creates a PodDisruptionBudget for Valkey (protects active sessions on node drain)
+  - it: creates a PodDisruptionBudget for Valkey (single-replica pattern — maxUnavailable 1 + AlwaysAllow)
     set:
       valkey.enabled: true
     template: templates/common/pdbs.yaml
