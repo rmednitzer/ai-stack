@@ -1199,6 +1199,40 @@ ingestionWorker:
   # prebuilt image with the deps baked in (see files/ingestion-worker/Dockerfile)
   # and override image.repository/tag/digest; this drops the runtime PyPI egress.
   buildDeps: true
+
+  # -- Native document-source connectors (ADR-007). Opt-in. By default the worker
+  # ingests only http(s):// URLs and local paths — and local paths already cover
+  # CSI-mounted NFS/SMB shares (the recommended, lowest-risk pattern) and object
+  # stores via presigned HTTPS URLs. Enable this only to let producers enqueue
+  # object-store / network-share *scheme* URLs (s3://, gs://, az://, smb://,
+  # sftp://, …), resolved via fsspec.
+  #
+  # Security posture (ADR-007): deny-by-default — only the schemes you list are
+  # honored (any other non-http/local scheme is rejected); you install only the
+  # backends you need; credentials come from a Secret. Native NON-HTTPS protocols
+  # (SMB/445, NFS/2049, SFTP/22) additionally require you to open the matching
+  # NetworkPolicy egress — the chart does NOT open it for you. Object stores reach
+  # over the already-allowed port-443 egress.
+  sources:
+    # -- Enable native (fsspec) source connectors
+    enabled: false
+    # -- Allow-listed URL schemes. ONLY these are resolved via fsspec; any other
+    # scheme (besides http(s)/local) is rejected. e.g. ["s3", "gs", "az", "smb"]
+    schemes: []
+    # -- Pip packages installed (when buildDeps=true) to provide the backends for
+    # the schemes above — install only what you use. Mapping:
+    #   s3 → s3fs · gs → gcsfs · az → adlfs · smb → smbprotocol · sftp → sshfs
+    # (always include "fsspec" itself). For buildDeps=false, bake these into the
+    # prebuilt image instead.
+    pipPackages: []
+      # - fsspec
+      # - s3fs
+    # -- Existing Secret whose keys are projected as env vars (envFrom) so the
+    # fsspec backends read their conventional credentials, e.g.
+    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, AZURE_STORAGE_ACCOUNT, etc.
+    # Never inline credentials here; reference a Secret you manage.
+    existingSecret: ""
+
   env:
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'

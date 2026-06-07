@@ -1,0 +1,68 @@
+suite: ingestion worker native source connectors (ADR-007)
+# Asserts the opt-in, deny-by-default posture of the fsspec source connectors:
+# nothing is wired unless sources.enabled; the scheme allowlist and the
+# credential Secret are projected exactly as configured.
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/ingestion-worker/deployment.yaml
+tests:
+  - it: does not wire source connectors by default (deny-by-default)
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_SOURCE_SCHEMES
+          any: true
+      - notExists:
+          path: spec.template.spec.containers[0].envFrom
+
+  - it: injects only the allow-listed schemes when sources are enabled
+    set:
+      ingestionWorker.enabled: true
+      ingestionWorker.sources.enabled: true
+      ingestionWorker.sources.schemes: [s3, smb]
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_SOURCE_SCHEMES
+            value: "s3,smb"
+
+  - it: projects credentials from the configured Secret via envFrom
+    set:
+      ingestionWorker.enabled: true
+      ingestionWorker.sources.enabled: true
+      ingestionWorker.sources.existingSecret: ingest-cloud-creds
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: ingest-cloud-creds
+
+  - it: installs only the operator-selected backend packages
+    set:
+      ingestionWorker.enabled: true
+      valkey.enabled: false
+      ingestionWorker.sources.enabled: true
+      ingestionWorker.sources.pipPackages: [fsspec, s3fs]
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: "pip install --no-cache-dir --target=/deps 'fsspec' 's3fs'"

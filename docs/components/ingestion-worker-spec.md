@@ -61,6 +61,23 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
   collection "tenant-acme"
 ```
 
+### 2.1 Source resolution (URL schemes, ADR-007)
+
+`read_source(file_url)` resolves the document bytes by URL scheme:
+
+| Scheme | Resolver | Notes |
+|--------|----------|-------|
+| `http://`, `https://` | `httpx` GET (redirects followed) | Always available. Covers **presigned** S3/GCS/Azure URLs. |
+| *(bare path)*, `file://` | local filesystem read | Always available. Covers **CSI-mounted NFS/SMB** shares (the recommended, lowest-risk pattern). |
+| `s3://`, `gs://`, `az://`, `smb://`, `sftp://`, … | `fsspec` | **Opt-in & deny-by-default**: honored only when the scheme is in `INGESTION_SOURCE_SCHEMES` (set from `ingestionWorker.sources.schemes`). An unknown or disabled scheme is **rejected**, never read as a local path. |
+
+Native connectors require the matching `fsspec` backend (installed via
+`ingestionWorker.sources.pipPackages`) and credentials (projected from
+`ingestionWorker.sources.existingSecret` as the env vars the backend reads).
+Native non-HTTPS protocols (SMB/445, NFS/2049, SFTP/22) also need explicit
+NetworkPolicy egress — **not** opened by the chart. See
+[ADR-007](../architecture/ADR-007-ingestion-source-connectors.md).
+
 ---
 
 ## 3. Status contract — `ingestion:status:<task_id>`
@@ -203,18 +220,22 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 | `INGESTION_MAX_RETRIES` | `3` | no | Retries before terminal `failed`. |
 | `CORPUS_PUBSUB_CHANNEL` | `corpus:state` | no | Corpus event channel. |
 | `LOG_LEVEL` | `INFO` | no | Log verbosity. |
+| `INGESTION_SOURCE_SCHEMES` | `""` (none) | from `sources.schemes` when `sources.enabled` | Comma-list of allow-listed native fsspec schemes (ADR-007); empty = http(s) + local only. |
 | `HOSTNAME` | pod name | injected by K8s | Consumer name within the group. |
 
 ---
 
 ## 7. Security and limitations
 
-- **SSRF surface.** `file_url` is dereferenced verbatim (`http(s)` fetch or local
-  path). A producer that can write to the stream controls the destination, so the
-  worker could be steered at internal/link-local endpoints. Restrict who can
-  write to the stream, and treat producer input as trusted. Adding an
-  `https`-only + private/link-local CIDR allow/deny list is tracked as **R5** in
-  [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).
+- **Fetch surface (SSRF / local read).** **Local** reads (bare path / `file://`)
+  are fenced away from sensitive system + credential prefixes (`/proc`, `/sys`,
+  `/etc`, `/root`, `/run`, `/var/run`) — paths are `resolve()`-canonicalized
+  first — so a producer-supplied `file_url` cannot read e.g. `/proc/self/environ`
+  (which carries the credentials projected via `sources.existingSecret`) into the
+  store. **`http(s)`** fetches still follow the producer-supplied host: treat
+  stream producers as trusted and restrict who can write to the stream; a
+  private/link-local CIDR allow/deny list for the HTTP path is tracked as **R5**
+  in [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).
 - **Liveness is file-based.** The probe checks `/tmp/healthy`; a hung-but-alive
   process is not self-healed. See audit backlog.
 - **Dependency pinning.** [`requirements.txt`](../../files/ingestion-worker/requirements.txt)

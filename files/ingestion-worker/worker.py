@@ -54,6 +54,23 @@ HEALTH_FILE = "/tmp/healthy"
 POSTGRES_URI = os.environ.get("POSTGRES_URI", "")
 CORPUS_PUBSUB_CHANNEL = os.environ.get("CORPUS_PUBSUB_CHANNEL", "corpus:state")
 
+# Native source-scheme allowlist (ADR-007). Empty by default → only http(s) and
+# local paths are accepted. Listing e.g. "s3,gs,az,smb" opts those schemes in;
+# they are resolved via fsspec (installed via ingestionWorker.sources.pipPackages)
+# using credentials projected from ingestionWorker.sources.existingSecret.
+SOURCE_SCHEMES = {
+    s.strip().lower()
+    for s in os.environ.get("INGESTION_SOURCE_SCHEMES", "").split(",")
+    if s.strip()
+}
+
+# Local-path reads (bare paths / file://, e.g. CSI-mounted NFS/SMB shares) are
+# fenced away from sensitive system and credential paths so a producer-supplied
+# file_url cannot exfiltrate, say, /proc/self/environ (which carries the source
+# credentials projected via ingestionWorker.sources.existingSecret) into the
+# vector store. Legitimate document mounts (/mnt, /data, …) are unaffected.
+_LOCAL_DENY_PREFIXES = ("/proc", "/sys", "/etc", "/root", "/run", "/var/run")
+
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -384,12 +401,41 @@ def set_status(task_id: str, status: str, **extra: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
+def read_source(file_url: str) -> bytes:
+    """Resolve a task's ``file_url`` to raw bytes.
+
+    Routing (ADR-007):
+      * ``http://`` / ``https://``  → HTTP fetch (unchanged behaviour).
+      * bare path or ``file://``    → local file (covers CSI-mounted NFS/SMB).
+      * any other scheme (``s3://``, ``gs://``, ``az://``, ``smb://``, …) →
+        resolved via fsspec, but ONLY when the scheme is allow-listed in
+        ``INGESTION_SOURCE_SCHEMES``. A scheme that is neither http(s)/local nor
+        allow-listed is rejected (not silently read as a local path).
+    """
+    scheme = file_url.split("://", 1)[0].lower() if "://" in file_url else ""
+    if scheme in ("http", "https"):
+        return http.get(file_url, follow_redirects=True, timeout=60.0).content
+    if scheme in ("", "file"):
+        path = file_url[len("file://"):] if scheme == "file" else file_url
+        resolved = Path(path).resolve()  # canonicalize .. and symlinks first
+        rp = str(resolved)
+        if any(rp == d or rp.startswith(d + "/") for d in _LOCAL_DENY_PREFIXES):
+            raise ValueError(f"local source path not permitted: {rp}")
+        return resolved.read_bytes()
+    if scheme in SOURCE_SCHEMES:
+        import fsspec  # lazy; provided via ingestionWorker.sources.pipPackages
+        with fsspec.open(file_url, "rb") as f:
+            return f.read()
+    raise ValueError(
+        f"unsupported or disabled source scheme {scheme!r}: set "
+        f"ingestionWorker.sources.enabled=true and add the scheme to "
+        f"ingestionWorker.sources.schemes (current allow-list: {sorted(SOURCE_SCHEMES)})"
+    )
+
+
 def extract_text(file_url: str) -> str:
-    """Send document to Tika and return extracted text."""
-    if file_url.startswith(("http://", "https://")):
-        src = httpx.get(file_url, timeout=60.0, follow_redirects=True).content
-    else:
-        src = Path(file_url).read_bytes()
+    """Resolve the source document and return Tika-extracted text."""
+    src = read_source(file_url)
     resp = http.put(
         urljoin(TIKA_URL, "/tika"),
         headers={"Accept": "text/plain"},

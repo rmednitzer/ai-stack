@@ -1,6 +1,6 @@
 # Multi-User Operations — isolation, cost, and audit retention
 
-**Chart version:** 2.10.0 · **Last reviewed:** 2026-06-07
+**Chart version:** 2.11.0 · **Last reviewed:** 2026-06-07
 
 ai-stack is designed to serve **many users from one deployment**. This guide
 covers the three concerns that a single-user lab does not exercise: **tenant

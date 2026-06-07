@@ -96,7 +96,14 @@ spec:
         - name: install-deps
           image: "{{ .Values.ingestionWorker.image.repository }}:{{ .Values.ingestionWorker.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          command: ['sh', '-c', 'pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt']
+          command:
+            - sh
+            - -c
+            - |
+              pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt
+              {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}
+              pip install --no-cache-dir --target=/deps{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}
+              {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -136,6 +143,10 @@ spec:
             {{- end }}
             - name: VALKEY_URL
               value: 'redis://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
+            {{- if .Values.ingestionWorker.sources.enabled }}
+            - name: INGESTION_SOURCE_SCHEMES
+              value: {{ join "," .Values.ingestionWorker.sources.schemes | quote }}
+            {{- end }}
             {{- range $key, $value := .Values.ingestionWorker.env }}
             - name: {{ $key }}
               value: {{ tpl (toString $value) $ | quote }}
@@ -151,6 +162,13 @@ spec:
               value: {{ include "ai-stack.postgresURI" . | quote }}
             {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "ingestion-worker") | nindent 12 }}
+          {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.existingSecret }}
+          envFrom:
+            # Credentials for the fsspec source backends (ADR-007). The Secret's
+            # keys become env vars the backends read (AWS_*, AZURE_STORAGE_*, …).
+            - secretRef:
+                name: {{ .Values.ingestionWorker.sources.existingSecret }}
+          {{- end }}
           startupProbe:
             exec:
               command: ['test', '-f', '/tmp/healthy']
