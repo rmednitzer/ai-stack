@@ -5,7 +5,7 @@
   "serialNumber": "urn:uuid:2e7c46c5-20e8-4296-bca6-73ab329758ce",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-06-01T00:00:00Z",
+    "timestamp": "2026-06-07T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.8.0",
+      "version": "2.9.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -646,6 +646,88 @@
           "content": "2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356"
         }
       ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "ai-gateway-controller",
+      "name": "ai-gateway-controller",
+      "version": "v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3",
+      "description": "Envoy AI Gateway controller for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart, installed by the platform from the upstream controller chart.",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3?repository_url=docker.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "model-serving"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/envoyproxy/ai-gateway"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "ai-gateway-extproc",
+      "name": "ai-gateway-extproc",
+      "version": "v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29",
+      "description": "Envoy AI Gateway external processor (extproc) for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart.",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-extproc@v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29?repository_url=docker.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T1"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "model-serving"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (opt-in)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/envoyproxy/ai-gateway"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -665,7 +747,9 @@
         "open-terminal",
         "mcpo",
         "ingestion-worker",
-        "authelia"
+        "authelia",
+        "ai-gateway-controller",
+        "ai-gateway-extproc"
       ]
     },
     {
@@ -747,6 +831,16 @@
         "ollama",
         "qdrant"
       ]
+    },
+    {
+      "ref": "ai-gateway-controller",
+      "dependsOn": [
+        "ai-gateway-extproc"
+      ]
+    },
+    {
+      "ref": "ai-gateway-extproc",
+      "dependsOn": []
     }
   ]
 }

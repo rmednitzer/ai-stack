@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-06-07
+
+Opt-in **Envoy AI Gateway** component (ADR-006) — a governed, Apache-2.0,
+OpenAI-compatible model-egress boundary. No security default changes.
+
+### Added
+
+- **Opt-in `aiGateway` component (implemented by Envoy AI Gateway, Apache-2.0).** Renders
+  the Envoy AI Gateway custom resources (`AIGatewayRoute` / `AIServiceBackend` /
+  `BackendSecurityPolicy` + the Envoy Gateway `Backend`, plus optional
+  `BackendTrafficPolicy` token rate-limiting and a JWT/OIDC `SecurityPolicy`)
+  that turn a pre-existing Gateway into one in-cluster OpenAI-compatible endpoint
+  for local Ollama + external providers — centralizing provider credentials,
+  routing, and audit. **CR-only:** the chart attaches to a BYO control + data
+  plane (exactly as ADR-003's HTTPRoute attaches to a Gateway it does not
+  provision) and emits **no workload pod** — governance metadata lives on the CR
+  objects (like the CNPG `Cluster`/`Pooler`), with no ServiceAccount and no
+  cluster-RBAC controller. Mutually exclusive with `externalAPIs` (one egress
+  path, one audit story). Disabled by default. Governance: `T1` /
+  `model-serving` / `CTL-002,POL-001`.
+- **Air-gap image mirroring for the BYO controller.** The Envoy AI Gateway
+  `ai-gateway-controller` and `ai-gateway-extproc` images (v0.7.0, Apache-2.0,
+  digest-pinned) are declared in `values.yaml` and catalogued in `sbom.cdx.json`
+  + `zarf.yaml` so Zarf mirrors them into an air-gapped registry; the platform
+  installs the upstream controller chart against the mirror.
+
+### Security
+
+- **No security default weakened.** The new component is CR-only — it adds no
+  privileged workload (no pod, no token-mounted ServiceAccount, no cluster RBAC).
+  Provider API keys are stored in chart-managed (or existing) Secrets, never in
+  rendered manifests. PSA `restricted`, default-deny NetworkPolicy, and digest
+  pinning are unchanged. (Bundling the controller as an in-chart Deployment was
+  evaluated and rejected for exactly this reason — see ADR-006.)
+
 ### Changed
 
 - **CI: deep-SBOM validation now uses the CycloneDX CLI instead of Python

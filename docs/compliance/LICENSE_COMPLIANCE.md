@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.8.0 | **Last reviewed:** 2026-06-01
+**Chart version:** 2.9.0 | **Last reviewed:** 2026-06-07
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -34,6 +34,8 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 | MCPO | `ghcr.io/open-webui/mcpo` | main | MIT | Permissive | Opt-in | No |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39.20 | Apache-2.0 | Permissive | Opt-in | No |
 | Ingestion Worker | `docker.io/library/python` | 3.14-slim | PSF-2.0 | Permissive | Opt-in | No |
+| Envoy AI Gateway (controller) | `docker.io/envoyproxy/ai-gateway-controller` | v0.7.0 | Apache-2.0 | Permissive | Opt-in | No |
+| Envoy AI Gateway (extproc) | `docker.io/envoyproxy/ai-gateway-extproc` | v0.7.0 | Apache-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0
 
@@ -47,7 +49,7 @@ The majority of the stack uses permissive licenses (MIT, Apache-2.0,
 BSD-3-Clause, PostgreSQL). These allow unrestricted commercial use,
 modification, and redistribution with only attribution requirements.
 
-OTel Collector, PostgreSQL, Open Terminal, MCPO, Authelia, Pydantic AI (`uv`/Python base; Pydantic AI, DBOS, FastAPI are all MIT/Apache-2.0)
+OTel Collector, PostgreSQL, Open Terminal, MCPO, Authelia, Pydantic AI (`uv`/Python base; Pydantic AI, DBOS, FastAPI are all MIT/Apache-2.0), Envoy AI Gateway (controller + extproc, Apache-2.0 — no open-core carve-out, unlike the LiteLLM alternative rejected in ADR-006)
 
 ### Copyleft — SearXNG (AGPL-3.0-or-later)
 

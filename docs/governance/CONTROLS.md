@@ -27,7 +27,7 @@ security or compliance requirement at the platform level.
 | ID | Title | Description | Implemented By | Regulatory Basis |
 |----|-------|-------------|----------------|-----------------|
 | **CTL-001** | Observability — logging legality, minimisation, and forensic correlation | All platform components export logs, metrics, and traces via the OTel Collector. PII is redacted at the pipeline layer (email, SSN, credit card patterns) before forwarding to the observability backend. Forensic correlation is maintained via trace IDs across services. | OTel Collector (`templates/otel/otel-collector.yaml`), ServiceMonitors (`templates/otel/servicemonitors.yaml`) | GDPR Art. 5(1)(c) data minimisation; NIS2 Art. 21(2)(b) incident handling; CRA Annex I vulnerability monitoring |
-| **CTL-002** | AI gateway policy — OTel GenAI instrumentation and network boundary enforcement | All AI inference traffic is governed by NetworkPolicies (default-deny with explicit allowlists), tier labels (`T0`–`T2`), and boundary annotations (one of the canonical values defined in [Governance label vocabulary](#governance-label-vocabulary)). The OTel Collector enriches AI-related telemetry with GenAI semantic conventions for audit traceability. | NetworkPolicies (`templates/common/networkpolicies.yaml`), OTel Collector, and `tier`/`boundary` labels plus a `control-refs` annotation on every workload | NIS2 Art. 21(2)(a) risk policies; AI Act Art. 26 deployer monitoring obligations; GDPR Art. 25 data protection by design |
+| **CTL-002** | AI gateway policy — OTel GenAI instrumentation and network boundary enforcement | All AI inference traffic is governed by NetworkPolicies (default-deny with explicit allowlists), tier labels (`T0`–`T2`), and boundary annotations (one of the canonical values defined in [Governance label vocabulary](#governance-label-vocabulary)). The OTel Collector enriches AI-related telemetry with GenAI semantic conventions for audit traceability. | NetworkPolicies (`templates/common/networkpolicies.yaml`), OTel Collector, the Envoy AI Gateway model-egress CRs (`templates/ai-gateway/`), and `tier`/`boundary` labels plus a `control-refs` annotation on every workload | NIS2 Art. 21(2)(a) risk policies; AI Act Art. 26 deployer monitoring obligations; GDPR Art. 25 data protection by design |
 
 ---
 
@@ -69,7 +69,7 @@ mapping so the three can no longer drift apart.
 |-------|---------|-----------|
 | `authentication` | Identity and access decisions | Authelia |
 | `decision` | Model/agent decision and tool-brokering plane | Open WebUI, MCPO, LangGraph, Pydantic AI |
-| `model-serving` | Model inference serving | Ollama |
+| `model-serving` | Model inference serving | Ollama, Envoy AI Gateway |
 | `retrieval` | RAG vector retrieval | Qdrant |
 | `ingestion` | Content ingestion (documents, web search) | Tika, SearXNG, ingestion worker |
 | `execution` | Model-generated code execution | Open Terminal |
@@ -101,4 +101,4 @@ favour of the table above (ADR-005).
 
 ---
 
-*Registry version: 2.8.0 | Maintained alongside Chart version in `Chart.yaml`.*
+*Registry version: 2.9.0 | Maintained alongside Chart version in `Chart.yaml`.*
