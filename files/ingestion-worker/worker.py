@@ -415,7 +415,12 @@ def read_source(file_url: str) -> bytes:
     scheme = file_url.split("://", 1)[0].lower() if "://" in file_url else ""
     if scheme in ("http", "https"):
         resp = http.get(file_url, follow_redirects=True, timeout=60.0)
-        resp.raise_for_status()  # don't ingest a 4xx/5xx error-page body
+        if not resp.is_success:
+            # Report only the status, never the URL: a presigned URL carries its
+            # signature in the query string, and raise_for_status() would echo the
+            # full URL into the logs and the task status hash (set_status writes
+            # str(exc)). Don't ingest a 4xx/5xx error-page body either.
+            raise ValueError(f"source fetch failed: HTTP {resp.status_code}")
         return resp.content
     if scheme in ("", "file"):
         if scheme == "file":

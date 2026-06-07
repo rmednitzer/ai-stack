@@ -248,7 +248,9 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
   ([`Dockerfile`](../../files/ingestion-worker/Dockerfile), `buildDeps: false`).
   Hash-locking is audit item **R7**.
 - **`error` content.** On failure the raw exception string is written to the
-  status hash; readers of `ingestion:status:*` may see internal detail.
+  status hash; readers of `ingestion:status:*` may see internal detail. The HTTP
+  fetch path reports only the status code (never the URL), so a **presigned URL's
+  signature is not echoed** into logs or the status hash.
 - **`collection` does not route the upsert.** `upsert_vectors()` writes to the
   single configured `QDRANT_COLLECTION`; the per-task `collection` only keys the
   corpus state machine and is stored in the payload. True per-collection vector

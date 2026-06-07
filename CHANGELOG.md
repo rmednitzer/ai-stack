@@ -63,8 +63,9 @@ source connectors** for object stores and network shares.
   closing an unbounded-`read_bytes` DoS — in addition to the existing
   credential/system-prefix fence (`/proc`, `/sys`, `/etc`, `/root`, `/run`,
   `/var/run`).
-- **HTTP `file_url` fetches reject non-2xx responses**, so a 404/500 error-page
-  body is never extracted into the vector store.
+- **HTTP `file_url` fetches reject non-2xx responses** — reporting only the
+  status code, never the URL, so a **presigned signature isn't echoed** into logs
+  or the status hash — and a 404/500 error-page body is never extracted.
 - **Pydantic AI warns at startup when `PYDANTICAI_API_KEY` is empty**, surfacing
   that the bearer-token gate is a no-op (endpoints unauthenticated).
 - **No security default weakened.** Native connectors are opt-in and

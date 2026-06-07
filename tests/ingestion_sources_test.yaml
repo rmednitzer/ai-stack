@@ -89,7 +89,7 @@ tests:
       - matchRegex:
           path: data["worker.py"]
           pattern: "_LOCAL_DENY_PREFIXES"
-      # a 4xx/5xx HTTP error-page body is not ingested
+      # a 4xx/5xx HTTP response is rejected (status only — never the presigned URL)
       - matchRegex:
           path: data["worker.py"]
-          pattern: "raise_for_status"
+          pattern: "is_success"
