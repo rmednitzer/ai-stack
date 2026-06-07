@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-06-07
+
+Baseline, standards, and a deep repo audit — plus a focused set of
+defense-in-depth and documentation-currency fixes. **No security default
+weakened.**
+
+### Added
+
+- **`docs/SECURITY_BASELINE.md` — operator-facing security & operations
+  baseline.** Maps the chart's shipped defaults to validated external standards
+  (CIS Kubernetes Benchmark, NSA/CISA Kubernetes Hardening Guide, NIST SP
+  800-190, Pod Security Standards, OWASP LLM Top 10) with a conformance matrix
+  and copy-paste verification commands. Fills the gap between the
+  contributor-facing `AGENTS.md`/`CLAUDE.md` and the assessment-oriented
+  enterprise/compliance docs.
+- **`docs/operations/MULTI_USER.md` — multi-user, cost, and audit-retention
+  guide.** `ResourceQuota`/`LimitRange` examples, Open WebUI role/group
+  model-access, per-user isolation, GPU right-sizing and scaling economics, and
+  forensic vs. data-minimisation log-retention guidance.
+- **`docs/audit/AUDIT-2026-06.md` — committed deep-audit report** with verified
+  findings and a prioritised recommendation backlog (including items
+  intentionally deferred to a dedicated change: CNPG image digest-pinning + SBOM
+  inclusion, SBOM purl format, NetworkPolicy egress tightening, optional Valkey
+  AUTH, ingestion-worker URL allowlisting).
+- **Valkey `PodDisruptionBudget`.** Valkey was the only single-replica
+  session/Streams store without a PDB; it now joins the other protected
+  components (`maxUnavailable: 1`, `unhealthyPodEvictionPolicy: AlwaysAllow`),
+  so a node drain no longer drops every active Open WebUI session unguarded.
+- **`tests/hardening_test.yaml`.** Asserts the Valkey PDB and that the OTel
+  Collector ships its **credential** redaction patterns (bearer tokens, JWTs,
+  PEM private keys, provider API-key shapes), not only the three PII patterns —
+  so the security-relevant default cannot silently regress.
+
+### Changed
+
+- **Pydantic AI reference app uses a constant-time bearer-token check**
+  (`hmac.compare_digest`) on its only auth gate, removing a timing oracle
+  (`files/pydanticai/app.py`).
+- **`.helmignore` excludes `Makefile`, `AGENTS.md`, `CLAUDE.md`, and `.claude/`**
+  so internal contributor/agent tooling is not bundled into the packaged chart.
+
+### Fixed
+
+- **Documentation currency / drift (no behaviour change):**
+  - `SECURITY.md` supported-versions table now covers `2.10.x` / `2.9.x`.
+  - `LIMITATIONS.md` re-reviewed for 2.10.0; new **L8** tracks the AI Gateway
+    BYO control/data-plane and external-provider data-transfer residual risk.
+  - `docs/architecture/REFERENCE.md` extension key corrected to
+    `mcpo.config.mcpServers` (was `mcpo.servers`, a silently-ignored override).
+  - OTel redaction is documented as PII **and credential** redaction across
+    `docs/components/otel.md`, `HOWTO.md` §14.3, and `CONTROLS.md` CTL-001
+    (previously listed only the 3 PII patterns; 12 ship by default).
+  - `docs/enterprise/ENTERPRISE_EVALUATION.md`: image management attributed to
+    Renovate (digest-pinned) not "manual"; "versioned tags" → digest-pinned;
+    removed fabricated DR retention numbers (backup is external by design).
+  - `docs/compliance/LICENSE_COMPLIANCE.md`: SBOM CI validator corrected to
+    `cyclonedx-cli`; stale Open WebUI / Ollama / Qdrant matrix versions resynced
+    to `values.yaml`.
+  - `docs/compliance/EU_COMPLIANCE_CHECK.md`: supply-chain tooling attributed to
+    Renovate (images) + Dependabot (Actions).
+  - `README.md` architecture diagram now includes the opt-in AI Gateway.
+  - `CHANGELOG.md` compare-links restored for 2.5.0–2.10.0.
+
+### Security
+
+- **No security default weakened.** All changes are additive hardening
+  (availability PDB, constant-time auth), test coverage for an existing
+  redaction default, or documentation accuracy. PSA `restricted`, default-deny
+  NetworkPolicy, per-component identity, and digest pinning are unchanged.
+
 ## [2.9.0] - 2026-06-07
 
 Opt-in **Envoy AI Gateway** component (ADR-006) — a governed, Apache-2.0,
@@ -670,7 +740,13 @@ natively; no external projects are bundled.
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/rmednitzer/ai-stack/compare/v2.9.0...v2.10.0
+[2.9.0]: https://github.com/rmednitzer/ai-stack/compare/v2.8.0...v2.9.0
+[2.8.0]: https://github.com/rmednitzer/ai-stack/compare/v2.7.0...v2.8.0
+[2.7.0]: https://github.com/rmednitzer/ai-stack/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/rmednitzer/ai-stack/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/rmednitzer/ai-stack/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/rmednitzer/ai-stack/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/rmednitzer/ai-stack/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/rmednitzer/ai-stack/compare/v2.1.1...v2.2.0

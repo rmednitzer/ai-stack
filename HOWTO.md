@@ -556,7 +556,7 @@ externalAPIs:
       apiKey: "sk-ant-..."
 ```
 
-**Note:** Anthropic API integration requires Open WebUI v0.6+ with the Anthropic API translation layer, or an Open WebUI function for protocol translation.
+**Note:** Anthropic integration uses its OpenAI-compatible endpoint, configured like any other `externalAPIs` provider. The pinned Open WebUI image speaks to OpenAI-compatible providers directly, so no separate translation layer is required.
 
 ### 6.4 Use an External Secret Manager
 
@@ -1110,23 +1110,28 @@ global:
 
 ### 14.3 PII Redaction
 
-The OTel Collector automatically redacts:
+The OTel Collector ships a `redaction` processor that masks two classes of
+sensitive data **by default** (`otelCollector.redaction.enabled: true`), before
+any telemetry leaves the cluster:
 
-- Email addresses
-- Social security numbers (Austrian VSNR format)
-- Credit card numbers
+**PII** — email addresses, Austrian social-security numbers (VSNR), and
+credit-card numbers.
 
-To add custom redaction patterns:
+**Credential shapes** (these ride along in MCPO / Open Terminal tool traffic) —
+`Authorization: Bearer` tokens, JWTs, PEM private-key blocks, and
+OpenAI / AWS / GitHub / GitLab / Google / Slack / Stripe API-key patterns.
+
+The full RE2 pattern list is in `values.yaml` under
+`otelCollector.redaction.blockedPatterns`. The processor runs ahead of every
+exporter, so even the lab-only `debug` exporter receives redacted data. To add
+your own pattern, **append** to the list — keep the shipped defaults:
 
 ```yaml
 otelCollector:
   redaction:
     enabled: true
     blockedPatterns:
-      # Default patterns
-      - '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-      - '\b\d{4}\s?\d{6}\b'
-      - '\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+      # ... keep the shipped PII + credential defaults from values.yaml ...
       # Custom: phone numbers
       - '\+?\d{1,3}[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4}'
 ```

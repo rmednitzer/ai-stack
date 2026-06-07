@@ -18,6 +18,7 @@ without checkpointing/resume.
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -213,7 +214,12 @@ class ChatRequest(BaseModel):
 
 
 def _check_auth(authorization: str | None) -> None:
-    if API_KEY and authorization != f"Bearer {API_KEY}":
+    # Constant-time comparison so the bearer-token check is not a timing oracle
+    # on the only auth gate for the agentic endpoints. Compare bytes so a
+    # non-ASCII Authorization header is rejected (401), not a TypeError (500).
+    if API_KEY and not hmac.compare_digest(
+        (authorization or "").encode(), f"Bearer {API_KEY}".encode()
+    ):
         raise HTTPException(status_code=401, detail="invalid or missing API key")
 
 

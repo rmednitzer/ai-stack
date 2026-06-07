@@ -3,7 +3,7 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.9.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.10.0-blue.svg)](Chart.yaml)
 [![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -59,6 +59,7 @@ graph LR
   subgraph Inference["Inference (T1) — OpenAI-compatible"]
     Ollama["Ollama<br/>local LLM + embeddings"]
     ExternalAPIs["External APIs<br/>OpenAI · Anthropic · Gemini · …"]
+    AIGateway["AI Gateway<br/>governed model egress · opt-in"]
   end
 
   subgraph Knowledge["Knowledge & Retrieval"]
@@ -138,8 +139,12 @@ graph LR
   IngestionWorker -.->|OTLP| OTel
   Authelia -.->|OTLP| OTel
 
+  %% Governed model egress (opt-in, ADR-006): fronts Ollama + external providers
+  OpenWebUI -.->|governed egress| AIGateway
+  AIGateway -.->|fronts| ExternalAPIs
+
   classDef optIn stroke-dasharray: 5 5
-  class Authelia,LangGraph,PydanticAI,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel optIn
+  class Authelia,LangGraph,PydanticAI,MCPO,OpenTerminal,IngestionWorker,Postgres,ExternalAPIs,OTel,AIGateway optIn
 ```
 
 ### Best-practice notes
@@ -672,6 +677,8 @@ ct lint --config ct.yaml --charts .
 | Document | Purpose |
 |----------|---------|
 | [HOWTO.md](HOWTO.md) | Task-oriented guide — installation, day-1 setup, RAG, GPU, scaling, upgrades, troubleshooting |
+| [docs/SECURITY_BASELINE.md](docs/SECURITY_BASELINE.md) | Operator security & operations baseline — conformance matrix to CIS / NSA-CISA / NIST 800-190 / PSS / OWASP LLM Top 10 with verification commands |
+| [docs/operations/MULTI_USER.md](docs/operations/MULTI_USER.md) | Multi-user operations — tenant isolation, GPU / cost control, audit retention |
 | [docs/architecture/REFERENCE.md](docs/architecture/REFERENCE.md) | Reference architecture — design principles, conversational + RAG flow, agentic flow, hardening checklist |
 | [docs/architecture/ADR-001-component-version-management.md](docs/architecture/ADR-001-component-version-management.md) | ADR — `values.yaml` as the single source of truth for image tags, with SBOM/Zarf and version-bearing docs kept in lockstep |
 | [docs/architecture/ADR-002-image-digest-pinning.md](docs/architecture/ADR-002-image-digest-pinning.md) | ADR — every image pinned by manifest digest, with CI digest parity |
@@ -685,6 +692,7 @@ ct lint --config ct.yaml --charts .
 | [SECURITY.md](SECURITY.md) | Coordinated vulnerability disclosure policy and supported versions |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
 | [docs/enterprise/ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) | Enterprise readiness evaluation checklist |
+| [docs/audit/AUDIT-2026-06.md](docs/audit/AUDIT-2026-06.md) | Deep repository audit (2026-06) — fixes shipped, deferred backlog, and dismissed findings |
 | [sbom.cdx.json](sbom.cdx.json) | CycloneDX 1.6 Software Bill of Materials |
 
 ## EU Compliance

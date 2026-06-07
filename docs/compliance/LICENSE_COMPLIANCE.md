@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.9.0 | **Last reviewed:** 2026-06-07
+**Chart version:** 2.10.0 | **Last reviewed:** 2026-06-07
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -11,7 +11,9 @@ ai-stack Helm chart and evaluates compliance implications for enterprise use.
 
 A machine-readable Software Bill of Materials is maintained in
 [sbom.cdx.json](../../sbom.cdx.json) (CycloneDX 1.6, JSON). The SBOM is validated
-in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
+in CI via `cyclonedx-cli validate` against the CycloneDX 1.6 schema, with
+package-version and image tag/digest parity cross-checked against `values.yaml`
+and `zarf.yaml`.
 
 ---
 
@@ -19,9 +21,9 @@ in CI via `check-jsonschema` against the CycloneDX 1.6 JSON schema.
 
 | Component | Image | Version | License (SPDX) | Type | Default | Copyleft |
 |-----------|-------|---------|----------------|------|---------|----------|
-| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.5 | MIT | Permissive | Enabled | No |
-| Ollama | `ollama/ollama` | 0.24.0 | MIT | Permissive | Enabled | No |
-| Qdrant | `qdrant/qdrant` | v1.18.1 | Apache-2.0 | Permissive | Enabled | No |
+| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | MIT | Permissive | Enabled | No |
+| Ollama | `ollama/ollama` | 0.30.6 | MIT | Permissive | Enabled | No |
+| Qdrant | `qdrant/qdrant` | v1.18.2 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.1.0 | Apache-2.0 | Permissive | Enabled | No |
 | SearXNG | `searxng/searxng` | 2026.5.31-300695de5 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |

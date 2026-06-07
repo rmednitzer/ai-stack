@@ -1,7 +1,7 @@
 # Enterprise Readiness Evaluation — ai-stack
 
-**Date:** 2026-05-24
-**Chart version:** 2.9.0 | **appVersion:** 2026.5
+**Date:** 2026-06-07
+**Chart version:** 2.10.0 | **appVersion:** 2026.5
 
 ---
 
@@ -23,7 +23,7 @@ alignment with governance, security, observability, and operational requirements
 |---------|--------|
 | PSA restricted baseline | Enforced (`runAsNonRoot`, `drop: ALL`, `seccompProfile: RuntimeDefault`) |
 | NetworkPolicy default-deny | Per-component ingress + egress allowlists |
-| Secret auto-generation | 64-byte keys for Qdrant, SearXNG, Open Terminal, MCPO |
+| Secret auto-generation | Keys for Open WebUI, Qdrant, SearXNG, Open Terminal, MCPO, LangGraph, Pydantic AI, PostgreSQL, and Authelia (stable across upgrades; external secret stores supported) |
 | Service account isolation | Per-component, `automountServiceAccountToken: false` |
 | Read-only root filesystem | Qdrant, Valkey, Tika, SearXNG, OTel Collector |
 | Telemetry opt-out | `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY: false` |
@@ -33,7 +33,7 @@ alignment with governance, security, observability, and operational requirements
 ### 2. Regulatory Compliance — Excellent
 
 - Explicit framework alignment: **NIS2**, **GDPR**, **AI Act**
-- PII redaction in telemetry pipeline (email, SSN, credit card patterns)
+- PII **and credential** redaction in telemetry pipeline (email, SSN, credit-card, plus bearer tokens, JWTs, PEM private keys, and provider API-key shapes)
 - Governance-as-code annotations (`assurance.platform/*`) on all resources
 - Control reference traceability (CTL-001, CTL-002, POL-001) — defined in [docs/governance/CONTROLS.md](../governance/CONTROLS.md)
 - Tier classification system (T0–T2) with clear boundary labels
@@ -51,13 +51,13 @@ alignment with governance, security, observability, and operational requirements
 
 - **Helm 3.12+** with dual profiles (lab/prod) — clean separation of concerns
 - **ArgoCD** integration with manual sync for change-control compliance
-- **Dependabot** for GitHub Actions dependency management; container image versions managed manually
-- **Pod Disruption Budgets** for stateful components (Ollama, Qdrant)
+- **Renovate** (`helm-values` manager, `pinDigests: true`) for digest-pinned container image bumps; **Dependabot** for GitHub Actions — SBOM/Zarf kept in lockstep per ADR-001/002
+- **Pod Disruption Budgets** for single-replica/stateful components (Ollama, Qdrant, SearXNG, Valkey, Authelia, standalone PostgreSQL)
 - **Topology spread constraints** in prod profile for HA
 - **HPA autoscaling** for stateless components (Open WebUI, Tika)
 - **Disaster recovery** via external tooling (Velero + CSI volume snapshots, CNPG barman for PostgreSQL)
 - CI pipeline: Helm lint → chart-testing → kubeconform schema validation → kube-linter policy lint → SBOM tag/digest parity
-- Chart version 2.9.0 with semver compliance
+- Chart version 2.10.0 with semver compliance
 
 ### 5. Architecture
 
@@ -66,15 +66,15 @@ alignment with governance, security, observability, and operational requirements
   (Recreate for stateful, RollingUpdate for stateless)
 - Internal-only services (ClusterIP) with ingress controller integration
 - Opt-in components (Open Terminal, MCPO) reduce default attack surface
-- All images pinned to versioned tags
+- All images pinned by digest (tag + `@sha256:…`), per ADR-002
 - CycloneDX 1.6 SBOM ([sbom.cdx.json](../../sbom.cdx.json)) with full license and dependency graph
 - License compliance matrix ([LICENSE_COMPLIANCE.md](../compliance/LICENSE_COMPLIANCE.md)) with copyleft analysis
 - SBOM validation in CI (schema + component count cross-check)
 
 ### 6. Disaster Recovery
 
-- Backup PVC with `helm.sh/resource-policy: keep` annotation
-- Configurable retention (default: 7 Qdrant snapshots, 3 Ollama backups)
+- PVCs annotated `helm.sh/resource-policy: keep` so persistent data survives `helm uninstall`
+- Backup/restore is **external** by design (no built-in snapshot scheduler): Velero + CSI volume snapshots for PVC-backed data (Qdrant, Ollama models, Open WebUI), and CloudNativePG Barman object-store backups for PostgreSQL in `cnpg` mode — see [HOWTO.md §10](../../HOWTO.md#10-postgresql-modes)
 
 ---
 
@@ -93,7 +93,7 @@ alignment with governance, security, observability, and operational requirements
 
 | Area | Status | Recommendation |
 |------|--------|----------------|
-| Image digests | Container image versions pinned in values.yaml | Review Dependabot PRs for GitHub Actions; manually track container image updates |
+| Image digests | All images digest-pinned in values.yaml (ADR-002) | Renovate raises digest-pinned image bumps; Dependabot covers GitHub Actions; sync SBOM + Zarf in the same PR (ADR-001) |
 | Velero integration | Not included | Use Velero with CSI volume snapshots for full cluster DR |
 | External secret manager | Supported but optional | Use ESO or Vault CSI for production secret rotation |
 | WAF | Not included | Deploy upstream WAF (ModSecurity, Coraza) for deep packet inspection |
@@ -109,7 +109,7 @@ alignment with governance, security, observability, and operational requirements
 | Observability | Production-grade |
 | High Availability | Good (HPA for stateless; stateful needs operator for full HA) |
 | Disaster Recovery | Good (PVC snapshots; external DR tooling recommended) |
-| Supply Chain Security | Excellent (versioned tags + Dependabot + CycloneDX SBOM + license compliance) |
+| Supply Chain Security | Excellent (digest-pinned images, Renovate + Dependabot, CycloneDX SBOM with parity CI, license compliance) |
 | Scalability | Good (HPA autoscaling for stateless components) |
 | Operational Maturity | Strong |
 

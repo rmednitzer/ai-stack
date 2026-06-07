@@ -180,7 +180,7 @@ The chart deliberately stops at the contracts below; extend at these seams.
 
 | Extension | How |
 |-----------|-----|
-| Add a new MCP tool | Append to `mcpo.servers`; tool surfaces in Open WebUI and LangGraph automatically |
+| Add a new MCP tool | Append to `mcpo.config.mcpServers`; tool surfaces in Open WebUI and LangGraph automatically |
 | Add a hosted model provider | Append to `externalAPIs.providers`; appears in Open WebUI's model picker |
 | Replace embeddings | Point Open WebUI / Ingestion Worker at a different OpenAI-compatible embedding endpoint |
 | Custom LangGraph graphs | Build with `langgraph build` and override `langgraph.image` (recommended), or mount via `langgraph.graphsVolume` |

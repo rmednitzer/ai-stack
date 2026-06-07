@@ -23,7 +23,7 @@ Centralises logs, metrics, and traces from every ai-stack component, enriches th
 
 ## PII redaction
 
-The Collector runs a `redaction` processor (patterns configurable via `otelCollector.redaction.blockedPatterns`) that masks email, social-security (VSNR), and credit-card patterns in log and trace attributes before export. Implements GDPR Art. 5(1)(c) data minimisation (see [CTL-001](../governance/CONTROLS.md#controls-ctl)). Resource enrichment uses the `resource_detection` and `resource` processors.
+The Collector runs a `redaction` processor (patterns configurable via `otelCollector.redaction.blockedPatterns`) that masks, before export, both **PII** (email, social-security/VSNR, and credit-card patterns) **and credential shapes** that ride along in MCPO / Open Terminal tool traffic — bearer tokens, JWTs, PEM private-key blocks, and OpenAI / AWS / GitHub / GitLab / Google / Slack / Stripe API-key patterns. Implements GDPR Art. 5(1)(c) data minimisation (see [CTL-001](../governance/CONTROLS.md#controls-ctl)). The redaction processor is wired ahead of every exporter in all three pipelines (traces, metrics, logs), so even the lab-only `debug` exporter receives already-redacted data. Resource enrichment uses the `resource_detection` and `resource` processors.
 
 ## Related HOWTO sections
 

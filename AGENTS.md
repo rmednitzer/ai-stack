@@ -69,6 +69,9 @@ chart.
 | `files/` | In-image payloads (Pydantic AI app, ingestion worker) |
 | `docs/architecture/` | ADRs (`ADR-NNN-*.md`) + `REFERENCE.md` |
 | `docs/governance/CONTROLS.md` | Authoritative CTL/POL registry → regulatory basis |
+| `docs/SECURITY_BASELINE.md` | Operator security/ops baseline → validated-source conformance matrix + verify commands |
+| `docs/operations/MULTI_USER.md` | Multi-user isolation, cost, and audit-retention guidance |
+| `docs/audit/AUDIT-NNNN-NN.md` | Point-in-time deep-audit snapshots (fixes, deferred backlog, dismissed findings) |
 | `docs/compliance/` | DPIA/DSAR/ROPA/incident/EU-compliance docs |
 | `docs/components/` | One doc per component |
 | `SECURITY.md` | Threat model + reporting + control list |
@@ -142,7 +145,8 @@ same PR (parity is partly CI-enforced, partly not — do all of them):
   `sbom-validate` CI job now fails if this drifts from `Chart.yaml` `version:`.
 - Version-bearing docs: `docs/enterprise/ENTERPRISE_EVALUATION.md`,
   `docs/governance/CONTROLS.md` (footer), `docs/compliance/LICENSE_COMPLIANCE.md`,
-  `docs/compliance/EU_COMPLIANCE_CHECK.md`.
+  `docs/compliance/EU_COMPLIANCE_CHECK.md`, `docs/SECURITY_BASELINE.md`,
+  `docs/operations/MULTI_USER.md`.
 - If image tags changed: `sbom.cdx.json` + `zarf.yaml` image entries + the
   `LICENSE_COMPLIANCE.md` image table.
 

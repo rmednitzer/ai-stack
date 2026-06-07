@@ -36,7 +36,7 @@ spec:
 {{- end }}
 
 {{/* Stateful/GPU/critical components — always PDB with maxUnavailable=1 */}}
-{{- $protected := dict "ollama" .Values.ollama.enabled "qdrant" .Values.qdrant.enabled "authelia" .Values.authelia.enabled "searxng" .Values.searxng.enabled }}
+{{- $protected := dict "ollama" .Values.ollama.enabled "qdrant" .Values.qdrant.enabled "authelia" .Values.authelia.enabled "searxng" .Values.searxng.enabled "valkey" .Values.valkey.enabled }}
 {{- range $component, $enabled := $protected }}
 {{- if $enabled }}
 ---
