@@ -487,7 +487,7 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
   task_id "doc-001" \
   file_url "https://example.com/report.pdf" \
   filename "report.pdf" \
-  collection "documents"     # optional; defaults to QDRANT_COLLECTION
+  collection "documents"     # optional; tags the corpus state machine (not the upsert target)
 ```
 
 Or from within the cluster (e.g., from a script or application):
@@ -500,7 +500,7 @@ r.xadd('ingestion:documents', {
     'task_id': 'doc-001',
     'file_url': 'https://example.com/report.pdf',
     'filename': 'report.pdf',
-    'collection': 'documents',  # optional; per-collection / per-tenant routing
+    'collection': 'documents',  # optional; corpus-state-machine key + payload tag (not upsert routing)
 })
 ```
 

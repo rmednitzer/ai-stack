@@ -481,7 +481,7 @@ valkey:
     enabled: true  # Recommended: persist Valkey Streams across restarts
 ```
 
-Producers enqueue tasks via `XADD` (`collection` optional — defaults to the configured Qdrant collection):
+Producers enqueue tasks via `XADD` (`collection` is optional — it keys the corpus state machine and is stored in the payload; vectors are always written to the configured `QDRANT_COLLECTION`):
 
 ```
 XADD ingestion:documents * task_id <id> file_url <url> filename <name> collection <coll>

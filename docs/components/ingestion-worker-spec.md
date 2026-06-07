@@ -44,9 +44,9 @@ Producers enqueue with `XADD <stream> * <field> <value> …`. The stream name is
 | Field | Required | Default | Meaning |
 |-------|----------|---------|---------|
 | `task_id` | Recommended | the Stream message ID | Correlation id; keys the status hash and the deterministic Qdrant point IDs. Provide your own for idempotent re-submits. |
-| `file_url` | **Yes** | `""` | Source document. `http://`/`https://` is fetched over HTTP (redirects followed); anything else is read as a **local file path** inside the worker pod. |
+| `file_url` | **Yes** | — (required) | Source document; an empty/missing value fails. `http://`/`https://` is fetched over HTTP (redirects followed); anything else is read as a **local file path** inside the worker pod. |
 | `filename` | No | `"unknown"` | Stored as `source` in each chunk's Qdrant payload. |
-| `collection` | No | `QDRANT_COLLECTION` (default `documents`) | Target Qdrant collection **and** the corpus-state-machine key. Use distinct collections for per-tenant isolation. |
+| `collection` | No | `QDRANT_COLLECTION` (default `documents`) | The **corpus-state-machine key**, and recorded under `collection` in each chunk's Qdrant payload. **It does *not* select the Qdrant collection that vectors are written to:** the worker always upserts to the single configured `QDRANT_COLLECTION` (see [§7](#7-security-and-limitations)). So this field gives per-tenant *state tracking* and a payload filter key, **not** vector-store-level isolation on its own. |
 
 > **Security note.** `file_url` is fetched as-is — see [§7](#7-security-and-limitations). A
 > producer that can write to the stream controls the URL the worker dereferences.
@@ -224,6 +224,11 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
   Hash-locking is audit item **R7**.
 - **`error` content.** On failure the raw exception string is written to the
   status hash; readers of `ingestion:status:*` may see internal detail.
+- **`collection` does not route the upsert.** `upsert_vectors()` writes to the
+  single configured `QDRANT_COLLECTION`; the per-task `collection` only keys the
+  corpus state machine and is stored in the payload. True per-collection vector
+  isolation would require the worker to target the task's collection (and create
+  it on demand) — a deliberate enhancement, not current behaviour.
 - Boundary/tier and controls: T2 / `ingestion`, [CTL-002 + POL-001](../governance/CONTROLS.md).
   Standing scope boundaries: [`LIMITATIONS.md`](../../LIMITATIONS.md).
 
