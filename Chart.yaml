@@ -6,7 +6,7 @@ description: >-
   MCPO (MCP proxy), Open Terminal, Authelia (OIDC/SSO), async
   ingestion worker. PSA restricted, NetworkPolicy default-deny, OTel instrumented.
 type: application
-version: 2.8.0
+version: 2.9.0
 appVersion: "2026.5"
 # Requires PSA "restricted" (GA 1.25), networking.k8s.io/v1 NetworkPolicy,
 # autoscaling/v2 HPA, and policy/v1 PodDisruptionBudget with
@@ -40,6 +40,8 @@ keywords:
   - authelia
   - oidc
   - sso
+  - envoy-ai-gateway
+  - ai-gateway
 annotations:
   # Tier classification (see docs/governance/CONTROLS.md)
   assurance.platform/tier: "T1"

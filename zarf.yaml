@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.8.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.9.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.8.0
+  version: 2.9.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -43,6 +43,9 @@ variables:
   - name: AUTHELIA_ENABLED
     description: "Set authelia.enabled when deploying the authelia component"
     default: "true"
+  - name: ENVOY_AI_GATEWAY_ENABLED
+    description: "Set envoyAIGateway.enabled when deploying the envoy-ai-gateway component"
+    default: "true"
 
 components:
   # ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
     images:
@@ -86,7 +89,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
         variables:
@@ -110,7 +113,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
         variables:
@@ -134,7 +137,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
         variables:
@@ -154,7 +157,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
         variables:
@@ -174,7 +177,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.8.0
+        version: 2.9.0
         valuesFiles:
           - values.yaml
         variables:
@@ -183,3 +186,26 @@ components:
             path: authelia.enabled
     images:
       - ghcr.io/authelia/authelia:4.39.20@sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b
+
+  # ---------------------------------------------------------------------------
+  # Optional: Envoy AI Gateway (governed model-egress; BYO controller, ADR-006)
+  # The chart emits only the AI Gateway CRs; these images are mirrored so the
+  # platform can install the upstream controller chart in an air-gap.
+  # ---------------------------------------------------------------------------
+  - name: envoy-ai-gateway
+    required: false
+    description: "Envoy AI Gateway controller + extproc images (mirrored for the BYO controller install)"
+    charts:
+      - name: ai-stack
+        localPath: "."
+        namespace: ai-stack
+        version: 2.9.0
+        valuesFiles:
+          - values.yaml
+        variables:
+          - name: ENVOY_AI_GATEWAY_ENABLED
+            description: "Maps the ENVOY_AI_GATEWAY_ENABLED variable to envoyAIGateway.enabled"
+            path: envoyAIGateway.enabled
+    images:
+      - docker.io/envoyproxy/ai-gateway-controller:v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3
+      - docker.io/envoyproxy/ai-gateway-extproc:v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29

@@ -1,7 +1,7 @@
 # Enterprise Readiness Evaluation — ai-stack
 
 **Date:** 2026-05-24
-**Chart version:** 2.8.0 | **appVersion:** 2026.5
+**Chart version:** 2.9.0 | **appVersion:** 2026.5
 
 ---
 
@@ -57,7 +57,7 @@ alignment with governance, security, observability, and operational requirements
 - **HPA autoscaling** for stateless components (Open WebUI, Tika)
 - **Disaster recovery** via external tooling (Velero + CSI volume snapshots, CNPG barman for PostgreSQL)
 - CI pipeline: Helm lint → chart-testing → kubeconform schema validation → kube-linter policy lint → SBOM tag/digest parity
-- Chart version 2.8.0 with semver compliance
+- Chart version 2.9.0 with semver compliance
 
 ### 5. Architecture
 

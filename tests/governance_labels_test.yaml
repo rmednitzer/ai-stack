@@ -262,3 +262,20 @@ tests:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "storage"}
       - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+
+  # Envoy AI Gateway emits AI Gateway CRs with no pod template (like CNPG above),
+  # so governance metadata lives on the CR object only (ADR-006).
+  - it: Envoy AI Gateway AIGatewayRoute carries T1 / model-serving / CTL-002,POL-001
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+    documentSelector:
+      path: kind
+      value: AIGatewayRoute
+    asserts:
+      - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
+      - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "model-serving"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}

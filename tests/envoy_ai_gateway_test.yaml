@@ -1,0 +1,126 @@
+suite: Envoy AI Gateway — model-egress configuration (ADR-006)
+# CR-only component: the chart emits the AI Gateway custom resources + provider
+# Secret attached to a pre-existing Gateway (BYO control + data plane). These
+# assertions pin the apiVersions/kinds, the routing wiring, the governance
+# metadata on the CR objects, the no-plaintext-secret invariant, and the
+# render-time guards (mutual exclusion + required parentRefs).
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: renders nothing when disabled (default)
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: requires a parentRefs entry when enabled
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "envoyAIGateway.enabled=true requires at least one envoyAIGateway.parentRefs entry (the pre-existing Gateway the AIGatewayRoute attaches to)."
+
+  - it: is mutually exclusive with externalAPIs
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      externalAPIs.enabled: true
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: "envoyAIGateway.enabled and externalAPIs.enabled are mutually exclusive (one governed model-egress path, one audit story). Configure external providers under envoyAIGateway.providers instead, or disable envoyAIGateway."
+
+  - it: emits an AIGatewayRoute (v1beta1) attached to the BYO Gateway with governance metadata
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+          namespace: envoy-gateway-system
+    documentSelector:
+      path: kind
+      value: AIGatewayRoute
+    asserts:
+      - equal: {path: apiVersion, value: aigateway.envoyproxy.io/v1beta1}
+      - equal: {path: 'spec.parentRefs[0].name', value: ai-gateway}
+      - equal: {path: 'spec.parentRefs[0].kind', value: Gateway}
+      - equal: {path: 'spec.parentRefs[0].namespace', value: envoy-gateway-system}
+      - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
+      - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "model-serving"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+
+  - it: routes in-cluster Ollama as an OpenAI-schema AIServiceBackend
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-envoy-ai-gateway-ollama
+    asserts:
+      - equal: {path: kind, value: AIServiceBackend}
+      - equal: {path: spec.schema.name, value: OpenAI}
+      - equal: {path: spec.backendRef.kind, value: Service}
+      - equal: {path: spec.backendRef.name, value: ai-stack-ollama}
+      - equal: {path: spec.backendRef.port, value: 11434}
+
+  - it: fronts an external provider with a BackendSecurityPolicy reading the chart Secret
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.includeOllama: false
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+      envoyAIGateway.providers:
+        - name: openai
+          schema: OpenAI
+          hostname: api.openai.com
+          model: gpt-4o
+          apiKey: sk-secret
+    documentSelector:
+      path: kind
+      value: BackendSecurityPolicy
+    asserts:
+      - equal: {path: spec.type, value: APIKey}
+      - equal: {path: 'spec.targetRefs[0].name', value: ai-stack-envoy-ai-gateway-openai}
+      - equal: {path: spec.apiKey.secretRef.name, value: ai-stack-envoy-ai-gateway-openai-secret}
+
+  - it: stores the provider key in a Secret (no plaintext), data key apiKey
+    templates:
+      - templates/common/secrets.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.providers:
+        - name: openai
+          model: gpt-4o
+          hostname: api.openai.com
+          apiKey: sk-secret
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-envoy-ai-gateway-openai-secret
+    asserts:
+      - equal: {path: kind, value: Secret}
+      - equal: {path: data.apiKey, value: "c2stc2VjcmV0"}
+
+  - it: client auth requires a jwksUri
+    templates:
+      - templates/envoy-ai-gateway/aigateway.yaml
+    set:
+      envoyAIGateway.enabled: true
+      envoyAIGateway.parentRefs:
+        - name: ai-gateway
+      envoyAIGateway.clientAuth.enabled: true
+      envoyAIGateway.clientAuth.issuer: https://auth.example/
+    asserts:
+      - failedTemplate:
+          errorMessage: "envoyAIGateway.clientAuth.jwksUri is required when clientAuth is enabled"

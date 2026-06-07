@@ -112,6 +112,83 @@
         }
       }
     },
+    "envoyAIGateway": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Governed model-egress gateway (Envoy AI Gateway CRs). See docs/components/envoy-ai-gateway.md and ADR-006. Mutually exclusive with externalAPIs.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "controller": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "image": { "$ref": "#/$defs/image" } }
+        },
+        "extproc": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "image": { "$ref": "#/$defs/image" } }
+        },
+        "includeOllama": { "type": "boolean" },
+        "ollamaModel": { "type": "string" },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "namespace": { "type": "string" },
+              "sectionName": { "type": "string" },
+              "port": { "type": "integer" }
+            }
+          }
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["name", "model"],
+            "properties": {
+              "name": { "type": "string" },
+              "schema": { "type": "string" },
+              "hostname": { "type": "string" },
+              "port": { "type": "integer" },
+              "model": { "type": "string" },
+              "apiKey": { "type": "string" },
+              "existingSecret": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["name", "key"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "key": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "rateLimit": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "limit": { "type": "integer" },
+            "unit": { "type": "string", "enum": ["Second", "Minute", "Hour", "Day"] }
+          }
+        },
+        "clientAuth": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "issuer": { "type": "string" },
+            "jwksUri": { "type": "string" }
+          }
+        }
+      }
+    },
     "authelia":        { "$ref": "#/$defs/component" },
     "openwebui":       { "$ref": "#/$defs/component" },
     "ollama":          { "$ref": "#/$defs/componentWithGpu" },

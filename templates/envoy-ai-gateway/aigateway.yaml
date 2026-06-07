@@ -1,0 +1,233 @@
+{{- if .Values.envoyAIGateway.enabled }}
+{{- /*
+Envoy AI Gateway — model-egress configuration (ADR-006).
+
+CR-only component: the chart emits the AI Gateway custom resources + provider
+Secret and attaches them to a PRE-EXISTING Gateway (BYO control + data plane,
+mirroring how ADR-003's HTTPRoute attaches to a Gateway it does not provision).
+There is no workload pod in this namespace, so — like the CNPG Cluster/Pooler —
+governance metadata (tier/boundary labels + control-refs annotation) lives on the
+CR objects only, and there is no ServiceAccount (no pod to give identity to).
+The controller/extproc images are declared in values.yaml purely so Zarf mirrors
+them for air-gap; they are not rendered here.
+*/}}
+{{- if .Values.externalAPIs.enabled }}
+{{- fail "envoyAIGateway.enabled and externalAPIs.enabled are mutually exclusive (one governed model-egress path, one audit story). Configure external providers under envoyAIGateway.providers instead, or disable envoyAIGateway." }}
+{{- end }}
+{{- if not .Values.envoyAIGateway.parentRefs }}
+{{- fail "envoyAIGateway.enabled=true requires at least one envoyAIGateway.parentRefs entry (the pre-existing Gateway the AIGatewayRoute attaches to)." }}
+{{- end }}
+{{- $base := include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "envoy-ai-gateway") }}
+{{- $defaultNs := .Values.global.gateway.namespace | default .Values.global.ingressNamespace }}
+{{- if and .Values.envoyAIGateway.includeOllama (not .Values.ollama.enabled) }}
+{{- fail "envoyAIGateway.includeOllama=true requires ollama.enabled=true (no in-cluster Ollama backend to route to). Set envoyAIGateway.includeOllama=false to front external providers only." }}
+{{- end }}
+{{- if and (not (and .Values.envoyAIGateway.includeOllama .Values.ollama.enabled)) (not .Values.envoyAIGateway.providers) }}
+{{- fail "envoyAIGateway.enabled=true requires at least one backend: enable includeOllama (with ollama.enabled) and/or add entries to envoyAIGateway.providers." }}
+{{- end }}
+
+{{- /* ---- In-cluster Ollama backend (catch-all model route) ---- */}}
+{{- if and .Values.envoyAIGateway.includeOllama .Values.ollama.enabled }}
+---
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIServiceBackend
+metadata:
+  name: {{ $base }}-ollama
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "platform" | nindent 4 }}
+spec:
+  schema:
+    name: OpenAI
+  backendRef:
+    name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ollama") }}
+    kind: Service
+    port: {{ .Values.ollama.service.port }}
+{{- end }}
+
+{{- /* ---- External providers: Backend + AIServiceBackend + BackendSecurityPolicy ---- */}}
+{{- range $p := .Values.envoyAIGateway.providers }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: {{ $base }}-{{ $p.name }}-backend
+  labels:
+    {{- include "ai-stack.labels" $ | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "platform" | nindent 4 }}
+spec:
+  endpoints:
+    - fqdn:
+        hostname: {{ required (printf "envoyAIGateway provider %q requires .hostname" $p.name) $p.hostname | quote }}
+        port: {{ $p.port | default 443 }}
+---
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIServiceBackend
+metadata:
+  name: {{ $base }}-{{ $p.name }}
+  labels:
+    {{- include "ai-stack.labels" $ | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "platform" | nindent 4 }}
+spec:
+  schema:
+    name: {{ $p.schema | default "OpenAI" }}
+  backendRef:
+    name: {{ $base }}-{{ $p.name }}-backend
+    kind: Backend
+    group: gateway.envoyproxy.io
+{{- if or $p.apiKey (and $p.existingSecret $p.existingSecret.name) }}
+---
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: BackendSecurityPolicy
+metadata:
+  name: {{ $base }}-{{ $p.name }}
+  labels:
+    {{- include "ai-stack.labels" $ | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" $.Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "platform" | nindent 4 }}
+spec:
+  targetRefs:
+    - group: aigateway.envoyproxy.io
+      kind: AIServiceBackend
+      name: {{ $base }}-{{ $p.name }}
+  type: APIKey
+  apiKey:
+    secretRef:
+      name: {{ if and $p.existingSecret $p.existingSecret.name }}{{ $p.existingSecret.name }}{{ else }}{{ include "ai-stack.envoyAIGatewaySecretName" (dict "Release" $.Release "provider" $p) }}{{ end }}
+{{- end }}
+{{- end }}
+
+{{- /* ---- Unified route attached to the BYO Gateway ---- */}}
+---
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+metadata:
+  name: {{ $base }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "app" | nindent 4 }}
+spec:
+  parentRefs:
+    {{- range .Values.envoyAIGateway.parentRefs }}
+    - name: {{ required "envoyAIGateway.parentRefs[].name is required (the Gateway name)" .name }}
+      kind: Gateway
+      group: gateway.networking.k8s.io
+      namespace: {{ .namespace | default $defaultNs | quote }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  rules:
+    {{- range $p := .Values.envoyAIGateway.providers }}
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: {{ required (printf "envoyAIGateway provider %q requires .model" $p.name) $p.model | quote }}
+      backendRefs:
+        - name: {{ $base }}-{{ $p.name }}
+    {{- end }}
+    {{- if and .Values.envoyAIGateway.includeOllama .Values.ollama.enabled }}
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: {{ .Values.envoyAIGateway.ollamaModel | quote }}
+      backendRefs:
+        - name: {{ $base }}-ollama
+    {{- end }}
+
+{{- /* ---- Optional: token-based rate limiting (Envoy Gateway BackendTrafficPolicy) ---- */}}
+{{- if .Values.envoyAIGateway.rateLimit.enabled }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ $base }}-ratelimit
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "policy" | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ (index .Values.envoyAIGateway.parentRefs 0).name }}
+  rateLimit:
+    type: Global
+    global:
+      rules:
+        - clientSelectors:
+            - headers:
+                - name: x-ai-eg-model
+                  type: Distinct
+          limit:
+            requests: {{ .Values.envoyAIGateway.rateLimit.limit }}
+            unit: {{ .Values.envoyAIGateway.rateLimit.unit }}
+          cost:
+            request:
+              from: Number
+              number: 0
+            response:
+              from: Metadata
+              metadata:
+                namespace: io.envoy.ai_gateway
+                key: llm_total_token
+{{- end }}
+
+{{- /* ---- Optional: client JWT/OIDC auth at the gateway (Envoy SecurityPolicy) ---- */}}
+{{- if .Values.envoyAIGateway.clientAuth.enabled }}
+{{- $issuer := .Values.envoyAIGateway.clientAuth.issuer | default (.Values.authelia.enabled | ternary .Values.authelia.oidc.issuerUrl "") }}
+{{- if not $issuer }}
+{{- fail "envoyAIGateway.clientAuth.enabled=true requires envoyAIGateway.clientAuth.issuer (or authelia.enabled so the Authelia issuer can be used)." }}
+{{- end }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ $base }}-auth
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "envoy-ai-gateway") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "envoy-ai-gateway" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "envoy-ai-gateway" | nindent 4 }}
+    {{- include "ai-stack.syncWave" "policy" | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ (index .Values.envoyAIGateway.parentRefs 0).name }}
+  jwt:
+    providers:
+      - name: {{ .Values.authelia.enabled | ternary "authelia" "oidc" }}
+        issuer: {{ $issuer | quote }}
+        remoteJWKS:
+          uri: {{ required "envoyAIGateway.clientAuth.jwksUri is required when clientAuth is enabled" .Values.envoyAIGateway.clientAuth.jwksUri | quote }}
+{{- end }}
+{{- end }}

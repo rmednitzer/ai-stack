@@ -133,6 +133,96 @@ externalAPIs:
   # See HOWTO.md §6 for provider configuration examples (OpenAI, Azure, Anthropic, Gemini, etc.)
 
 # =============================================================================
+# Envoy AI Gateway — Governed model-egress gateway
+# Tier: T1 (operational) | Boundary: model-serving
+#
+# Opt-in. Renders the Envoy AI Gateway custom resources (AIServiceBackend,
+# BackendSecurityPolicy, AIGatewayRoute + the Envoy Gateway Backend endpoints)
+# that turn a pre-existing Gateway into one governed, in-cluster
+# OpenAI-compatible endpoint for local Ollama + external providers —
+# centralizing provider credentials, routing, and (optionally) token-based rate
+# limiting and JWT/OIDC client auth.
+#
+# Runtime model (ADR-006): BYO control + data plane. This chart emits ONLY the
+# CRs and the provider-credential Secret; it does NOT install the Envoy AI
+# Gateway controller or the Envoy Gateway data plane — they are assumed present,
+# exactly as ADR-003's opt-in HTTPRoute assumes a Gateway API implementation.
+# The controller/extproc images below are declared so the Zarf package mirrors
+# them into an air-gapped registry (the platform installs the upstream
+# controller chart against the mirror); both are digest-pinned and catalogued in
+# sbom.cdx.json. License: Apache-2.0 (no open-core carve-out).
+#
+# Mutually exclusive with externalAPIs (one egress path, one audit story):
+# enabling both is a render-time error.
+# =============================================================================
+envoyAIGateway:
+  # -- Enable the governed model-egress gateway configuration
+  enabled: false
+
+  # -- Images mirrored for air-gap. BYO controller: NOT rendered by this chart;
+  # declared so Zarf mirrors them and the SBOM catalogues them. Digest-pinned.
+  controller:
+    image:
+      repository: docker.io/envoyproxy/ai-gateway-controller
+      tag: "v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3"
+  extproc:
+    image:
+      repository: docker.io/envoyproxy/ai-gateway-extproc
+      tag: "v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29"
+
+  # -- Pre-existing Gateway(s) the AIGatewayRoute attaches to (BYO; not
+  # provisioned by this chart). At least one entry is required when enabled.
+  # Fields: name (required), namespace, sectionName, port.
+  parentRefs: []
+    # - name: ai-gateway
+    #   namespace: envoy-gateway-system
+    #   sectionName: http
+
+  # -- Route the in-cluster Ollama backend behind the gateway (when ollama.enabled).
+  # The Ollama rule is the catch-all (requests whose model is not matched by a
+  # provider below route here).
+  includeOllama: true
+  # -- Model id clients select to reach Ollama (routed via the x-ai-eg-model header).
+  ollamaModel: "llama3"
+
+  # -- External providers fronted by the gateway. Each adds an AIServiceBackend
+  # (+ Envoy Gateway Backend endpoint) and, when a key is supplied, a
+  # BackendSecurityPolicy that reads the key from a chart-managed (or existing)
+  # Secret. Fields:
+  #   name:            DNS-safe unique id (resource + Secret naming)
+  #   schema:          AIServiceBackend schema (OpenAI | AzureOpenAI | AWSBedrock | ...)
+  #   hostname:        upstream FQDN (e.g. api.openai.com)
+  #   port:            upstream port (default 443)
+  #   model:           model id clients select (routed via x-ai-eg-model)
+  #   apiKey:          API key value (stored in a chart-managed Secret)
+  #   existingSecret:  {name, key} — reference an existing Secret instead
+  providers: []
+    # - name: openai
+    #   schema: OpenAI
+    #   hostname: api.openai.com
+    #   port: 443
+    #   model: gpt-4o
+    #   apiKey: ""              # or existingSecret: {name: my-openai, key: apiKey}
+
+  # -- Token-based rate limiting at the gateway (Envoy Gateway
+  # BackendTrafficPolicy + the AI Gateway LLMRequestCosts metadata).
+  rateLimit:
+    enabled: false
+    # -- token budget per `unit` window, keyed per client (x-ai-eg-model)
+    limit: 100000
+    # -- window unit: Second | Minute | Hour | Day
+    unit: Hour
+
+  # -- Client authentication at the gateway (Envoy SecurityPolicy, JWT/OIDC).
+  # When authelia.enabled and this is on, the Authelia issuer is used by default.
+  clientAuth:
+    enabled: false
+    # -- OIDC issuer (defaults to authelia.oidc.issuerUrl when authelia.enabled)
+    issuer: ""
+    # -- JWKS endpoint for token signature verification
+    jwksUri: ""
+
+# =============================================================================
 # Authelia — Optional OIDC identity provider for Open WebUI SSO
 # Tier: T0 (safety/integrity) | Boundary: authentication
 #
