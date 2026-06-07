@@ -21,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin, urlparse
 
 import httpx
 import valkey
@@ -414,18 +414,40 @@ def read_source(file_url: str) -> bytes:
     """
     scheme = file_url.split("://", 1)[0].lower() if "://" in file_url else ""
     if scheme in ("http", "https"):
-        return http.get(file_url, follow_redirects=True, timeout=60.0).content
+        resp = http.get(file_url, follow_redirects=True, timeout=60.0)
+        resp.raise_for_status()  # don't ingest a 4xx/5xx error-page body
+        return resp.content
     if scheme in ("", "file"):
-        path = file_url[len("file://"):] if scheme == "file" else file_url
+        if scheme == "file":
+            # Parse per RFC 8089 so the authority is stripped correctly:
+            # file:///p and file://localhost/p both mean /p. A non-empty remote
+            # host is unsupported (we read locally, not over a network scheme).
+            parsed = urlparse(file_url)
+            if parsed.netloc not in ("", "localhost"):
+                raise ValueError(f"remote file:// host not supported: {parsed.netloc!r}")
+            path = unquote(parsed.path)
+        else:
+            path = file_url
         resolved = Path(path).resolve()  # canonicalize .. and symlinks first
         rp = str(resolved)
         if any(rp == d or rp.startswith(d + "/") for d in _LOCAL_DENY_PREFIXES):
             raise ValueError(f"local source path not permitted: {rp}")
+        if not resolved.is_file():
+            # Reject devices (/dev/zero, /dev/urandom → unbounded read_bytes),
+            # FIFOs/sockets, and directories — only regular files are sources.
+            raise ValueError(f"local source is not a regular file: {rp}")
         return resolved.read_bytes()
     if scheme in SOURCE_SCHEMES:
-        import fsspec  # lazy; provided via ingestionWorker.sources.pipPackages
-        with fsspec.open(file_url, "rb") as f:
-            return f.read()
+        try:
+            import fsspec  # lazy; provided via ingestionWorker.sources.pipPackages
+            with fsspec.open(file_url, "rb") as f:
+                return f.read()
+        except ImportError as exc:
+            raise ValueError(
+                f"scheme {scheme!r} is allow-listed but its fsspec backend is not "
+                f"installed; add the matching package to "
+                f"ingestionWorker.sources.pipPackages ({exc})"
+            ) from exc
     raise ValueError(
         f"unsupported or disabled source scheme {scheme!r}: set "
         f"ingestionWorker.sources.enabled=true and add the scheme to "

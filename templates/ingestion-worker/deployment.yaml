@@ -100,10 +100,8 @@ spec:
             - sh
             - -c
             - |
-              pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt
-              {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}
-              pip install --no-cache-dir --target=/deps{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}
-              {{- end }}
+              set -e
+              pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt{{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}{{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -143,7 +141,7 @@ spec:
             {{- end }}
             - name: VALKEY_URL
               value: 'redis://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
-            {{- if .Values.ingestionWorker.sources.enabled }}
+            {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.schemes }}
             - name: INGESTION_SOURCE_SCHEMES
               value: {{ join "," .Values.ingestionWorker.sources.schemes | quote }}
             {{- end }}

@@ -44,7 +44,7 @@ Producers enqueue with `XADD <stream> * <field> <value> …`. The stream name is
 | Field | Required | Default | Meaning |
 |-------|----------|---------|---------|
 | `task_id` | Recommended | the Stream message ID | Correlation id; keys the status hash and the deterministic Qdrant point IDs. Provide your own for idempotent re-submits. |
-| `file_url` | **Yes** | — (required) | Source document; an empty/missing value fails. `http://`/`https://` is fetched over HTTP (redirects followed); anything else is read as a **local file path** inside the worker pod. |
+| `file_url` | **Yes** | — (required) | Source document; an empty/missing value fails. `http://`/`https://` is fetched over HTTP (redirects followed, non-2xx rejected); a bare path / `file://` is read as a **local regular file**; any other scheme is resolved via `fsspec` **only if allow-listed**, otherwise **rejected** (not read as a local path). See [§2.1](#21-source-resolution-url-schemes-adr-007). |
 | `filename` | No | `"unknown"` | Stored as `source` in each chunk's Qdrant payload. |
 | `collection` | No | `QDRANT_COLLECTION` (default `documents`) | The **corpus-state-machine key**, and recorded under `collection` in each chunk's Qdrant payload. **It does *not* select the Qdrant collection that vectors are written to:** the worker always upserts to the single configured `QDRANT_COLLECTION` (see [§7](#7-security-and-limitations)). So this field gives per-tenant *state tracking* and a payload filter key, **not** vector-store-level isolation on its own. |
 
@@ -67,8 +67,8 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
 
 | Scheme | Resolver | Notes |
 |--------|----------|-------|
-| `http://`, `https://` | `httpx` GET (redirects followed) | Always available. Covers **presigned** S3/GCS/Azure URLs. |
-| *(bare path)*, `file://` | local filesystem read | Always available. Covers **CSI-mounted NFS/SMB** shares (the recommended, lowest-risk pattern). |
+| `http://`, `https://` | `httpx` GET (redirects followed; **non-2xx rejected**) | Always available. Covers **presigned** S3/GCS/Azure URLs. |
+| *(bare path)*, `file://` | local **regular-file** read | Always available. Covers **CSI-mounted NFS/SMB** shares (the recommended, lowest-risk pattern). `file://` follows RFC 8089 (`file:///p` and `file://localhost/p` → `/p`); devices/FIFOs/dirs and credential/system prefixes are rejected (see [§7](#7-security-and-limitations)). |
 | `s3://`, `gs://`, `az://`, `smb://`, `sftp://`, … | `fsspec` | **Opt-in & deny-by-default**: honored only when the scheme is in `INGESTION_SOURCE_SCHEMES` (set from `ingestionWorker.sources.schemes`). An unknown or disabled scheme is **rejected**, never read as a local path. |
 
 Native connectors require the matching `fsspec` backend (installed via
@@ -228,11 +228,15 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 ## 7. Security and limitations
 
 - **Fetch surface (SSRF / local read).** **Local** reads (bare path / `file://`)
-  are fenced away from sensitive system + credential prefixes (`/proc`, `/sys`,
-  `/etc`, `/root`, `/run`, `/var/run`) — paths are `resolve()`-canonicalized
-  first — so a producer-supplied `file_url` cannot read e.g. `/proc/self/environ`
+  are restricted to **regular files** — devices (`/dev/urandom`, `/dev/zero`),
+  FIFOs, sockets and directories are rejected, closing an unbounded-`read_bytes`
+  DoS — and are fenced away from sensitive system + credential prefixes (`/proc`,
+  `/sys`, `/etc`, `/root`, `/run`, `/var/run`); paths are `resolve()`-canonicalized
+  first, so a producer-supplied `file_url` cannot read e.g. `/proc/self/environ`
   (which carries the credentials projected via `sources.existingSecret`) into the
-  store. **`http(s)`** fetches still follow the producer-supplied host: treat
+  store. A symlink swapped between the resolve-time check and the read (TOCTOU) is
+  tracked as **R10**. **`http(s)`** fetches **reject non-2xx responses** (no
+  error-page body is ingested) but still follow the producer-supplied host: treat
   stream producers as trusted and restrict who can write to the stream; a
   private/link-local CIDR allow/deny list for the HTTP path is tracked as **R5**
   in [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).

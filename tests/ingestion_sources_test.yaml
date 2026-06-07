@@ -53,9 +53,10 @@ tests:
             secretRef:
               name: ingest-cloud-creds
 
-  - it: installs only the operator-selected backend packages
+  - it: installs base requirements and operator-selected backends in one pip pass
     set:
       ingestionWorker.enabled: true
+      # valkey disabled so install-deps is initContainers[0] (no init-valkey-stream)
       valkey.enabled: false
       ingestionWorker.sources.enabled: true
       ingestionWorker.sources.pipPackages: [fsspec, s3fs]
@@ -63,6 +64,32 @@ tests:
       path: kind
       value: Deployment
     asserts:
+      # single pip invocation: base requirements + backends resolved together,
+      # so a backend that conflicts with a base dep fails at build, not runtime
       - matchRegex:
           path: spec.template.spec.initContainers[0].command[2]
-          pattern: "pip install --no-cache-dir --target=/deps 'fsspec' 's3fs'"
+          pattern: "pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt 'fsspec' 's3fs'"
+      # set -e: a failed base install aborts the container (no silent success)
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: "set -e"
+
+  - it: fences local file_url reads (regular files only, off credential/system prefixes) — ADR-007
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      # only regular files are read — devices (/dev/zero,/dev/urandom), FIFOs, dirs rejected
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "is_file"
+      # credential/system prefixes denied (e.g. /proc/self/environ holds projected creds)
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "_LOCAL_DENY_PREFIXES"
+      # a 4xx/5xx HTTP error-page body is not ingested
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "raise_for_status"
