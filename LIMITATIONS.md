@@ -3,7 +3,7 @@
 Explicit scope boundaries and known gaps for the ai-stack chart. Each entry
 states the current state, the implication for an operator, and where it is
 tracked. This is a living document; the list is expected to change as the chart
-evolves. Last reviewed: 2026-06-07 (v2.10.0, baseline + standards review).
+evolves. Last reviewed: 2026-06-07 (v2.11.0, ingestion source connectors review).
 
 The focus here is the **tool/command plane** (MCPO and Open Terminal) and the
 **agentic runtimes**, where the chart ships capability that operators must
@@ -104,3 +104,21 @@ routes user prompts to those providers — a cross-border data-transfer
 consideration under GDPR Chapter V; assess it in the DPIA before enabling.
 Tracking: `docs/architecture/ADR-006-envoy-ai-gateway-model-egress.md`;
 `docs/components/ai-gateway.md`.
+
+## L9. Native ingestion source connectors widen the fetch surface
+
+State: enabling `ingestionWorker.sources` (ADR-007) lets stream producers enqueue
+object-store / network-share scheme URLs (`s3://`, `smb://`, …) that the worker
+dereferences with credentials projected from `sources.existingSecret`. It is
+opt-in and deny-by-default (only allow-listed schemes resolve; local reads are
+restricted to regular files off credential/system prefixes; non-2xx HTTP is
+rejected), but a producer-supplied `file_url` is still an attacker-influenced
+fetch path.
+Implication: treat stream producers as trusted and restrict who can `XADD` to the
+`ingestion:documents` stream; the chart does not open egress for native non-HTTPS
+protocols (SMB/NFS/SFTP) — you add it explicitly. Prefer the zero-credential
+patterns (presigned HTTPS URLs, CSI-mounted shares + local paths) where possible.
+An HTTP-path private/link-local CIDR deny list (R5) and a local-read symlink
+TOCTOU (R10) remain on the audit backlog.
+Tracking: `docs/architecture/ADR-007-ingestion-source-connectors.md`;
+`docs/components/ingestion-worker-spec.md` (§7); `docs/audit/AUDIT-2026-06.md`.

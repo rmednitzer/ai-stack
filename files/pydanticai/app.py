@@ -62,6 +62,15 @@ logging.basicConfig(
 )
 log = logging.getLogger("pydanticai")
 
+if not API_KEY:
+    # The bearer-token gate (_check_auth) is a no-op when PYDANTICAI_API_KEY is
+    # empty — every request to the agentic endpoints is accepted. Surface it so
+    # an accidentally-blank Secret is not a silent open door.
+    log.warning(
+        "PYDANTICAI_API_KEY is empty — agentic endpoints are UNAUTHENTICATED; "
+        "set an API key (and front the route with Authelia) before exposing them"
+    )
+
 
 # ---------------------------------------------------------------------------
 # OpenTelemetry (best-effort; uses the chart-injected OTEL_* env vars)

@@ -39,8 +39,35 @@ source connectors** for object stores and network shares.
   keys the corpus state machine and tags the payload, and does **not** route the
   Qdrant upsert; and a stale `digest:` example in the worker `Dockerfile`.
 
+### Fixed
+
+- **Init container `install-deps` is one `pip install` with `set -e`.** Base
+  `requirements.txt` and the operator-selected `sources.pipPackages` now resolve
+  in a single pass (a backend that conflicts with a base dep fails at build, not
+  at runtime), and a failed base install no longer exits 0 and silently starts a
+  worker with missing dependencies.
+- **`file://` URLs parsed per RFC 8089.** `file:///p` and `file://localhost/p`
+  both resolve to `/p`; previously a `file://host/…` authority was folded into the
+  path and the worker read the wrong (cwd-relative) file.
+- **`INGESTION_SOURCE_SCHEMES` is wired only when a scheme is allow-listed** (not
+  on `sources.enabled` alone), so a scheme-allowlist audit never sees an empty,
+  misleading variable.
+- **Version-reference drift.** `SECURITY.md` supported-versions table and the
+  `LIMITATIONS.md` review marker realigned to 2.11.0; new `LIMITATIONS.md` **L9**
+  documents the ADR-007 fetch surface.
+
 ### Security
 
+- **Local `file_url` reads are restricted to regular files** — devices
+  (`/dev/urandom`, `/dev/zero`), FIFOs, sockets and directories are rejected,
+  closing an unbounded-`read_bytes` DoS — in addition to the existing
+  credential/system-prefix fence (`/proc`, `/sys`, `/etc`, `/root`, `/run`,
+  `/var/run`).
+- **HTTP `file_url` fetches reject non-2xx responses** — reporting only the
+  status code, never the URL, so a **presigned signature isn't echoed** into logs
+  or the status hash — and a 404/500 error-page body is never extracted.
+- **Pydantic AI warns at startup when `PYDANTICAI_API_KEY` is empty**, surfacing
+  that the bearer-token gate is a no-op (endpoints unauthenticated).
 - **No security default weakened.** Native connectors are opt-in and
   deny-by-default; the chart does **not** auto-open egress for native non-HTTPS
   protocols (SMB/NFS/SFTP). PSA `restricted`, default-deny NetworkPolicy, and

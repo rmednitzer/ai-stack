@@ -82,15 +82,18 @@ Approaches evaluated:
 - Native multi-source ingestion (object stores + shares) from one uniform code path.
 - Lean default image; credentials scoped to one Secret; provider-agnostic worker.
 - Backward compatible — existing `http(s)`/local/CSI-mount and presigned-URL flows are unchanged.
-- Local-path reads are fenced from sensitive system/credential prefixes
-  (`/proc`, `/sys`, `/etc`, `/root`, `/run`, `/var/run`), so the env-projected
-  credentials this ADR introduces cannot be read back through a crafted
-  `file_url` (e.g. `/proc/self/environ`) and exfiltrated into the vector store.
+- Local-path reads are restricted to **regular files** (devices/FIFOs/sockets/
+  directories rejected, closing an unbounded-`read_bytes` DoS) and fenced from
+  sensitive system/credential prefixes (`/proc`, `/sys`, `/etc`, `/root`, `/run`,
+  `/var/run`), so the env-projected credentials this ADR introduces cannot be
+  read back through a crafted `file_url` (e.g. `/proc/self/environ`) and
+  exfiltrated into the vector store.
 
 **Negative / trade-offs**
 - Widens the worker's fetch surface (SSRF). Mitigated by: deny-by-default scheme
   allowlist, operator-scoped egress (non-HTTPS stays blocked by default), and the
-  Secret-scoped credentials. Treat stream producers as trusted.
+  Secret-scoped credentials. Treat stream producers as trusted. A symlink-swap
+  TOCTOU on local reads is a residual, tracked as **R10** in the audit backlog.
 - The operator owns the backend dependency set, the credential Secret, and any
   extra egress — more configuration than the zero-code presigned/mount patterns.
 - `pipPackages` installed at runtime are not hash-pinned (consistent with the
