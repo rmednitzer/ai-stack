@@ -43,8 +43,8 @@ variables:
   - name: AUTHELIA_ENABLED
     description: "Set authelia.enabled when deploying the authelia component"
     default: "true"
-  - name: ENVOY_AI_GATEWAY_ENABLED
-    description: "Set envoyAIGateway.enabled when deploying the envoy-ai-gateway component"
+  - name: AI_GATEWAY_ENABLED
+    description: "Set aiGateway.enabled when deploying the ai-gateway component"
     default: "true"
 
 components:
@@ -192,7 +192,7 @@ components:
   # The chart emits only the AI Gateway CRs; these images are mirrored so the
   # platform can install the upstream controller chart in an air-gap.
   # ---------------------------------------------------------------------------
-  - name: envoy-ai-gateway
+  - name: ai-gateway
     required: false
     description: "Envoy AI Gateway controller + extproc images (mirrored for the BYO controller install)"
     charts:
@@ -203,9 +203,9 @@ components:
         valuesFiles:
           - values.yaml
         variables:
-          - name: ENVOY_AI_GATEWAY_ENABLED
-            description: "Maps the ENVOY_AI_GATEWAY_ENABLED variable to envoyAIGateway.enabled"
-            path: envoyAIGateway.enabled
+          - name: AI_GATEWAY_ENABLED
+            description: "Maps the AI_GATEWAY_ENABLED variable to aiGateway.enabled"
+            path: aiGateway.enabled
     images:
       - docker.io/envoyproxy/ai-gateway-controller:v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3
       - docker.io/envoyproxy/ai-gateway-extproc:v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29

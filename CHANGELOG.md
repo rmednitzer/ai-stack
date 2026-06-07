@@ -14,7 +14,7 @@ OpenAI-compatible model-egress boundary. No security default changes.
 
 ### Added
 
-- **Opt-in `envoyAIGateway` component (Envoy AI Gateway, Apache-2.0).** Renders
+- **Opt-in `aiGateway` component (implemented by Envoy AI Gateway, Apache-2.0).** Renders
   the Envoy AI Gateway custom resources (`AIGatewayRoute` / `AIServiceBackend` /
   `BackendSecurityPolicy` + the Envoy Gateway `Backend`, plus optional
   `BackendTrafficPolicy` token rate-limiting and a JWT/OIDC `SecurityPolicy`)

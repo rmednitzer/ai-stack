@@ -77,6 +77,25 @@ chart.
 | `sbom.cdx.json` | CycloneDX SBOM (one component per image; digest-pinned) |
 | `Makefile` | `lint`, `lint-prod`, `template`, `template-prod`, `unittest`, `test`, `check-links` |
 
+## Component naming
+
+Components follow one naming rule, so the values API stays stable as
+implementations evolve:
+
+- **Values key — camelCase, lowercase first letter** (Helm convention; hyphens
+  break value paths). Name a component by its **generic role/category** when a
+  recognised industry term exists (`aiGateway`, `externalAPIs`,
+  `ingestionWorker`) so the implementation can change without a breaking rename;
+  name it by the **upstream project** only when the component *is* that specific
+  software (`ollama`, `qdrant`, `authelia`, `openwebui`).
+- **Resource id — kebab-case** of the same term, used for `componentName`, the
+  `templates/<id>/` directory, the `ai-stack.governanceMap` key, and the
+  `app.kubernetes.io/name` selector (e.g. `ai-gateway`).
+- The concrete implementation/image is documented in `docs/components/<id>.md`
+  and `sbom.cdx.json` — **not** encoded in the values key. Example: the
+  `aiGateway` component is implemented by Envoy AI Gateway (ADR-006); swapping
+  the gateway would not change the chart's values surface.
+
 ## 4) Required change workflow
 
 1. Read the impacted template(s), `values.yaml`, and `_helpers.tpl`.

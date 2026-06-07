@@ -40,7 +40,6 @@ keywords:
   - authelia
   - oidc
   - sso
-  - envoy-ai-gateway
   - ai-gateway
 annotations:
   # Tier classification (see docs/governance/CONTROLS.md)

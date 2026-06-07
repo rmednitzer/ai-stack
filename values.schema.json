@@ -112,10 +112,10 @@
         }
       }
     },
-    "envoyAIGateway": {
+    "aiGateway": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Governed model-egress gateway (Envoy AI Gateway CRs). See docs/components/envoy-ai-gateway.md and ADR-006. Mutually exclusive with externalAPIs.",
+      "description": "Governed model-egress gateway (Envoy AI Gateway CRs). See docs/components/ai-gateway.md and ADR-006. Mutually exclusive with externalAPIs.",
       "properties": {
         "enabled": { "type": "boolean" },
         "controller": {
@@ -149,7 +149,7 @@
           "items": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["name", "model"],
+            "required": ["name", "model", "hostname"],
             "properties": {
               "name": { "type": "string" },
               "schema": { "type": "string" },
@@ -160,10 +160,9 @@
               "existingSecret": {
                 "type": "object",
                 "additionalProperties": true,
-                "required": ["name", "key"],
+                "required": ["name"],
                 "properties": {
-                  "name": { "type": "string" },
-                  "key": { "type": "string" }
+                  "name": { "type": "string" }
                 }
               }
             }

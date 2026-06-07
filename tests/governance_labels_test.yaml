@@ -267,10 +267,10 @@ tests:
   # so governance metadata lives on the CR object only (ADR-006).
   - it: Envoy AI Gateway AIGatewayRoute carries T1 / model-serving / CTL-002,POL-001
     templates:
-      - templates/envoy-ai-gateway/aigateway.yaml
+      - templates/ai-gateway/aigateway.yaml
     set:
-      envoyAIGateway.enabled: true
-      envoyAIGateway.parentRefs:
+      aiGateway.enabled: true
+      aiGateway.parentRefs:
         - name: ai-gateway
     documentSelector:
       path: kind

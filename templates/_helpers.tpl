@@ -171,7 +171,7 @@ comma-separated list, which is not a valid label value.
 authelia: {tier: "T0", boundary: "authentication", controlRefs: "CTL-002,POL-001"}
 openwebui: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
 ollama: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
-envoy-ai-gateway: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
+ai-gateway: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
 qdrant: {tier: "T1", boundary: "retrieval", controlRefs: "CTL-002,POL-001"}
 tika: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
 searxng: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
@@ -403,10 +403,10 @@ Usage: {{ include "ai-stack.extapiSecretName" (dict "Release" .Release "Chart" .
 
 {{/*
 Envoy AI Gateway provider credential Secret name (chart-managed upstream API key).
-Usage: {{ include "ai-stack.envoyAIGatewaySecretName" (dict "Release" .Release "provider" $provider) }}
+Usage: {{ include "ai-stack.aiGatewaySecretName" (dict "Release" .Release "provider" $provider) }}
 */}}
-{{- define "ai-stack.envoyAIGatewaySecretName" -}}
-{{- printf "%s-envoy-ai-gateway-%s-secret" .Release.Name .provider.name | trunc 63 | trimSuffix "-" -}}
+{{- define "ai-stack.aiGatewaySecretName" -}}
+{{- printf "%s-ai-gateway-%s-secret" .Release.Name .provider.name | trunc 63 | trimSuffix "-" -}}
 {{- end }}
 
 {{/*

@@ -22,7 +22,7 @@ For the authoritative list of tiers and control references, see [../governance/C
 | Qdrant | enabled | [qdrant.md](qdrant.md) |
 | LangGraph | opt-in | [langgraph.md](langgraph.md) |
 | Pydantic AI | opt-in | [pydanticai.md](pydanticai.md) |
-| Envoy AI Gateway | opt-in | [envoy-ai-gateway.md](envoy-ai-gateway.md) |
+| AI Gateway (Envoy) | opt-in | [ai-gateway.md](ai-gateway.md) |
 
 ### T2 — Productivity
 

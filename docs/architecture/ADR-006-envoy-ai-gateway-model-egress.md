@@ -49,7 +49,7 @@ Two implementations were evaluated:
 
 ## Decision
 
-1. **Add an opt-in `envoyAIGateway` component (default `false`)** built on Envoy
+1. **Add an opt-in `aiGateway` component (default `false`)** built on Envoy
    AI Gateway (Apache-2.0). It turns a pre-existing Gateway into one in-cluster
    OpenAI-compatible endpoint; model consumers target that endpoint instead of a
    provider URL. Local Ollama and the external providers sit behind it as
@@ -58,7 +58,7 @@ Two implementations were evaluated:
 
 2. **It is the governed alternative to `externalAPIs`, and the two are mutually
    exclusive.** With the gateway on, external providers are configured **once on
-   the gateway** (`envoyAIGateway.providers`) rather than per Open WebUI;
+   the gateway** (`aiGateway.providers`) rather than per Open WebUI;
    `externalAPIs` is retained as the lightweight, implementation-agnostic,
    Open WebUI-only path for deployments that do not run Envoy Gateway. Enabling
    both is a **fail-fast template error** (one egress path, one audit story). No
@@ -99,7 +99,7 @@ Two implementations were evaluated:
    **digest-pinned** and catalogued as **two rows** in `sbom.cdx.json`,
    `zarf.yaml`, and `LICENSE_COMPLIANCE.md` so Zarf mirrors them for air-gap; the
    platform installs the upstream controller chart against the mirror.
-   `tests/envoy_ai_gateway_test.yaml` asserts the apiVersions, routing, governance
+   `tests/ai_gateway_test.yaml` asserts the apiVersions, routing, governance
    metadata, the no-plaintext-secret invariant, and the render guards (ADR-005
    discipline).
 
@@ -153,15 +153,15 @@ Two implementations were evaluated:
 
 ## Artifacts (this change)
 
-- `values.yaml` `envoyAIGateway:` block + `externalAPIs` mutual-exclusion guard;
+- `values.yaml` `aiGateway:` block + `externalAPIs` mutual-exclusion guard;
   `values.schema.json`.
-- `templates/envoy-ai-gateway/aigateway.yaml` (`AIGatewayRoute` /
+- `templates/ai-gateway/aigateway.yaml` (`AIGatewayRoute` /
   `AIServiceBackend` / `BackendSecurityPolicy` / `Backend` / `BackendTrafficPolicy`
   / `SecurityPolicy`); the provider Secret in `templates/common/secrets.yaml`;
-  the `envoy-ai-gateway` entry in `ai-stack.governanceMap` (`templates/_helpers.tpl`).
+  the `ai-gateway` entry in `ai-stack.governanceMap` (`templates/_helpers.tpl`).
 - `sbom.cdx.json` + `zarf.yaml` (two digest-pinned Apache-2.0 images);
   `docs/compliance/LICENSE_COMPLIANCE.md` rows.
-- `tests/envoy_ai_gateway_test.yaml`; `tests/governance_labels_test.yaml`
-  (CR governance assertion); `docs/components/envoy-ai-gateway.md`;
+- `tests/ai_gateway_test.yaml`; `tests/governance_labels_test.yaml`
+  (CR governance assertion); `docs/components/ai-gateway.md`;
   `docs/governance/CONTROLS.md` *Implemented By* for `CTL-002` / `POL-001`.
 - `.github/workflows/lint.yaml` — `kubeconform` skip for the AI Gateway CRD kinds.

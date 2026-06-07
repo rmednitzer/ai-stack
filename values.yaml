@@ -133,7 +133,7 @@ externalAPIs:
   # See HOWTO.md §6 for provider configuration examples (OpenAI, Azure, Anthropic, Gemini, etc.)
 
 # =============================================================================
-# Envoy AI Gateway — Governed model-egress gateway
+# AI Gateway — Governed model-egress gateway (implemented by Envoy AI Gateway)
 # Tier: T1 (operational) | Boundary: model-serving
 #
 # Opt-in. Renders the Envoy AI Gateway custom resources (AIServiceBackend,
@@ -155,7 +155,7 @@ externalAPIs:
 # Mutually exclusive with externalAPIs (one egress path, one audit story):
 # enabling both is a render-time error.
 # =============================================================================
-envoyAIGateway:
+aiGateway:
   # -- Enable the governed model-egress gateway configuration
   enabled: false
 
@@ -179,10 +179,10 @@ envoyAIGateway:
     #   sectionName: http
 
   # -- Route the in-cluster Ollama backend behind the gateway (when ollama.enabled).
-  # The Ollama rule is the catch-all (requests whose model is not matched by a
-  # provider below route here).
+  # Reached by its configured model id below (ollamaModel) — not a catch-all:
+  # a request whose model matches no rule is rejected by the gateway.
   includeOllama: true
-  # -- Model id clients select to reach Ollama (routed via the x-ai-eg-model header).
+  # -- Model id clients select to reach Ollama (matched on the x-ai-eg-model header).
   ollamaModel: "llama3"
 
   # -- External providers fronted by the gateway. Each adds an AIServiceBackend
@@ -195,14 +195,14 @@ envoyAIGateway:
   #   port:            upstream port (default 443)
   #   model:           model id clients select (routed via x-ai-eg-model)
   #   apiKey:          API key value (stored in a chart-managed Secret)
-  #   existingSecret:  {name, key} — reference an existing Secret instead
+  #   existingSecret:  {name} — reference an existing Secret (must expose data key apiKey)
   providers: []
     # - name: openai
     #   schema: OpenAI
     #   hostname: api.openai.com
     #   port: 443
     #   model: gpt-4o
-    #   apiKey: ""              # or existingSecret: {name: my-openai, key: apiKey}
+    #   apiKey: ""              # or existingSecret: {name: my-openai}
 
   # -- Token-based rate limiting at the gateway (Envoy Gateway
   # BackendTrafficPolicy + the AI Gateway LLMRequestCosts metadata).
