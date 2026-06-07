@@ -1,7 +1,7 @@
 # EU Legal Framework Compliance Check — ai-stack
 
-**Date:** 2026-05-24 (re-validated)
-**Chart version:** 2.9.0 | **appVersion:** 2026.5
+**Date:** 2026-06-07 (re-validated)
+**Chart version:** 2.10.0 | **appVersion:** 2026.5
 **Assessor:** Automated (Claude Code)
 **Scope:** EU regulatory framework applicability and gap analysis
 
@@ -126,7 +126,7 @@ NIS2 applicability depends on whether the deploying organization falls within An
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
 | **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 | **(c)** Business continuity & DR | Good | PVC snapshots with external DR (Velero), PDB, HA in prod profile |
-| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Dependabot, license compliance matrix |
+| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Renovate (digest-pinned images) + Dependabot (GitHub Actions), license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
 | **(f)** Effectiveness assessment | Good | Penetration testing cadence, AI-specific security testing, and assessment programme documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §5 |
 | **(g)** Cyber hygiene & training | Addressed | Operator training requirements and role-based training matrix documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §6 |

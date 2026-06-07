@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.9.0",
+      "version": "2.10.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {

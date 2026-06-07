@@ -14,6 +14,12 @@ renovate.json5
 .kube-linter.yaml
 argocd/
 zarf.yaml
+Makefile
+
+# Contributor / agent collaboration specs (internal; not for chart consumers)
+AGENTS.md
+CLAUDE.md
+.claude/
 
 # IDE / editor
 .vscode/

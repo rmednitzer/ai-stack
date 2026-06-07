@@ -1,0 +1,68 @@
+suite: availability + telemetry redaction hardening
+# Locks in two security-relevant defaults so they cannot silently regress
+# (CLAUDE.md principle 3 — assert security-relevant behaviour in tests/):
+#   1. Valkey (single-replica session + Streams store) is covered by a PDB,
+#      consistent with the other single-replica protected components.
+#   2. The OTel Collector ships credential/secret redaction patterns, not just
+#      the three PII patterns — these guard tokens in MCPO/Open Terminal traffic.
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/common/pdbs.yaml
+  - templates/otel/otel-collector.yaml
+tests:
+  - it: creates a PodDisruptionBudget for Valkey (single-replica pattern — maxUnavailable 1 + AlwaysAllow)
+    set:
+      valkey.enabled: true
+    template: templates/common/pdbs.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-valkey
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+      - equal:
+          path: spec.unhealthyPodEvictionPolicy
+          value: AlwaysAllow
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: valkey
+
+  - it: wires the redaction processor into the telemetry pipeline by default
+    set:
+      global.otel.enabled: true
+    template: templates/otel/otel-collector.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-otel-collector-config
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "blocked_values:"
+
+  - it: redacts credential/secret shapes, not only PII (bearer tokens, JWTs, private keys, provider keys)
+    set:
+      global.otel.enabled: true
+    template: templates/otel/otel-collector.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-otel-collector-config
+    asserts:
+      # Authorization: Bearer <token>
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "bearer"
+      # PEM private-key blocks
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "PRIVATE KEY"
+      # OpenAI-style provider keys
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "sk-"

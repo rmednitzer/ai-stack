@@ -3,7 +3,7 @@
 Explicit scope boundaries and known gaps for the ai-stack chart. Each entry
 states the current state, the implication for an operator, and where it is
 tracked. This is a living document; the list is expected to change as the chart
-evolves. Last reviewed: 2026-06-01 (v2.8.0, governance label integrity).
+evolves. Last reviewed: 2026-06-07 (v2.10.0, baseline + standards review).
 
 The focus here is the **tool/command plane** (MCPO and Open Terminal) and the
 **agentic runtimes**, where the chart ships capability that operators must
@@ -89,3 +89,18 @@ Implication: a node or pod failure interrupts these components. For HA, use
 `postgres.mode=cnpg`, scale stateless tiers, and review per-component docs;
 single-node stores remain a recovery-from-backup story, not an HA story.
 Tracking: `README.md`; `docs/components/*`.
+
+## L8. AI Gateway is a bring-your-own control / data plane
+
+State: the opt-in `aiGateway` component (ADR-006) renders only the Envoy AI
+Gateway custom resources and the provider-credential Secret. It does **not**
+install the AI Gateway controller or the Envoy Gateway data plane, and it does
+not itself terminate or inspect traffic — a present, separately-managed
+controller does.
+Implication: the operator owns the controller's lifecycle, patching, and
+hardening; the chart's governance labels and default-deny NetworkPolicies do not
+extend into that BYO plane. Enabling `aiGateway` with external providers also
+routes user prompts to those providers — a cross-border data-transfer
+consideration under GDPR Chapter V; assess it in the DPIA before enabling.
+Tracking: `docs/architecture/ADR-006-envoy-ai-gateway-model-egress.md`;
+`docs/components/ai-gateway.md`.
