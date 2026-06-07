@@ -486,7 +486,8 @@ kubectl port-forward -n ai-stack svc/ai-stack-valkey 6379:6379
 redis-cli -p 6379 XADD ingestion:documents '*' \
   task_id "doc-001" \
   file_url "https://example.com/report.pdf" \
-  filename "report.pdf"
+  filename "report.pdf" \
+  collection "documents"     # optional; defaults to QDRANT_COLLECTION
 ```
 
 Or from within the cluster (e.g., from a script or application):
@@ -498,7 +499,8 @@ r = redis.Redis(host='ai-stack-valkey', port=6379)
 r.xadd('ingestion:documents', {
     'task_id': 'doc-001',
     'file_url': 'https://example.com/report.pdf',
-    'filename': 'report.pdf'
+    'filename': 'report.pdf',
+    'collection': 'documents',  # optional; per-collection / per-tenant routing
 })
 ```
 
@@ -515,7 +517,7 @@ redis-cli -p 6379 XRANGE ingestion:documents - + COUNT 10
 redis-cli -p 6379 XINFO GROUPS ingestion:documents
 ```
 
-Status values: `queued` → `processing` → `completed` | `failed`
+Status values advance through `processing` → `extracting` → `chunking` → `embedding` → `upserting` → `done` (or `failed`). A task not yet picked up has no status hash. See the [ingestion-worker spec](docs/components/ingestion-worker-spec.md) for the full task/status contract, retry semantics, and the corpus state machine.
 
 ---
 

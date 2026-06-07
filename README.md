@@ -481,13 +481,13 @@ valkey:
     enabled: true  # Recommended: persist Valkey Streams across restarts
 ```
 
-Producers enqueue tasks via `XADD`:
+Producers enqueue tasks via `XADD` (`collection` optional — defaults to the configured Qdrant collection):
 
 ```
-XADD ingestion:documents * task_id <id> file_url <url> filename <name>
+XADD ingestion:documents * task_id <id> file_url <url> filename <name> collection <coll>
 ```
 
-Track status via `HGETALL ingestion:status:<task_id>`.
+Track status via `HGETALL ingestion:status:<task_id>` — `status` advances `processing → extracting → chunking → embedding → upserting → done` (or `failed`). The full task/status protocol, retry semantics, and the optional PostgreSQL corpus state machine are specified in [docs/components/ingestion-worker-spec.md](docs/components/ingestion-worker-spec.md).
 
 ### Authelia (SSO / OIDC)
 
