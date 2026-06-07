@@ -15,8 +15,7 @@
 #     buildDeps: false
 #     image:
 #       repository: <registry>/ai-stack-ingestion-worker
-#       tag: "<tag>"
-#       digest: "sha256:..."   # pin per ADR-002
+#       tag: "<tag>@sha256:..."   # digest-pinned per ADR-002 (tag is the single source of truth)
 #
 # worker.py is still mounted from the ConfigMap at runtime (single source of
 # truth), so this image only needs to provide the importable dependencies; the

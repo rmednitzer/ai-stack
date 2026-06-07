@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **Ingestion worker: specification + corrected docs.** Added
+  `docs/components/ingestion-worker-spec.md` — the authoritative contract: the
+  task-message and status-hash protocols, consumer-group delivery/retry
+  semantics, the optional PostgreSQL corpus state machine (states, transition
+  table, audit tables, and the `corpus:state` pub/sub event), and the full
+  environment-variable reference. Corrected the existing docs to match the code:
+  `docs/components/ingestion-worker.md` (the values-key table referenced
+  non-existent keys; the status fields were wrong), `HOWTO.md` §5 (documented
+  status was `queued → … → completed`; the worker emits `processing → extracting
+  → chunking → embedding → upserting → done`), `README.md` (enqueue contract +
+  `collection` field), and a stale `digest:` example in the worker `Dockerfile`.
+  Documentation only — no chart behaviour change.
+
 ## [2.10.0] - 2026-06-07
 
 Baseline, standards, and a deep repo audit — plus a focused set of
