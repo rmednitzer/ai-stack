@@ -102,7 +102,7 @@ spec:
             - |
               pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt
               {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}
-              pip install --no-cache-dir --target=/deps {{ join " " .Values.ingestionWorker.sources.pipPackages }}
+              pip install --no-cache-dir --target=/deps{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}
               {{- end }}
           securityContext:
             allowPrivilegeEscalation: false

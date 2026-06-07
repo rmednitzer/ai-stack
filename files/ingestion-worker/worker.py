@@ -414,7 +414,7 @@ def read_source(file_url: str) -> bytes:
     """
     scheme = file_url.split("://", 1)[0].lower() if "://" in file_url else ""
     if scheme in ("http", "https"):
-        return httpx.get(file_url, timeout=60.0, follow_redirects=True).content
+        return http.get(file_url, follow_redirects=True, timeout=60.0).content
     if scheme in ("", "file"):
         path = file_url[len("file://"):] if scheme == "file" else file_url
         resolved = Path(path).resolve()  # canonicalize .. and symlinks first
@@ -427,7 +427,8 @@ def read_source(file_url: str) -> bytes:
         with fsspec.open(file_url, "rb") as f:
             return f.read()
     raise ValueError(
-        f"unsupported or disabled source scheme {scheme!r}: enable it via "
+        f"unsupported or disabled source scheme {scheme!r}: set "
+        f"ingestionWorker.sources.enabled=true and add the scheme to "
         f"ingestionWorker.sources.schemes (current allow-list: {sorted(SOURCE_SCHEMES)})"
     )
 

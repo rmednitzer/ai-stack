@@ -65,4 +65,4 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.initContainers[0].command[2]
-          pattern: "pip install --no-cache-dir --target=/deps fsspec s3fs"
+          pattern: "pip install --no-cache-dir --target=/deps 'fsspec' 's3fs'"
