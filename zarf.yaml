@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.10.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.11.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.10.0
+  version: 2.11.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -58,7 +58,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
     images:
@@ -89,7 +89,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:
@@ -113,7 +113,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:
@@ -137,7 +137,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:
@@ -157,7 +157,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:
@@ -177,7 +177,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:
@@ -199,7 +199,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.10.0
+        version: 2.11.0
         valuesFiles:
           - values.yaml
         variables:

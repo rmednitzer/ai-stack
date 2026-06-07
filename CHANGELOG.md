@@ -7,20 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
+## [2.11.0] - 2026-06-07
 
-- **Ingestion worker: specification + corrected docs.** Added
-  `docs/components/ingestion-worker-spec.md` — the authoritative contract: the
-  task-message and status-hash protocols, consumer-group delivery/retry
-  semantics, the optional PostgreSQL corpus state machine (states, transition
-  table, audit tables, and the `corpus:state` pub/sub event), and the full
-  environment-variable reference. Corrected the existing docs to match the code:
-  `docs/components/ingestion-worker.md` (the values-key table referenced
-  non-existent keys; the status fields were wrong), `HOWTO.md` §5 (documented
-  status was `queued → … → completed`; the worker emits `processing → extracting
-  → chunking → embedding → upserting → done`), `README.md` (enqueue contract +
-  `collection` field), and a stale `digest:` example in the worker `Dockerfile`.
-  Documentation only — no chart behaviour change.
+Ingestion worker: a documented contract (specification) and **opt-in native
+source connectors** for object stores and network shares.
+
+### Added
+
+- **Native ingestion source connectors (ADR-007).** Opt-in `fsspec`-based
+  resolver so producers can enqueue object-store / network-share scheme URLs
+  (`s3://`, `gs://`, `az://`, `smb://`, `sftp://`, …) — alongside the existing
+  `http(s)://` (incl. **presigned** URLs) and local-path (incl. **CSI-mounted
+  NFS/SMB**) sources. **Deny-by-default:** a native scheme is honored only when
+  allow-listed in `ingestionWorker.sources.schemes`; backends are operator-chosen
+  via `sources.pipPackages` (the default image stays lean); credentials come from
+  `sources.existingSecret` (projected via `envFrom`, never inlined). Off by
+  default and fully backward compatible. New `tests/ingestion_sources_test.yaml`.
+- **`docs/components/ingestion-worker-spec.md` — authoritative worker contract.**
+  Task-message and status-hash protocols, consumer-group delivery/retry
+  semantics, the optional PostgreSQL corpus state machine (states, transitions,
+  audit tables, and the `corpus:state` pub/sub event), source-resolution rules,
+  and the full environment-variable reference.
+
+### Changed
+
+- Corrected the ingestion-worker docs to match the code: the component doc's
+  values-key table (referenced non-existent keys) and status fields; `HOWTO.md`
+  §5 status lifecycle (`queued → … → completed` → the real
+  `processing → extracting → chunking → embedding → upserting → done`); the
+  README/HOWTO enqueue contract incl. the optional `collection` field — which
+  keys the corpus state machine and tags the payload, and does **not** route the
+  Qdrant upsert; and a stale `digest:` example in the worker `Dockerfile`.
+
+### Security
+
+- **No security default weakened.** Native connectors are opt-in and
+  deny-by-default; the chart does **not** auto-open egress for native non-HTTPS
+  protocols (SMB/NFS/SFTP). PSA `restricted`, default-deny NetworkPolicy, and
+  per-component identity are unchanged. See
+  [ADR-007](docs/architecture/ADR-007-ingestion-source-connectors.md).
 
 ## [2.10.0] - 2026-06-07
 
@@ -758,7 +783,8 @@ natively; no external projects are bundled.
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.10.0...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/rmednitzer/ai-stack/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/rmednitzer/ai-stack/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/rmednitzer/ai-stack/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/rmednitzer/ai-stack/compare/v2.7.0...v2.8.0

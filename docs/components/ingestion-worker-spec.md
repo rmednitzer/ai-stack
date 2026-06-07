@@ -61,6 +61,23 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
   collection "tenant-acme"
 ```
 
+### 2.1 Source resolution (URL schemes, ADR-007)
+
+`read_source(file_url)` resolves the document bytes by URL scheme:
+
+| Scheme | Resolver | Notes |
+|--------|----------|-------|
+| `http://`, `https://` | `httpx` GET (redirects followed) | Always available. Covers **presigned** S3/GCS/Azure URLs. |
+| *(bare path)*, `file://` | local filesystem read | Always available. Covers **CSI-mounted NFS/SMB** shares (the recommended, lowest-risk pattern). |
+| `s3://`, `gs://`, `az://`, `smb://`, `sftp://`, … | `fsspec` | **Opt-in & deny-by-default**: honored only when the scheme is in `INGESTION_SOURCE_SCHEMES` (set from `ingestionWorker.sources.schemes`). An unknown or disabled scheme is **rejected**, never read as a local path. |
+
+Native connectors require the matching `fsspec` backend (installed via
+`ingestionWorker.sources.pipPackages`) and credentials (projected from
+`ingestionWorker.sources.existingSecret` as the env vars the backend reads).
+Native non-HTTPS protocols (SMB/445, NFS/2049, SFTP/22) also need explicit
+NetworkPolicy egress — **not** opened by the chart. See
+[ADR-007](../architecture/ADR-007-ingestion-source-connectors.md).
+
 ---
 
 ## 3. Status contract — `ingestion:status:<task_id>`
@@ -203,6 +220,7 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 | `INGESTION_MAX_RETRIES` | `3` | no | Retries before terminal `failed`. |
 | `CORPUS_PUBSUB_CHANNEL` | `corpus:state` | no | Corpus event channel. |
 | `LOG_LEVEL` | `INFO` | no | Log verbosity. |
+| `INGESTION_SOURCE_SCHEMES` | `""` (none) | from `sources.schemes` when `sources.enabled` | Comma-list of allow-listed native fsspec schemes (ADR-007); empty = http(s) + local only. |
 | `HOSTNAME` | pod name | injected by K8s | Consumer name within the group. |
 
 ---

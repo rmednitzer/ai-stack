@@ -519,6 +519,27 @@ redis-cli -p 6379 XINFO GROUPS ingestion:documents
 
 Status values advance through `processing` → `extracting` → `chunking` → `embedding` → `upserting` → `done` (or `failed`). A task not yet picked up has no status hash. See the [ingestion-worker spec](docs/components/ingestion-worker-spec.md) for the full task/status contract, retry semantics, and the corpus state machine.
 
+### 5.4 Ingest from object stores and network shares
+
+The worker accepts three kinds of `file_url` (full contract: [spec §2.1](docs/components/ingestion-worker-spec.md)):
+
+- **`http(s)://`** — including **presigned** S3 / GCS / Azure URLs (works out of the box, no credentials in the worker).
+- **Local paths** — mount an **NFS / SMB** share into the worker with the CSI driver and enqueue its path. Recommended and lowest-risk: the kubelet does the mount, so the default-deny NetworkPolicy does not apply and no credentials reach the worker.
+- **Native scheme URLs** (`s3://`, `gs://`, `az://`, `smb://`, `sftp://`, …) via **opt-in** fsspec connectors ([ADR-007](docs/architecture/ADR-007-ingestion-source-connectors.md)):
+
+  ```yaml
+  ingestionWorker:
+    sources:
+      enabled: true
+      schemes: [s3]                       # deny-by-default: only these are honored
+      pipPackages: [fsspec, s3fs]         # install only the backends you use
+      existingSecret: ingest-cloud-creds  # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / …
+  ```
+
+  Then enqueue `file_url: s3://my-bucket/reports/q3.pdf`. Native **non-HTTPS**
+  protocols (SMB/NFS/SFTP) additionally require you to open the matching
+  NetworkPolicy egress — the chart does not open it for you.
+
 ---
 
 ## 6. External LLM Providers
