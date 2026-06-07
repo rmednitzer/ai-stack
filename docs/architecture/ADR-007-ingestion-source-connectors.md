@@ -82,6 +82,10 @@ Approaches evaluated:
 - Native multi-source ingestion (object stores + shares) from one uniform code path.
 - Lean default image; credentials scoped to one Secret; provider-agnostic worker.
 - Backward compatible — existing `http(s)`/local/CSI-mount and presigned-URL flows are unchanged.
+- Local-path reads are fenced from sensitive system/credential prefixes
+  (`/proc`, `/sys`, `/etc`, `/root`, `/run`, `/var/run`), so the env-projected
+  credentials this ADR introduces cannot be read back through a crafted
+  `file_url` (e.g. `/proc/self/environ`) and exfiltrated into the vector store.
 
 **Negative / trade-offs**
 - Widens the worker's fetch surface (SSRF). Mitigated by: deny-by-default scheme

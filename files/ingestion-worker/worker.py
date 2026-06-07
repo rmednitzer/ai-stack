@@ -64,6 +64,13 @@ SOURCE_SCHEMES = {
     if s.strip()
 }
 
+# Local-path reads (bare paths / file://, e.g. CSI-mounted NFS/SMB shares) are
+# fenced away from sensitive system and credential paths so a producer-supplied
+# file_url cannot exfiltrate, say, /proc/self/environ (which carries the source
+# credentials projected via ingestionWorker.sources.existingSecret) into the
+# vector store. Legitimate document mounts (/mnt, /data, …) are unaffected.
+_LOCAL_DENY_PREFIXES = ("/proc", "/sys", "/etc", "/root", "/run", "/var/run")
+
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -410,7 +417,11 @@ def read_source(file_url: str) -> bytes:
         return httpx.get(file_url, timeout=60.0, follow_redirects=True).content
     if scheme in ("", "file"):
         path = file_url[len("file://"):] if scheme == "file" else file_url
-        return Path(path).read_bytes()
+        resolved = Path(path).resolve()  # canonicalize .. and symlinks first
+        rp = str(resolved)
+        if any(rp == d or rp.startswith(d + "/") for d in _LOCAL_DENY_PREFIXES):
+            raise ValueError(f"local source path not permitted: {rp}")
+        return resolved.read_bytes()
     if scheme in SOURCE_SCHEMES:
         import fsspec  # lazy; provided via ingestionWorker.sources.pipPackages
         with fsspec.open(file_url, "rb") as f:

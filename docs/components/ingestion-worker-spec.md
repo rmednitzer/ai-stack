@@ -227,12 +227,15 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 
 ## 7. Security and limitations
 
-- **SSRF surface.** `file_url` is dereferenced verbatim (`http(s)` fetch or local
-  path). A producer that can write to the stream controls the destination, so the
-  worker could be steered at internal/link-local endpoints. Restrict who can
-  write to the stream, and treat producer input as trusted. Adding an
-  `https`-only + private/link-local CIDR allow/deny list is tracked as **R5** in
-  [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).
+- **Fetch surface (SSRF / local read).** **Local** reads (bare path / `file://`)
+  are fenced away from sensitive system + credential prefixes (`/proc`, `/sys`,
+  `/etc`, `/root`, `/run`, `/var/run`) — paths are `resolve()`-canonicalized
+  first — so a producer-supplied `file_url` cannot read e.g. `/proc/self/environ`
+  (which carries the credentials projected via `sources.existingSecret`) into the
+  store. **`http(s)`** fetches still follow the producer-supplied host: treat
+  stream producers as trusted and restrict who can write to the stream; a
+  private/link-local CIDR allow/deny list for the HTTP path is tracked as **R5**
+  in [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).
 - **Liveness is file-based.** The probe checks `/tmp/healthy`; a hung-but-alive
   process is not self-healed. See audit backlog.
 - **Dependency pinning.** [`requirements.txt`](../../files/ingestion-worker/requirements.txt)
