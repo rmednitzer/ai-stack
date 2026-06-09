@@ -1,0 +1,18 @@
+# Direct Python dependencies for the ai-stack ingestion worker.
+#
+# This is the human-maintained input; the deployable artifact is the adjacent
+# requirements.txt — a fully pinned, hashed, universal lock compiled with
+# `make ingestion-worker-lock` (uv pip compile --universal --generate-hashes).
+# Edit ranges here, then recompile; never hand-edit requirements.txt.
+#
+# The install-deps initContainer uses this file directly ONLY when
+# ingestionWorker.sources.pipPackages adds fsspec backends: pip hash-checking
+# is all-or-nothing, so the unhashed backends must be co-resolved with these
+# ranges in one pass (a conflicting backend fails at build, not at runtime).
+#
+# Upper bounds pin the major version so that resolve cannot pull a breaking
+# major release without a deliberate chart change (supply-chain determinism,
+# consistent with ADR-002's image-pinning posture).
+valkey>=6.0.0,<7
+httpx>=0.27.0,<1.0
+psycopg[binary]>=3.1.0,<4

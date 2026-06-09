@@ -76,6 +76,14 @@ spec:
             - name: AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE
               value: /secrets/pg-password
             {{- end }}
+            {{- if include "ai-stack.valkeyAuthEnabled" . }}
+            {{- /* session.redis.password for the Valkey session store (ADR-008) */}}
+            - name: AUTHELIA_SESSION_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+                  key: password
+            {{- end }}
             {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "authelia") | nindent 12 }}
           volumeMounts:
             - name: config

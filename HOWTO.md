@@ -490,6 +490,12 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
   collection "documents"     # optional; tags the corpus state machine (not the upsert target)
 ```
 
+> With `valkey.auth.enabled=true` ([ADR-008](docs/architecture/ADR-008-valkey-auth.md)),
+> authenticate first: `export REDISCLI_AUTH=$(kubectl get secret -n ai-stack
+> ai-stack-valkey-secret -o jsonpath='{.data.password}' | base64 -d)` — the
+> same applies to the §5.3 status commands. In-cluster producers add the
+> password to the connection (`redis.Redis(..., password=...)`).
+
 Or from within the cluster (e.g., from a script or application):
 
 ```python
@@ -523,7 +529,7 @@ Status values advance through `processing` → `extracting` → `chunking` → `
 
 The worker accepts three kinds of `file_url` (full contract: [spec §2.1](docs/components/ingestion-worker-spec.md)):
 
-- **`http(s)://`** — including **presigned** S3 / GCS / Azure URLs (works out of the box, no credentials in the worker).
+- **`http(s)://`** — including **presigned** S3 / GCS / Azure URLs (no credentials in the worker). Since 2.12.0 the fetch path is SSRF-screened ([ADR-009](docs/architecture/ADR-009-ingestion-url-fetch-hardening.md)): **https-only by default** (add `http` via `ingestionWorker.fetch.schemes`), and URL hosts must resolve to public addresses unless their range is granted in `ingestionWorker.fetch.allowedCidrs` (e.g. your Service CIDR for an in-cluster MinIO); link-local/IMDS and loopback are always refused.
 - **Local paths** — mount an **NFS / SMB** share into the worker with the CSI driver and enqueue its path. Recommended and lowest-risk: the kubelet does the mount, so the default-deny NetworkPolicy does not apply and no credentials reach the worker.
 - **Native scheme URLs** (`s3://`, `gs://`, `az://`, `smb://`, `sftp://`, …) via **opt-in** fsspec connectors ([ADR-007](docs/architecture/ADR-007-ingestion-source-connectors.md)):
 

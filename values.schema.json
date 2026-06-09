@@ -21,6 +21,10 @@
           "enum": ["Always", "IfNotPresent", "Never"]
         },
         "storageClass": { "type": "string" },
+        "repoSlug": {
+          "type": "string",
+          "description": "GitHub repository slug (owner/repo) used to build PrometheusRule runbook URLs."
+        },
         "podSecurityStandard": {
           "type": "string",
           "enum": ["privileged", "baseline", "restricted"]
@@ -51,7 +55,11 @@
               "enum": ["grpc", "http/protobuf", "http/json"],
               "description": "OTLP transport token (OTEL_EXPORTER_OTLP_PROTOCOL). Spec values only; mistyped values silently break telemetry export."
             },
-            "insecure": { "type": "boolean" }
+            "insecure": { "type": "boolean" },
+            "exportNamespace": {
+              "type": "string",
+              "description": "Namespace of the platform observability pipeline; scopes the OTel Collector's NetworkPolicy egress. Keep in sync with `endpoint`."
+            }
           }
         },
         "serviceMonitor": {
@@ -198,8 +206,50 @@
     "mcpo":            { "$ref": "#/$defs/component" },
     "langgraph":       { "$ref": "#/$defs/component" },
     "pydanticai":      { "$ref": "#/$defs/component" },
-    "valkey":          { "$ref": "#/$defs/component" },
-    "ingestionWorker": { "$ref": "#/$defs/component" },
+    "valkey": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/$defs/image" },
+        "auth": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional Valkey AUTH (requirepass), ADR-008. Opt-in defense-in-depth on top of the default-deny NetworkPolicy.",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "password": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ingestionWorker": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/$defs/image" },
+        "fetch": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "URL-fetch hardening for producer-supplied file_url tasks (ADR-009, SSRF defense).",
+          "properties": {
+            "schemes": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["https", "http"] },
+              "description": "URL schemes the worker will fetch (https-only by default)."
+            },
+            "allowedCidrs": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Private/non-global CIDRs a URL host may resolve to (e.g. the cluster Service CIDR). Empty = public addresses only."
+            }
+          }
+        }
+      }
+    },
     "otelCollector":   { "$ref": "#/$defs/component" },
     "postgres": {
       "type": "object",
@@ -222,6 +272,14 @@
               "type": "string",
               "enum": ["disable", "prefer", "require", "verify-ca", "verify-full"]
             }
+          }
+        },
+        "cnpg": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "instances": { "type": "integer", "minimum": 1 },
+            "image": { "$ref": "#/$defs/image" }
           }
         }
       }

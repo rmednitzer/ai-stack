@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.11.0 | **Last reviewed:** 2026-06-07
+**Chart version:** 2.12.0 | **Last reviewed:** 2026-06-09
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -31,7 +31,7 @@ and `zarf.yaml`.
 | LangGraph Server | `docker.io/langchain/langgraph-server` | 0.9-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | Pydantic AI | `ghcr.io/astral-sh/uv` | python3.13-trixie-slim | Apache-2.0 OR MIT | Permissive | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
-
+| PostgreSQL (CNPG operand) | `ghcr.io/cloudnative-pg/postgresql` | 18 | PostgreSQL (engine) + Apache-2.0 (CNPG packaging) | Permissive | Opt-in (`postgres.mode=cnpg`) | No |
 | Open Terminal | `ghcr.io/open-webui/open-terminal` | 0.11.34 | MIT | Permissive | Opt-in | No |
 | MCPO | `ghcr.io/open-webui/mcpo` | main | MIT | Permissive | Opt-in | No |
 | Authelia | `ghcr.io/authelia/authelia` | 4.39.20 | Apache-2.0 | Permissive | Opt-in | No |
@@ -125,7 +125,7 @@ self-hosting** — these terms change and Enterprise pricing is negotiated.
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All licenses identified | Done | 14 container images catalogued |
+| All licenses identified | Done | 17 container images catalogued |
 | SBOM in standard format | Done | CycloneDX 1.6 JSON (`sbom.cdx.json`) |
 | SBOM validated in CI | Done | `cyclonedx-cli validate` in lint workflow |
 | No GPL-2.0-only (incompatible with Apache-2.0) | Pass | No GPL-2.0-only components |

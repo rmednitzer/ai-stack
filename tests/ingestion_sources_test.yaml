@@ -53,7 +53,25 @@ tests:
             secretRef:
               name: ingest-cloud-creds
 
-  - it: installs base requirements and operator-selected backends in one pip pass
+  - it: installs the hashed lock when no extra backends are selected (fail-closed)
+    set:
+      ingestionWorker.enabled: true
+      # valkey disabled so install-deps is initContainers[0] (no init-valkey-stream)
+      valkey.enabled: false
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # base deps install from the uv-compiled hashed lock; --require-hashes
+      # rejects any tampered or substituted distribution
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: "pip install --no-cache-dir --target=/deps --require-hashes -r /scripts/requirements.txt"
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: "set -e"
+
+  - it: installs base ranges and operator-selected backends in one pip pass
     set:
       ingestionWorker.enabled: true
       # valkey disabled so install-deps is initContainers[0] (no init-valkey-stream)
@@ -64,27 +82,33 @@ tests:
       path: kind
       value: Deployment
     asserts:
-      # single pip invocation: base requirements + backends resolved together,
-      # so a backend that conflicts with a base dep fails at build, not runtime
+      # single pip invocation: base ranges + backends resolved together, so a
+      # backend that conflicts with a base dep fails at build, not runtime.
+      # (pip hash-checking is all-or-nothing, so this path resolves from the
+      # requirements.in ranges, not the hashed lock.)
       - matchRegex:
           path: spec.template.spec.initContainers[0].command[2]
-          pattern: "pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt 'fsspec' 's3fs'"
+          pattern: "pip install --no-cache-dir --target=/deps -r /scripts/requirements.in 'fsspec' 's3fs'"
       # set -e: a failed base install aborts the container (no silent success)
       - matchRegex:
           path: spec.template.spec.initContainers[0].command[2]
           pattern: "set -e"
 
-  - it: fences local file_url reads (regular files only, off credential/system prefixes) — ADR-007
+  - it: fences local file_url reads (regular files only, off credential/system prefixes) — ADR-007/ADR-009
     set:
       ingestionWorker.enabled: true
     documentSelector:
       path: kind
       value: ConfigMap
     asserts:
-      # only regular files are read — devices (/dev/zero,/dev/urandom), FIFOs, dirs rejected
+      # only regular files are read — the LIVE fd is validated (fstat S_ISREG
+      # after an O_NOFOLLOW open), closing the resolve-then-reopen TOCTOU race
       - matchRegex:
           path: data["worker.py"]
-          pattern: "is_file"
+          pattern: "S_ISREG"
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "O_NOFOLLOW"
       # credential/system prefixes denied (e.g. /proc/self/environ holds projected creds)
       - matchRegex:
           path: data["worker.py"]
@@ -93,3 +117,61 @@ tests:
       - matchRegex:
           path: data["worker.py"]
           pattern: "is_success"
+
+  - it: ships the URL-fetch SSRF screen and re-screens every redirect hop (ADR-009)
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "_screen_fetch_url"
+      # blocked address classes are screened on the resolved addresses
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "is_link_local"
+      # redirects are followed manually so each Location target is re-screened
+      - matchRegex:
+          path: data["worker.py"]
+          pattern: "follow_redirects=False"
+
+  - it: defaults the fetch scheme allowlist to https-only (ADR-009)
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_FETCH_SCHEMES
+            value: "https"
+      # no allowlist env unless CIDRs are configured (no empty, misleading var)
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_FETCH_ALLOWED_CIDRS
+          any: true
+
+  - it: wires the operator-configured fetch schemes and CIDR allowlist (ADR-009)
+    set:
+      ingestionWorker.enabled: true
+      ingestionWorker.fetch.schemes: [https, http]
+      ingestionWorker.fetch.allowedCidrs: ["10.96.0.0/12"]
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_FETCH_SCHEMES
+            value: "https,http"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INGESTION_FETCH_ALLOWED_CIDRS
+            value: "10.96.0.0/12"

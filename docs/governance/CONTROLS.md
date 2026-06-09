@@ -101,4 +101,4 @@ favour of the table above (ADR-005).
 
 ---
 
-*Registry version: 2.11.0 | Maintained alongside Chart version in `Chart.yaml`.*
+*Registry version: 2.12.0 | Maintained alongside Chart version in `Chart.yaml`.*

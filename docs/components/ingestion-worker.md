@@ -33,6 +33,7 @@ and (optionally) tracks a per-collection corpus lifecycle in PostgreSQL.
 | `ingestionWorker.env.QDRANT_COLLECTION` | Default target Qdrant collection |
 | `ingestionWorker.env.INGESTION_*` | Stream/group/status/batch/retry tuning ([spec §6](ingestion-worker-spec.md#6-configuration-reference)) |
 | `ingestionWorker.sources.*` | **Opt-in** native object-store / network-share connectors via fsspec (`s3://`, `gs://`, `az://`, `smb://`, …) — see [ADR-007](../architecture/ADR-007-ingestion-source-connectors.md) |
+| `ingestionWorker.fetch.{schemes,allowedCidrs}` | URL-fetch SSRF screen for producer-supplied `file_url` tasks: https-only by default; private ranges need an explicit CIDR grant — see [ADR-009](../architecture/ADR-009-ingestion-url-fetch-hardening.md) |
 
 > Pipeline behaviour is configured through `ingestionWorker.env.*` (passed
 > straight to the worker), **not** top-level keys. `VALKEY_URL`, `QDRANT_API_KEY`,

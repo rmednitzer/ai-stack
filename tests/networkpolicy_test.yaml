@@ -51,3 +51,46 @@ tests:
       - equal:
           path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/name"]
           value: openwebui
+
+  - it: scopes Open WebUI in-namespace ingress to the helm-test pod, not every pod
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui
+    asserts:
+      # rule 0: ingress controller namespace; rule 1: in-namespace allowlist
+      - equal:
+          path: spec.ingress[1].from[0].podSelector.matchLabels["app.kubernetes.io/name"]
+          value: connection-test
+      # the pre-2.12.0 any-pod admission must not come back
+      - notContains:
+          path: spec.ingress[1].from
+          content:
+            podSelector: {}
+
+  - it: admits the OTel Collector scrape to Open WebUI only when telemetry is on
+    set:
+      global.otel.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui
+    asserts:
+      - contains:
+          path: spec.ingress[1].from
+          content:
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: otel-collector
+
+  - it: scopes OTel Collector export egress to the observability + monitoring namespaces
+    set:
+      global.otel.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-otel-collector
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: observability
+      - equal:
+          path: spec.egress[0].to[1].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: monitoring

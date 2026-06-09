@@ -1,0 +1,175 @@
+suite: valkey AUTH opt-in (ADR-008)
+# Asserts both halves of the ADR-008 contract:
+#   1. Default-off — enabling nothing changes nothing: no args/config mount on
+#      the Valkey container, credential-less consumer URLs, no valkey Secret.
+#   2. Opt-in — requirepass comes from a Secret-mounted config file (never
+#      process args), probes authenticate via *CLI_AUTH env, and every
+#      consumer URL (Open WebUI, ingestion worker) embeds the password via
+#      $(...) substitution from the same Secret; Authelia's session store gets
+#      AUTHELIA_SESSION_REDIS_PASSWORD.
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: changes nothing while auth is disabled (default)
+    templates:
+      - templates/common/valkey.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].args
+      - notExists:
+          path: spec.template.spec.containers[0].env
+
+  - it: leaves consumer URLs credential-less while auth is disabled (default)
+    templates:
+      - templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REDIS_URL
+            value: "redis://ai-stack-valkey:6379/0"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: _VALKEY_PASSWORD
+          any: true
+
+  - it: reads requirepass from a Secret-mounted config file, not process args
+    set:
+      valkey.auth.enabled: true
+    templates:
+      - templates/common/valkey.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value:
+            - valkey-server
+            - /etc/valkey/valkey.conf
+      # the password itself must never appear in args
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[1]
+          pattern: "requirepass"
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: auth-config
+            mountPath: /etc/valkey
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: auth-config
+            secret:
+              secretName: ai-stack-valkey-secret
+              items:
+                - key: valkey.conf
+                  path: valkey.conf
+      # valkey-cli probes keep working via CLI auth env from the same Secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEYCLI_AUTH
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-valkey-secret
+                key: password
+
+  - it: creates the valkey Secret with the password and the requirepass config
+    set:
+      valkey.auth.enabled: true
+      valkey.auth.password: test-password
+    templates:
+      - templates/common/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-valkey-secret
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: data.password
+          value: dGVzdC1wYXNzd29yZA==  # b64("test-password")
+      - equal:
+          path: data["valkey.conf"]
+          value: cmVxdWlyZXBhc3MgdGVzdC1wYXNzd29yZAo=  # b64("requirepass test-password\n")
+
+  - it: embeds the credential in Open WebUI session/websocket URLs via env substitution
+    set:
+      valkey.auth.enabled: true
+    templates:
+      - templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: _VALKEY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-valkey-secret
+                key: password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REDIS_URL
+            value: "redis://:$(_VALKEY_PASSWORD)@ai-stack-valkey:6379/0"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WEBSOCKET_REDIS_URL
+            value: "redis://:$(_VALKEY_PASSWORD)@ai-stack-valkey:6379/1"
+
+  - it: embeds the credential in the ingestion worker VALKEY_URL and stream-init
+    set:
+      valkey.auth.enabled: true
+      ingestionWorker.enabled: true
+    templates:
+      - templates/ingestion-worker/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_URL
+            value: "redis://:$(_VALKEY_PASSWORD)@ai-stack-valkey:6379"
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: VALKEYCLI_AUTH
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-valkey-secret
+                key: password
+
+  - it: wires the Authelia session store password (session.redis.password)
+    set:
+      valkey.auth.enabled: true
+      authelia.enabled: true
+    templates:
+      - templates/authelia/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTHELIA_SESSION_REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-valkey-secret
+                key: password

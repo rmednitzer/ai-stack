@@ -16,6 +16,7 @@ Centralises logs, metrics, and traces from every ai-stack component, enriches th
 |-----|---------|
 | `global.otel.enabled` | Deploy the Collector and inject `OTEL_*` env vars into all pods |
 | `global.otel.endpoint` | OTLP endpoint (typically cluster-local) |
+| `global.otel.exportNamespace` | Namespace of the platform observability pipeline (default `observability`); scopes the Collector's NetworkPolicy export egress — keep in sync with `endpoint` |
 | `global.otel.sampler` | `always_on`, `parentbased_traceidratio`, etc. |
 | `global.serviceMonitor.enabled` | Emit Prometheus Operator `ServiceMonitor` resources |
 | `otel.image.{repository,tag}` | Container image override |
@@ -24,6 +25,14 @@ Centralises logs, metrics, and traces from every ai-stack component, enriches th
 ## PII redaction
 
 The Collector runs a `redaction` processor (patterns configurable via `otelCollector.redaction.blockedPatterns`) that masks, before export, both **PII** (email, social-security/VSNR, and credit-card patterns) **and credential shapes** that ride along in MCPO / Open Terminal tool traffic — bearer tokens, JWTs, PEM private-key blocks, and OpenAI / AWS / GitHub / GitLab / Google / Slack / Stripe API-key patterns. Implements GDPR Art. 5(1)(c) data minimisation (see [CTL-001](../governance/CONTROLS.md#controls-ctl)). The redaction processor is wired ahead of every exporter in all three pipelines (traces, metrics, logs), so even the lab-only `debug` exporter receives already-redacted data. Resource enrichment uses the `resource_detection` and `resource` processors.
+
+## Network posture
+
+The Collector accepts OTLP only from `part-of: ai-stack` pods and Prometheus
+scrapes only from `global.monitoringNamespace`. Its **export egress is
+namespace-scoped** (since 2.12.0): OTLP/Loki/remote-write ports are reachable
+only in `global.otel.exportNamespace` and `global.monitoringNamespace` — set
+`exportNamespace` if your pipeline lives elsewhere.
 
 ## Related HOWTO sections
 

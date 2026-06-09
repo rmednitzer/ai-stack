@@ -443,6 +443,16 @@ tolerations:
 {{- end }}
 
 {{/*
+Valkey AUTH enabled check (ADR-008). Returns "true" or "". Tolerates values
+files predating the `valkey.auth` block (e.g. `helm upgrade --reuse-values`
+from <2.12.0), where .Values.valkey.auth is nil.
+Usage: {{ if include "ai-stack.valkeyAuthEnabled" . }}
+*/}}
+{{- define "ai-stack.valkeyAuthEnabled" -}}
+{{- if and .Values.valkey.enabled .Values.valkey.auth .Values.valkey.auth.enabled -}}true{{- end -}}
+{{- end }}
+
+{{/*
 Qdrant API key environment variable from secret.
 Usage: {{ include "ai-stack.qdrantApiKeyEnv" . | nindent N }}
 */}}
@@ -478,11 +488,13 @@ Usage: {{ include "ai-stack.webuiHaEnv" . | nindent N }}
     secretKeyRef:
       name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}-secret
       key: secret-key
+{{- /* Independent key since 2.12.0: encrypting OAuth tokens with the JWT
+signing key coupled two security domains to one credential. */}}
 - name: OAUTH_SESSION_TOKEN_ENCRYPTION_KEY
   valueFrom:
     secretKeyRef:
       name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "openwebui") }}-secret
-      key: secret-key
+      key: oauth-token-encryption-key
 {{- if .Values.postgres.enabled }}
 - name: _PG_PASSWORD
   valueFrom:
@@ -493,13 +505,22 @@ Usage: {{ include "ai-stack.webuiHaEnv" . | nindent N }}
   value: {{ printf "postgresql://%s:$(_PG_PASSWORD)@%s:%s/%s?sslmode=%s" .Values.postgres.user (include "ai-stack.postgresHost" .) (include "ai-stack.postgresPort" .) .Values.openwebui.databaseName (include "ai-stack.postgresSslMode" .) | quote }}
 {{- end }}
 {{- if .Values.valkey.enabled }}
-{{- $valkey := printf "redis://%s:%v/0" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) .Values.valkey.service.port }}
+{{- $auth := include "ai-stack.valkeyAuthEnabled" . }}
+{{- if $auth }}
+- name: _VALKEY_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+      key: password
+{{- end }}
+{{- $cred := ternary ":$(_VALKEY_PASSWORD)@" "" (eq $auth "true") }}
+{{- $valkeyHost := include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
 - name: REDIS_URL
-  value: {{ $valkey | quote }}
+  value: {{ printf "redis://%s%s:%v/0" $cred $valkeyHost .Values.valkey.service.port | quote }}
 - name: WEBSOCKET_MANAGER
   value: "redis"
 - name: WEBSOCKET_REDIS_URL
-  value: {{ printf "redis://%s:%v/1" (include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey")) .Values.valkey.service.port | quote }}
+  value: {{ printf "redis://%s%s:%v/1" $cred $valkeyHost .Values.valkey.service.port | quote }}
 {{- /* ENABLE_WEBSOCKET_SUPPORT is set unconditionally in openwebui.env */}}
 {{- end }}
 {{- end }}

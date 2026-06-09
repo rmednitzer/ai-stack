@@ -1,4 +1,7 @@
 {{- if and .Values.postgres.enabled (eq .Values.postgres.mode "cnpg") }}
+{{- if .Values.postgres.cnpg.imageName }}
+{{- fail "postgres.cnpg.imageName was replaced by postgres.cnpg.image.{repository,tag} in chart 2.12.0 so the CNPG operand image participates in digest pinning and SBOM/Zarf parity (ADR-001/ADR-002). Set postgres.cnpg.image instead." }}
+{{- end }}
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -12,7 +15,7 @@ metadata:
     {{- include "ai-stack.governanceControlRefs" "postgres" | nindent 4 }}
 spec:
   instances: {{ .Values.postgres.cnpg.instances }}
-  imageName: {{ .Values.postgres.cnpg.imageName | quote }}
+  imageName: "{{ .Values.postgres.cnpg.image.repository }}:{{ .Values.postgres.cnpg.image.tag }}"
 
   bootstrap:
     initdb:

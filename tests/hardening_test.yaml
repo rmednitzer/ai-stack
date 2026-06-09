@@ -1,17 +1,68 @@
 suite: availability + telemetry redaction hardening
-# Locks in two security-relevant defaults so they cannot silently regress
+# Locks in security-relevant defaults so they cannot silently regress
 # (CLAUDE.md principle 3 — assert security-relevant behaviour in tests/):
 #   1. Valkey (single-replica session + Streams store) is covered by a PDB,
 #      consistent with the other single-replica protected components.
 #   2. The OTel Collector ships credential/secret redaction patterns, not just
 #      the three PII patterns — these guard tokens in MCPO/Open Terminal traffic.
+#   3. Open WebUI's JWT-signing and OAuth-token-encryption keys are independent
+#      Secret entries (2.12.0 split — one credential no longer covers both).
+#   4. The helm-test hook image is digest-pinned (ADR-002) — and the hook
+#      template renders at all (a bare `tests/` .helmignore pattern silently
+#      dropped templates/tests/ from the chart before 2.12.0).
 release:
   name: ai-stack
   namespace: ai-stack
 templates:
   - templates/common/pdbs.yaml
   - templates/otel/otel-collector.yaml
+  - templates/openwebui/deployment.yaml
+  - templates/common/secrets.yaml
+  - templates/tests/connection-test.yaml
 tests:
+  - it: renders the helm-test hook Pod with a digest-pinned image (ADR-002)
+    template: templates/tests/connection-test.yaml
+    documentSelector:
+      path: kind
+      value: Pod
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].image
+          pattern: "^busybox:1\\.37@sha256:[a-f0-9]{64}$"
+  - it: signs sessions and encrypts OAuth tokens with independent Secret keys
+    template: templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WEBUI_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-openwebui-secret
+                key: secret-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OAUTH_SESSION_TOKEN_ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ai-stack-openwebui-secret
+                key: oauth-token-encryption-key
+
+  - it: generates both Open WebUI secret keys in the component Secret
+    template: templates/common/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-openwebui-secret
+    asserts:
+      - exists:
+          path: data["secret-key"]
+      - exists:
+          path: data["oauth-token-encryption-key"]
+
   - it: creates a PodDisruptionBudget for Valkey (single-replica pattern — maxUnavailable 1 + AlwaysAllow)
     set:
       valkey.enabled: true

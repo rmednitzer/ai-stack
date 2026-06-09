@@ -7,7 +7,7 @@
 # bundling, and in-cluster registry injection automatically.
 #
 # Build:   zarf package create --confirm
-# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.11.0.tar.zst --confirm
+# Deploy:  zarf package deploy zarf-package-ai-stack-amd64-2.12.0.tar.zst --confirm
 # =============================================================================
 
 kind: ZarfPackageConfig
@@ -16,7 +16,7 @@ metadata:
   description: >-
     AI inference and tooling stack for air-gapped Kubernetes deployments.
     Includes Open WebUI, Ollama, Qdrant, Tika, SearXNG, and supporting services.
-  version: 2.11.0
+  version: 2.12.0
   url: https://github.com/rmednitzer/ai-stack
   authors: Roman Mednitzer <r.mednitzer@outlook.com>
 
@@ -46,6 +46,9 @@ variables:
   - name: AI_GATEWAY_ENABLED
     description: "Set aiGateway.enabled when deploying the ai-gateway component"
     default: "true"
+  - name: POSTGRES_MODE
+    description: "Set postgres.mode when deploying the postgres-cnpg component (standalone | cnpg | external)"
+    default: "cnpg"
 
 components:
   # ---------------------------------------------------------------------------
@@ -58,7 +61,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
     images:
@@ -89,7 +92,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:
@@ -113,7 +116,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:
@@ -128,6 +131,32 @@ components:
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------
+  # Optional: CloudNativePG PostgreSQL (postgres.mode=cnpg, production HA)
+  # Mirrors the CNPG operand image so the regulated datastore participates in
+  # the air-gap supply chain; the CNPG operator itself is BYO (pre-installed),
+  # exactly as the ai-gateway component mirrors images for a BYO controller.
+  # ---------------------------------------------------------------------------
+  - name: postgres-cnpg
+    required: false
+    description: "CloudNativePG operand image + postgres.mode=cnpg wiring (requires the BYO CNPG operator)"
+    charts:
+      - name: ai-stack
+        localPath: "."
+        namespace: ai-stack
+        version: 2.12.0
+        valuesFiles:
+          - values.yaml
+        variables:
+          - name: POSTGRES_ENABLED
+            description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
+            path: postgres.enabled
+          - name: POSTGRES_MODE
+            description: "Maps the POSTGRES_MODE variable to postgres.mode"
+            path: postgres.mode
+    images:
+      - ghcr.io/cloudnative-pg/postgresql:18@sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3
+
+  # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
   # ---------------------------------------------------------------------------
   - name: mcpo
@@ -137,7 +166,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:
@@ -157,7 +186,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:
@@ -177,7 +206,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:
@@ -199,7 +228,7 @@ components:
       - name: ai-stack
         localPath: "."
         namespace: ai-stack
-        version: 2.11.0
+        version: 2.12.0
         valuesFiles:
           - values.yaml
         variables:

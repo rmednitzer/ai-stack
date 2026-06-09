@@ -12,11 +12,15 @@ Valkey pub/sub channel 'corpus:state' notifies consumers (e.g. LangGraph agents)
 when a collection becomes ready or changes state.
 """
 
+import errno
 import hashlib
+import ipaddress
 import json
 import logging
 import os
 import signal
+import socket
+import stat
 import sys
 import time
 from pathlib import Path
@@ -70,6 +74,30 @@ SOURCE_SCHEMES = {
 # credentials projected via ingestionWorker.sources.existingSecret) into the
 # vector store. Legitimate document mounts (/mnt, /data, …) are unaffected.
 _LOCAL_DENY_PREFIXES = ("/proc", "/sys", "/etc", "/root", "/run", "/var/run")
+
+# URL-fetch hardening (ADR-009, SSRF defense): a producer-supplied file_url is
+# attacker-influenced input. Schemes are allow-listed (https-only by default;
+# add "http" deliberately), and every hop of the fetch — including redirects —
+# must resolve to a permitted address. Loopback, link-local (incl. the cloud
+# metadata service 169.254.169.254), multicast, reserved, and unspecified
+# addresses are ALWAYS refused; other non-global addresses (RFC 1918 / ULA /
+# CGNAT — e.g. in-cluster Service IPs) are refused unless covered by the
+# operator-supplied INGESTION_FETCH_ALLOWED_CIDRS. Residual risk: the address
+# is re-resolved by the HTTP client after screening (no connection pinning), so
+# a DNS-rebinding window remains — see LIMITATIONS.md L9.
+FETCH_SCHEMES = {
+    s.strip().lower()
+    for s in os.environ.get("INGESTION_FETCH_SCHEMES", "https").split(",")
+    if s.strip()
+}
+FETCH_ALLOWED_NETS = [
+    # Invalid CIDRs raise at startup (crash-loop with a clear message) rather
+    # than silently weakening or tightening the screen at fetch time.
+    ipaddress.ip_network(c.strip(), strict=False)
+    for c in os.environ.get("INGESTION_FETCH_ALLOWED_CIDRS", "").split(",")
+    if c.strip()
+]
+MAX_FETCH_REDIRECTS = 5
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -401,11 +429,73 @@ def set_status(task_id: str, status: str, **extra: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _screen_fetch_url(url: str) -> None:
+    """SSRF screen for one fetch hop (ADR-009).
+
+    Raises ValueError unless the URL's scheme is allow-listed and EVERY address
+    its host resolves to is permitted. Error messages may name the host (so an
+    operator can act on them) but never echo the full URL — a presigned URL
+    carries its signature in the query string.
+    """
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+    if scheme not in FETCH_SCHEMES:
+        raise ValueError(
+            f"URL scheme {scheme!r} is not fetchable (INGESTION_FETCH_SCHEMES="
+            f"{','.join(sorted(FETCH_SCHEMES))})"
+        )
+    host = parsed.hostname
+    if not host:
+        raise ValueError("source URL has no host")
+    port = parsed.port or (443 if scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except socket.gaierror as exc:
+        raise ValueError(f"source host does not resolve: {host!r}") from exc
+    for info in infos:
+        # sockaddr[0]; scoped IPv6 link-locals carry a %zone suffix — strip it.
+        ip = ipaddress.ip_address(str(info[4][0]).split("%", 1)[0])
+        if (ip.is_loopback or ip.is_link_local or ip.is_multicast
+                or ip.is_reserved or ip.is_unspecified):
+            # Never legitimate ingestion targets (cloud metadata/IMDS is
+            # link-local) — not overridable via the CIDR allowlist.
+            raise ValueError(f"source host {host!r} resolves to a blocked address ({ip})")
+        if not ip.is_global and not any(ip in net for net in FETCH_ALLOWED_NETS):
+            raise ValueError(
+                f"source host {host!r} resolves to a non-public address ({ip}) "
+                f"not covered by INGESTION_FETCH_ALLOWED_CIDRS"
+            )
+
+
+def fetch_url(file_url: str) -> bytes:
+    """Fetch an http(s) source, screening every redirect hop (ADR-009)."""
+    url = file_url
+    for _ in range(MAX_FETCH_REDIRECTS + 1):
+        _screen_fetch_url(url)
+        # follow_redirects=False: each Location target is re-screened above, so
+        # an allowed public URL cannot bounce the worker into IMDS/private space.
+        resp = http.get(url, follow_redirects=False, timeout=60.0)
+        if resp.is_redirect:
+            location = resp.headers.get("location")
+            if not location:
+                raise ValueError(f"redirect (HTTP {resp.status_code}) without a Location header")
+            url = urljoin(url, location)
+            continue
+        if not resp.is_success:
+            # Report only the status, never the URL (signature in query string;
+            # str(exc) lands in logs and the task status hash). Don't ingest a
+            # 4xx/5xx error-page body either.
+            raise ValueError(f"source fetch failed: HTTP {resp.status_code}")
+        return resp.content
+    raise ValueError(f"source fetch exceeded {MAX_FETCH_REDIRECTS} redirects")
+
+
 def read_source(file_url: str) -> bytes:
     """Resolve a task's ``file_url`` to raw bytes.
 
-    Routing (ADR-007):
-      * ``http://`` / ``https://``  → HTTP fetch (unchanged behaviour).
+    Routing (ADR-007, hardening ADR-009):
+      * ``http://`` / ``https://``  → screened HTTP fetch (scheme allowlist,
+        blocked/non-public address screening, per-redirect re-screening).
       * bare path or ``file://``    → local file (covers CSI-mounted NFS/SMB).
       * any other scheme (``s3://``, ``gs://``, ``az://``, ``smb://``, …) →
         resolved via fsspec, but ONLY when the scheme is allow-listed in
@@ -414,14 +504,7 @@ def read_source(file_url: str) -> bytes:
     """
     scheme = file_url.split("://", 1)[0].lower() if "://" in file_url else ""
     if scheme in ("http", "https"):
-        resp = http.get(file_url, follow_redirects=True, timeout=60.0)
-        if not resp.is_success:
-            # Report only the status, never the URL: a presigned URL carries its
-            # signature in the query string, and raise_for_status() would echo the
-            # full URL into the logs and the task status hash (set_status writes
-            # str(exc)). Don't ingest a 4xx/5xx error-page body either.
-            raise ValueError(f"source fetch failed: HTTP {resp.status_code}")
-        return resp.content
+        return fetch_url(file_url)
     if scheme in ("", "file"):
         if scheme == "file":
             # Parse per RFC 8089 so the authority is stripped correctly:
@@ -437,11 +520,28 @@ def read_source(file_url: str) -> bytes:
         rp = str(resolved)
         if any(rp == d or rp.startswith(d + "/") for d in _LOCAL_DENY_PREFIXES):
             raise ValueError(f"local source path not permitted: {rp}")
-        if not resolved.is_file():
-            # Reject devices (/dev/zero, /dev/urandom → unbounded read_bytes),
-            # FIFOs/sockets, and directories — only regular files are sources.
-            raise ValueError(f"local source is not a regular file: {rp}")
-        return resolved.read_bytes()
+        # Open once and validate the LIVE handle (not a pre-checked path): a
+        # symlink swapped in between a stat and a re-open (TOCTOU) on a writable
+        # mount could otherwise redirect the read at a denied target. O_NOFOLLOW
+        # refuses a symlink final component; fstat on the open fd rejects
+        # devices (/dev/zero, /dev/urandom → unbounded read), FIFOs (O_NONBLOCK
+        # keeps the open from hanging), sockets, and directories.
+        flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+        try:
+            fd = os.open(rp, flags)
+        except OSError as exc:
+            if exc.errno == errno.ELOOP:
+                raise ValueError(f"local source is a symlink: {rp}") from exc
+            raise
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise ValueError(f"local source is not a regular file: {rp}")
+            with os.fdopen(fd, "rb") as f:
+                fd = -1  # ownership moved to the file object
+                return f.read()
+        finally:
+            if fd != -1:
+                os.close(fd)
     if scheme in SOURCE_SCHEMES:
         try:
             import fsspec  # lazy; provided via ingestionWorker.sources.pipPackages

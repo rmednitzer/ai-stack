@@ -24,8 +24,12 @@ ARG PYTHON_VERSION=3.14-slim
 FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
+# requirements.txt is a hashed universal lock (make ingestion-worker-lock);
+# --require-hashes makes the bake fail closed on any tampered/substituted dist.
+# Baking fsspec source backends (ingestionWorker.sources) into this image?
+# Append them to requirements.in, recompile the lock, then build.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt
 
 COPY worker.py ./
 

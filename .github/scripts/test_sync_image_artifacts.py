@@ -18,7 +18,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sync_image_artifacts import collect_values_images, update_zarf  # noqa: E402
+from sync_image_artifacts import (  # noqa: E402
+    collect_values_images,
+    rewrite_purl,
+    update_sbom,
+    update_zarf,
+)
 
 # Mirrors the parity-check regex in .github/workflows/lint.yaml's
 # `Verify image-tag parity ...` step. The script's output MUST match this
@@ -93,6 +98,96 @@ class CollectValuesImages(unittest.TestCase):
         }
         images = collect_values_images(doc)
         self.assertEqual(images[0]["digest"], f"sha256:{DIGEST_A}")
+
+
+class RewritePurl(unittest.TestCase):
+    """purl spec form: one '@' separator; the digest lives in the `checksum`
+    qualifier (sorted with any other qualifiers), never as a second '@'."""
+
+    def test_single_at_and_checksum_qualifier(self) -> None:
+        out = rewrite_purl(
+            "pkg:docker/ollama/ollama@0.24.0", f"0.30.4@sha256:{DIGEST_A}", DIGEST_A
+        )
+        self.assertEqual(
+            out, f"pkg:docker/ollama/ollama@0.30.4?checksum=sha256:{DIGEST_A}"
+        )
+        self.assertEqual(out.count("@"), 1)
+
+    def test_migrates_legacy_double_at_form(self) -> None:
+        """The pre-2.12.0 repo form (version@sha256:... appended after '@')
+        must normalise to the spec form, keeping repository_url and emitting
+        qualifiers sorted (checksum < repository_url)."""
+        legacy = (
+            f"pkg:docker/open-webui/open-webui@v0.9.5@sha256:{DIGEST_A}"
+            f"?repository_url=ghcr.io"
+        )
+        out = rewrite_purl(legacy, f"v0.9.6@sha256:{DIGEST_B}", DIGEST_B)
+        self.assertEqual(
+            out,
+            "pkg:docker/open-webui/open-webui@v0.9.6"
+            f"?checksum=sha256:{DIGEST_B}&repository_url=ghcr.io",
+        )
+
+    def test_unpinned_tag_drops_checksum(self) -> None:
+        out = rewrite_purl(
+            f"pkg:docker/ollama/ollama@0.24.0?checksum=sha256:{DIGEST_A}",
+            "0.25.0",
+            "",
+        )
+        self.assertEqual(out, "pkg:docker/ollama/ollama@0.25.0")
+
+    def test_non_docker_purl_left_alone(self) -> None:
+        self.assertEqual(rewrite_purl("pkg:pypi/httpx@0.28.1", "x", "y"),
+                         "pkg:pypi/httpx@0.28.1")
+
+
+class UpdateSbom(unittest.TestCase):
+    """update_sbom keeps component.version as the full values.yaml tag string,
+    rewrites the purl to the spec form, and replaces the SHA-256 hash."""
+
+    @staticmethod
+    def _bom() -> dict:
+        return {
+            "components": [
+                {
+                    "type": "container",
+                    "bom-ref": "ollama",
+                    "name": "ollama",
+                    "version": f"0.24.0@sha256:{DIGEST_A}",
+                    "purl": f"pkg:docker/ollama/ollama@0.24.0@sha256:{DIGEST_A}",
+                    "hashes": [{"alg": "SHA-256", "content": DIGEST_A}],
+                }
+            ]
+        }
+
+    def test_rewrites_version_purl_and_hash(self) -> None:
+        images = [
+            {
+                "repository": "ollama/ollama",
+                "tag": f"0.30.4@sha256:{DIGEST_B}",
+                "digest": f"sha256:{DIGEST_B}",
+            }
+        ]
+        bom, issues = update_sbom(self._bom(), images)
+        self.assertEqual(issues, [])
+        comp = bom["components"][0]
+        self.assertEqual(comp["version"], f"0.30.4@sha256:{DIGEST_B}")
+        self.assertEqual(
+            comp["purl"], f"pkg:docker/ollama/ollama@0.30.4?checksum=sha256:{DIGEST_B}"
+        )
+        self.assertEqual(comp["hashes"], [{"alg": "SHA-256", "content": DIGEST_B}])
+        # purl version must equal the tag part of component.version — the
+        # internal-consistency assertion the lint.yaml parity step enforces.
+        self.assertEqual(
+            comp["purl"].split("@", 1)[1].split("?", 1)[0],
+            comp["version"].split("@", 1)[0],
+        )
+
+    def test_missing_component_is_reported(self) -> None:
+        images = [{"repository": "ghcr.io/acme/newcomp", "tag": "1.0.0", "digest": ""}]
+        _, issues = update_sbom(self._bom(), images)
+        self.assertEqual(len(issues), 1)
+        self.assertIn("newcomp", issues[0])
 
 
 class UpdateZarfRegression(unittest.TestCase):

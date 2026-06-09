@@ -24,7 +24,18 @@ spec:
       type: RuntimeDefault
   containers:
     - name: connection-test
-      image: busybox:1.37
+      # Digest-pinned per ADR-002. helm-test hook image only: excluded from the
+      # packaged chart's SBOM/Zarf parity set (it never ships to the cluster
+      # outside `helm test`).
+      image: busybox:1.37@sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028
+      {{- if include "ai-stack.valkeyAuthEnabled" . }}
+      env:
+        - name: VALKEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+              key: password
+      {{- end }}
       command:
         - sh
         - -c
@@ -63,7 +74,11 @@ spec:
           check_redis() {
             local N=1
             while [ $N -le 3 ]; do
+              {{- if include "ai-stack.valkeyAuthEnabled" . }}
+              RESP=$(printf '*2\r\n$4\r\nAUTH\r\n$%s\r\n%s\r\n*1\r\n$4\r\nPING\r\n' "${#VALKEY_PASSWORD}" "$VALKEY_PASSWORD" | nc -w 5 "$1" "$2" 2>/dev/null)
+              {{- else }}
               RESP=$(printf '*1\r\n$4\r\nPING\r\n' | nc -w 5 "$1" "$2" 2>/dev/null)
+              {{- end }}
               if printf '%s' "$RESP" | grep -q '+PONG'; then
                 echo "PASS [redis]: $3 ($1:$2)"
                 PASS=$((PASS+1))

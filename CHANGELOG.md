@@ -7,6 +7,126 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-06-09
+
+Works the deferred recommendation backlog of the 2026-06 deep audit
+([AUDIT-2026-06](docs/audit/AUDIT-2026-06.md) §3, R1–R10) in one coordinated
+change: supply-chain closure for the CNPG datastore, spec-compliant SBOM
+purls, NetworkPolicy least-privilege tightening, opt-in Valkey AUTH
+(ADR-008), ingestion URL-fetch SSRF hardening (ADR-009), and dependency
+hash-locking. **No shipped default weakened**; two defaults strengthened
+(see Security + upgrade notes).
+
+### Added
+
+- **Opt-in Valkey AUTH — `valkey.auth.enabled` ([ADR-008](docs/architecture/ADR-008-valkey-auth.md), audit R4).**
+  Defense-in-depth on top of the default-deny NetworkPolicy for the
+  session/pipeline datastore. The generated password (stable across upgrades)
+  feeds a Secret-mounted `valkey.conf` (`requirepass` never appears in process
+  args), the values-defined `valkey-cli` probes (via `VALKEYCLI_AUTH`/
+  `REDISCLI_AUTH`), and every consumer URL by `$(...)` substitution: Open WebUI
+  `REDIS_URL`/`WEBSOCKET_REDIS_URL`, the ingestion worker `VALKEY_URL` +
+  stream-init, Authelia `session.redis.password`, and the helm-test RESP
+  `AUTH`. Default off — enabling is a deliberate coordinated rollout; rotation
+  is manual (`kubectl rollout restart`). New `tests/valkey_auth_test.yaml`.
+- **CNPG operand image joins the supply chain (audit R1, High).**
+  `postgres.cnpg.imageName` (an unpinned `:18` tag invisible to every parity
+  check) is replaced by the standard `postgres.cnpg.image.{repository,tag}`
+  block — digest-pinned, Renovate-managed, catalogued in `sbom.cdx.json` and
+  mirrored by a new optional `postgres-cnpg` Zarf component (with a
+  `POSTGRES_MODE` deploy variable), so the regulated datastore no longer
+  escapes ADR-001/ADR-002 parity. The template fails with a migration hint if
+  the legacy key is still set.
+- **Ingestion worker URL-fetch hardening ([ADR-009](docs/architecture/ADR-009-ingestion-url-fetch-hardening.md), audit R5).**
+  New `ingestionWorker.fetch.{schemes,allowedCidrs}` →
+  `INGESTION_FETCH_SCHEMES` / `INGESTION_FETCH_ALLOWED_CIDRS`: https-only by
+  default; loopback/link-local (IMDS)/multicast/reserved addresses always
+  refused; private/non-global ranges refused unless allow-listed; redirects
+  followed manually and re-screened per hop; invalid CIDRs fail at startup.
+  Status/log messages keep the no-URL-leak property (host only, never the
+  presigned query string).
+- **Hashed universal lock for the ingestion worker (audit R7).** New
+  `files/ingestion-worker/requirements.in` (ranges) compiled to a fully
+  pinned, hashed, universal `requirements.txt` via `make
+  ingestion-worker-lock` (uv, Python 3.14); the `install-deps` initContainer
+  and the prebuilt-image Dockerfile install with `--require-hashes`. When
+  `sources.pipPackages` adds fsspec backends, the base set is co-resolved from
+  the `.in` ranges in one pass (pip hash mode is all-or-nothing — documented
+  in values.yaml). Dependabot gains a `pip` ecosystem entry for both
+  `files/` locks.
+- **`global.otel.exportNamespace`** (default `observability`) — names the
+  platform observability namespace so the OTel Collector's export egress can
+  be scoped (see Security); keep in sync with the exporter endpoints.
+- **`global.repoSlug` surfaced in values.yaml + schema (audit R9).** Already
+  consumed by the PrometheusRule runbook URLs (with a working default); now
+  documented so forks can point runbook links at their own docs. The
+  remaining R9 item (more ServiceMonitors) is intentionally not done: no other
+  component exposes a native Prometheus `/metrics` endpoint to scrape
+  (SearXNG metrics are disabled by config; Valkey/Postgres need exporters,
+  out of chart scope).
+
+### Changed
+
+- **SBOM purls are now spec-compliant (audit R2).** Components previously
+  carried a double-`@` form (`pkg:docker/name@tag@sha256:…`); the digest now
+  rides the canonical `checksum` qualifier
+  (`pkg:docker/name@tag?checksum=sha256:…`), qualifiers sorted per the purl
+  spec. `sync_image_artifacts.py` (`rewrite_purl`/`update_sbom`) emits the new
+  form and migrates the legacy one; the CI parity steps verify purl-version ↔
+  component-version and checksum ↔ hashes[] consistency; new unit tests cover
+  both functions.
+- **helm-test hook image digest-pinned (audit R6):**
+  `busybox:1.37@sha256:9532d8c3…` (test hook only; intentionally outside the
+  SBOM/Zarf parity set, which covers shipped images).
+- `Chart.yaml` 2.11.0 → 2.12.0; version-bearing artifacts resynced per
+  ADR-001 (README badge, `zarf.yaml` package/chart versions + deploy comment,
+  SBOM package version/timestamp/serial, compliance/enterprise/governance/
+  baseline/multi-user doc headers, SECURITY.md supported versions,
+  LIMITATIONS.md review marker).
+
+### Fixed
+
+- **`helm test` had no test to run: the connection-test hook was silently
+  excluded from the chart.** The `.helmignore` entry `tests/` (added with the
+  helm-unittest suite in 2.6.0 to keep unit tests out of the package) matches
+  any directory named `tests` at any depth — including `templates/tests/` — so
+  the connectivity-check Pod was dropped from every render, package, and
+  install since then (`helm test` reported nothing; the hook also escaped
+  kube-linter/kubeconform). The pattern is now anchored to the chart root
+  (`/tests/`), the hook renders again, and a `tests/` assertion locks its
+  presence (and its ADR-002 digest pin) so it cannot vanish silently again.
+
+### Security
+
+- **Open WebUI in-namespace ingress no longer admits every pod (audit R3).**
+  The `podSelector: {}` rule is replaced by an allowlist of the helm-test pod
+  and (only when telemetry is enabled) the OTel Collector's `/metrics`
+  scrape. Edge traffic via `global.ingressNamespace` is unchanged.
+- **OTel Collector export egress is namespace-scoped (audit R3).** The
+  previously unscoped 4317/4318/3100/9090 egress now targets only
+  `global.otel.exportNamespace` + `global.monitoringNamespace`. **Upgrade
+  note:** if your observability pipeline lives elsewhere, set
+  `global.otel.exportNamespace` accordingly.
+- **Ingestion `file_url` fetches are https-only and address-screened by
+  default (ADR-009; audit R5 — strengthened default).** **Upgrade note:**
+  plain-HTTP sources need `ingestionWorker.fetch.schemes: [https, http]`;
+  in-cluster/private-range sources (e.g. presigned URLs of an in-cluster
+  MinIO) need their CIDR in `ingestionWorker.fetch.allowedCidrs`. External
+  presigned HTTPS URLs and CSI-mount local paths keep working untouched.
+- **Local `file_url` reads validate the live file handle (audit R10).**
+  `O_NOFOLLOW` open + `fstat` on the descriptor replaces the
+  check-then-reopen sequence, closing the symlink-swap TOCTOU on writable
+  mounts; FIFOs can no longer hang the open (`O_NONBLOCK`).
+- **Open WebUI OAuth session-token encryption uses its own key (audit R8).**
+  `OAUTH_SESSION_TOKEN_ENCRYPTION_KEY` now reads a dedicated, independently
+  generated `oauth-token-encryption-key` Secret entry instead of reusing the
+  JWT-signing `secret-key`. **Upgrade note:** existing OAuth session tokens
+  cannot be decrypted after the split — SSO users re-authenticate once;
+  local-auth sessions are unaffected.
+- LIMITATIONS.md **L9** updated for the ADR-009 posture and its residuals
+  (DNS-rebinding window — no connection pinning; parent-directory symlink
+  races; overly broad CIDR grants).
+
 ## [2.11.0] - 2026-06-07
 
 Ingestion worker: a documented contract (specification) and **opt-in native
@@ -810,7 +930,8 @@ natively; no external projects are bundled.
 - Dependabot configuration for GitHub Actions
 - Structured issue and PR templates
 
-[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.11.0...HEAD
+[Unreleased]: https://github.com/rmednitzer/ai-stack/compare/v2.12.0...HEAD
+[2.12.0]: https://github.com/rmednitzer/ai-stack/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/rmednitzer/ai-stack/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/rmednitzer/ai-stack/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/rmednitzer/ai-stack/compare/v2.8.0...v2.9.0
