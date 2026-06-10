@@ -168,14 +168,6 @@ click==8.4.1 \
     --hash=sha256:482be17c6991b8c19c5429a1e995d9b0efdbb63172824c41f99965dc0ade8ec2 \
     --hash=sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96
     # via uvicorn
-colorama==0.4.6 ; sys_platform == 'win32' \
-    --hash=sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44 \
-    --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
-    # via
-    #   click
-    #   tqdm
-    #   typer
-    #   uvicorn
 dbos==2.22.0 \
     --hash=sha256:09edc621ec2857dae73cc1b01bc7379999fe9ee4ef8c6ff4ac69dd1a5263001f \
     --hash=sha256:5d43a9d0388d851df0f7bbd4ed752bc8b67be3d6fbe358c8be4d22f6c4887db6
@@ -187,7 +179,7 @@ distro==1.9.0 \
 fastapi==0.136.3 \
     --hash=sha256:3d2a69bdf04b7e9f3afa292c3bc7a98816bbfafa10bc9b45f3f3700d2f761620 \
     --hash=sha256:e487fae93ad408e6f47641ee4dfe389864fd7bec92e547ea8498fc13f43e83ab
-    # via -r files/pydanticai/requirements.in
+    # via -r requirements.in
 genai-prices==0.0.62 \
     --hash=sha256:5d9ab0d9e5d81e035f88bf591fb6a8dde527922786acf1ee2737358f7bbe0167 \
     --hash=sha256:baf1ffa64be0d15577878216464d6a2d04244db5fbdf78d56bde43809e7aef44
@@ -415,7 +407,7 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via
-    #   -r files/pydanticai/requirements.in
+    #   -r requirements.in
     #   openai
     #   pydantic-ai-slim
     #   pydantic-graph
@@ -573,7 +565,7 @@ opentelemetry-exporter-otlp-proto-common==1.42.1 \
 opentelemetry-exporter-otlp-proto-grpc==1.42.1 \
     --hash=sha256:0ae1177e2038b18a929b3098215243631ef91136cba26b7e2b12790ceb7e87cc \
     --hash=sha256:975c4461f167dd8ed8857d68d3b6b25f3d272eab896f6a9470d0f5b90e2faf15
-    # via -r files/pydanticai/requirements.in
+    # via -r requirements.in
 opentelemetry-proto==1.42.1 \
     --hash=sha256:c6a51e6b4f05ae63565f3a113217f3d2bfaec68f78c02d7a6c85f9010d1cfca6 \
     --hash=sha256:dedb74cba2886c59c7789b227a7a670613025a07489040050aedff6e5c0fb43c
@@ -584,7 +576,7 @@ opentelemetry-sdk==1.42.1 \
     --hash=sha256:083cd4bbfaa5aa7b5a9e552430d9951219967cfb27aa61feb13a77aba1fc839d \
     --hash=sha256:8c834e8f8c9ba4171d4ec843d0cb8a67e4c7394d3f9e9297e582cbd9456ddbf7
     # via
-    #   -r files/pydanticai/requirements.in
+    #   -r requirements.in
     #   opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-semantic-conventions==0.63b1 \
     --hash=sha256:3daf963611334b365e98a57438183eb012d3bfb40b2d931a9af613476b8701a9 \
@@ -604,11 +596,11 @@ protobuf==6.33.6 \
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
-psycopg==3.3.4 \
+psycopg[binary]==3.3.4 \
     --hash=sha256:b6bbc25ccf05c8fad3b061d9db2ef0909a555171b84b07f29458a447253d679a \
     --hash=sha256:e21207764952cff81b6b8bdacad9a3939f2793367fdac2987b3aac36a651b5bc
     # via dbos
-psycopg-binary==3.3.4 ; implementation_name != 'pypy' \
+psycopg-binary==3.3.4 \
     --hash=sha256:018fbed325936da502feb546642c982dcc4b9ffdea32dfef78dbf3b7f7ad4070 \
     --hash=sha256:0579252a1202cd73e4da137a1426e2dae993ae44e757605344282af3a082848c \
     --hash=sha256:136f199a407b5348b9b857c504aff60c77622a28482e7195839ce1b51238c4cc \
@@ -674,10 +666,10 @@ pydantic==2.13.4 \
     #   openai
     #   pydantic-ai-slim
     #   pydantic-graph
-pydantic-ai-slim==1.104.0 \
+pydantic-ai-slim[dbos,openai]==1.104.0 \
     --hash=sha256:b67e3a398de3d7d9a88d3ed17d042f46dba9fa2bb5bdb120e4ae5b5199dd776a \
     --hash=sha256:bab0b1ac74603c789a629e5dcb7a0a7f720d198ce7726cc2a891f819a973cf49
-    # via -r files/pydanticai/requirements.in
+    # via -r requirements.in
 pydantic-core==2.46.4 \
     --hash=sha256:00c603d540afdd6b80eb39f078f33ebd46211f02f33e34a32d9f053bba711de0 \
     --hash=sha256:0186750b482eefa11d7f435892b09c5c606193ef3375bcf94aa00ae6bfb66262 \
@@ -1029,7 +1021,7 @@ sniffio==1.3.1 \
     --hash=sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2 \
     --hash=sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc
     # via openai
-sqlalchemy==2.0.50 \
+sqlalchemy[asyncio]==2.0.50 \
     --hash=sha256:03f4323c980ad0e918cc9e5369b015f759f4e534db5bbaf4dc36832c10d05064 \
     --hash=sha256:06a9210bdc5f4298cff0781087e2ff45683922252dacc452846373a58761f093 \
     --hash=sha256:0a31c5963d58d3e3d11c5b97709e248305705de1fdf51ec3bf396674c5898b7e \
@@ -1187,19 +1179,15 @@ typing-inspection==0.4.2 \
     #   pydantic
     #   pydantic-ai-slim
     #   pydantic-graph
-tzdata==2026.2 ; sys_platform == 'win32' \
-    --hash=sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10 \
-    --hash=sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7
-    # via psycopg
 urllib3==2.7.0 \
     --hash=sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c \
     --hash=sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897
     # via requests
-uvicorn==0.48.0 \
-    --hash=sha256:48097851328b87ec36117d3d575234519eb58c2b22d79666e9bbc6c49a761dad \
-    --hash=sha256:a5504207195d08c2511bf9125ede5ac4a4b71725d519e758d01dcf0bc2d31c37
-    # via -r files/pydanticai/requirements.in
-uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32' \
+uvicorn[standard]==0.49.0 \
+    --hash=sha256:ba3d14c3ee7e41c6c654c46c9eb489d33213cdd30aa1696eab1374337c13f68f \
+    --hash=sha256:ebf4271aa580d9de97f93192d4595176df6e91f9aae919ca73e4fc07df1e66a3
+    # via -r requirements.in
+uvloop==0.22.1 \
     --hash=sha256:017bd46f9e7b78e81606329d07141d3da446f8798c6baeec124260e22c262772 \
     --hash=sha256:0530a5fbad9c9e4ee3f2b33b148c6a64d47bbad8000ea63704fa8260f4cf728e \
     --hash=sha256:05e4b5f86e621cf3927631789999e697e58f0d2d32675b67d9ca9eb0bca55743 \
