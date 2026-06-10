@@ -453,6 +453,52 @@ Usage: {{ if include "ai-stack.valkeyAuthEnabled" . }}
 {{- end }}
 
 {{/*
+_VALKEY_PASSWORD env var from the valkey Secret (ADR-008). Consumers reference
+it inside redis:// URLs via $(...) substitution — the chart's _PG_PASSWORD
+pattern. Emits nothing while auth is disabled, so call sites stay branch-free.
+Usage: {{ include "ai-stack.valkeyPasswordEnv" . | nindent N }}
+*/}}
+{{- define "ai-stack.valkeyPasswordEnv" -}}
+{{- if include "ai-stack.valkeyAuthEnabled" . }}
+- name: _VALKEY_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+      key: password
+{{- end }}
+{{- end }}
+
+{{/*
+valkey-cli / redis-cli auth env from the valkey Secret (ADR-008): both spellings
+so the values-defined `valkey-cli ping` probes and any redis-cli tooling
+authenticate without changing their commands. Emits nothing while auth is off.
+Usage: {{ include "ai-stack.valkeyCliAuthEnv" . | nindent N }}
+*/}}
+{{- define "ai-stack.valkeyCliAuthEnv" -}}
+{{- if include "ai-stack.valkeyAuthEnabled" . }}
+- name: VALKEYCLI_AUTH
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+      key: password
+- name: REDISCLI_AUTH
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+      key: password
+{{- end }}
+{{- end }}
+
+{{/*
+Credential fragment for redis:// URLs (":$(_VALKEY_PASSWORD)@" with auth on,
+"" otherwise). Pair with "ai-stack.valkeyPasswordEnv" in the same env block.
+Usage: redis://{{ include "ai-stack.valkeyUrlCred" . }}host:port/0
+*/}}
+{{- define "ai-stack.valkeyUrlCred" -}}
+{{- if include "ai-stack.valkeyAuthEnabled" . -}}:$(_VALKEY_PASSWORD)@{{- end -}}
+{{- end }}
+
+{{/*
 Qdrant API key environment variable from secret.
 Usage: {{ include "ai-stack.qdrantApiKeyEnv" . | nindent N }}
 */}}
@@ -505,15 +551,8 @@ signing key coupled two security domains to one credential. */}}
   value: {{ printf "postgresql://%s:$(_PG_PASSWORD)@%s:%s/%s?sslmode=%s" .Values.postgres.user (include "ai-stack.postgresHost" .) (include "ai-stack.postgresPort" .) .Values.openwebui.databaseName (include "ai-stack.postgresSslMode" .) | quote }}
 {{- end }}
 {{- if .Values.valkey.enabled }}
-{{- $auth := include "ai-stack.valkeyAuthEnabled" . }}
-{{- if $auth }}
-- name: _VALKEY_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
-      key: password
-{{- end }}
-{{- $cred := ternary ":$(_VALKEY_PASSWORD)@" "" (eq $auth "true") }}
+{{- include "ai-stack.valkeyPasswordEnv" . }}
+{{- $cred := include "ai-stack.valkeyUrlCred" . }}
 {{- $valkeyHost := include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}
 - name: REDIS_URL
   value: {{ printf "redis://%s%s:%v/0" $cred $valkeyHost .Values.valkey.service.port | quote }}

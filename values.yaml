@@ -331,6 +331,11 @@ openwebui:
   # chart guarantees this by sourcing it from one Secret. Set explicitly only
   # to share a key with an external system.
   secretKey: ""
+  # -- Encryption key for OAuth session tokens at rest
+  # (OAUTH_SESSION_TOKEN_ENCRYPTION_KEY) — independent of secretKey since
+  # 2.12.0. Auto-generated and stable across upgrades; set explicitly only to
+  # align with external key management or restore a pre-provisioned key.
+  oauthTokenEncryptionKey: ""
   # -- Open WebUI database name on the shared PostgreSQL (its own DB, separate
   # from the LangGraph/DBOS database). For postgres.mode=standalone the chart
   # creates it automatically; for cnpg/external you must provision it.

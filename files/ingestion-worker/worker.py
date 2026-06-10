@@ -475,11 +475,12 @@ def fetch_url(file_url: str) -> bytes:
         # follow_redirects=False: each Location target is re-screened above, so
         # an allowed public URL cannot bounce the worker into IMDS/private space.
         resp = http.get(url, follow_redirects=False, timeout=60.0)
-        if resp.is_redirect:
-            location = resp.headers.get("location")
-            if not location:
-                raise ValueError(f"redirect (HTTP {resp.status_code}) without a Location header")
-            url = urljoin(url, location)
+        # has_redirect_location, not is_redirect: httpx's is_redirect is true
+        # for ANY 3xx (incl. 304 Not Modified, which has no Location); only a
+        # real redirect with a Location header should be followed — everything
+        # else falls through to the status-code error below.
+        if resp.has_redirect_location:
+            url = urljoin(url, resp.headers["location"])
             continue
         if not resp.is_success:
             # Report only the status, never the URL (signature in query string;

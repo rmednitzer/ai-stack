@@ -384,15 +384,25 @@ jobs:
         run: |
           python3 -c "
           import yaml
+          # Recursive walk — same image model as the parity checks. A top-level
+          # walk silently skipped nested image blocks (postgres.cnpg.image, the
+          # aiGateway controller/extproc), leaving them out of the deep
+          # SBOM/CVE scans even though they are tag/digest-parity enforced.
+          def walk(node, out):
+              if isinstance(node, dict):
+                  img = node.get('image')
+                  if isinstance(img, dict) and img.get('repository'):
+                      out.append(f\"{img['repository']}:{img.get('tag', 'latest')}\")
+                  for v in node.values():
+                      walk(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      walk(it, out)
           with open('values.yaml') as f:
               vals = yaml.safe_load(f)
-          for key, section in vals.items():
-              if isinstance(section, dict) and 'image' in section:
-                  img = section['image']
-                  repo = img.get('repository', '')
-                  tag = img.get('tag', 'latest')
-                  if repo:
-                      print(f'{repo}:{tag}')
+          refs = []
+          walk(vals, refs)
+          print('\n'.join(dict.fromkeys(refs)))
           " | tee /tmp/images.txt
           echo "count=$(wc -l < /tmp/images.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
@@ -517,15 +527,25 @@ jobs:
         run: |
           python3 -c "
           import yaml
+          # Recursive walk — same image model as the parity checks. A top-level
+          # walk silently skipped nested image blocks (postgres.cnpg.image, the
+          # aiGateway controller/extproc), leaving them out of the deep
+          # SBOM/CVE scans even though they are tag/digest-parity enforced.
+          def walk(node, out):
+              if isinstance(node, dict):
+                  img = node.get('image')
+                  if isinstance(img, dict) and img.get('repository'):
+                      out.append(f\"{img['repository']}:{img.get('tag', 'latest')}\")
+                  for v in node.values():
+                      walk(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      walk(it, out)
           with open('values.yaml') as f:
               vals = yaml.safe_load(f)
-          for key, section in vals.items():
-              if isinstance(section, dict) and 'image' in section:
-                  img = section['image']
-                  repo = img.get('repository', '')
-                  tag = img.get('tag', 'latest')
-                  if repo:
-                      print(f'{repo}:{tag}')
+          refs = []
+          walk(vals, refs)
+          print('\n'.join(dict.fromkeys(refs)))
           " | tee /tmp/images.txt
 
       - name: Scan images for CVEs with Grype

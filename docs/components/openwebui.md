@@ -18,6 +18,7 @@ Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentic
 | `openwebui.image.{repository,tag}` | Container image override |
 | `openwebui.replicaCount` | Replicas (prod overlay sets HA) |
 | `openwebui.secretKey` | Signs sessions/JWTs; auto-generated, stable across restarts and replicas |
+| `openwebui.oauthTokenEncryptionKey` | Encrypts OAuth session tokens at rest; independent of `secretKey` (2.12.0); auto-generated unless set |
 | `openwebui.databaseName` | Open WebUI's database on the shared PostgreSQL (default `openwebui`) |
 | `openwebui.resources` | CPU / memory requests and limits |
 | `openwebui.persistence.{enabled,size,storageClass}` | PVC for uploads and local cache |

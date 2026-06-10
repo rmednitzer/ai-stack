@@ -279,7 +279,11 @@
           "additionalProperties": true,
           "properties": {
             "instances": { "type": "integer", "minimum": 1 },
-            "image": { "$ref": "#/$defs/image" }
+            "image": { "$ref": "#/$defs/image" },
+            "imageName": {
+              "not": {},
+              "description": "Removed in chart 2.12.0 — use postgres.cnpg.image.{repository,tag} so the operand image participates in digest pinning and SBOM/Zarf parity (ADR-001/ADR-002)."
+            }
           }
         }
       }

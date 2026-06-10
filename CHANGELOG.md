@@ -101,12 +101,19 @@ hash-locking. **No shipped default weakened**; two defaults strengthened
 - **Open WebUI in-namespace ingress no longer admits every pod (audit R3).**
   The `podSelector: {}` rule is replaced by an allowlist of the helm-test pod
   and (only when telemetry is enabled) the OTel Collector's `/metrics`
-  scrape. Edge traffic via `global.ingressNamespace` is unchanged.
+  scrape. Edge traffic via `global.ingressNamespace` is unchanged. **Upgrade
+  note:** operator-added in-namespace clients that called the Open WebUI API
+  directly were riding on the any-pod rule — give them their own additive
+  NetworkPolicy.
 - **OTel Collector export egress is namespace-scoped (audit R3).** The
   previously unscoped 4317/4318/3100/9090 egress now targets only
   `global.otel.exportNamespace` + `global.monitoringNamespace`. **Upgrade
-  note:** if your observability pipeline lives elsewhere, set
-  `global.otel.exportNamespace` accordingly.
+  note:** if your observability pipeline lives in another namespace, set
+  `global.otel.exportNamespace`; if it lives **off-cluster** (an external
+  OTLP/Loki endpoint), namespace selectors cannot match it — add your own
+  additive NetworkPolicy with an `ipBlock` egress for the collector pods
+  (NetworkPolicies are additive, so the chart's policy does not need
+  changing).
 - **Ingestion `file_url` fetches are https-only and address-screened by
   default (ADR-009; audit R5 — strengthened default).** **Upgrade note:**
   plain-HTTP sources need `ingestionWorker.fetch.schemes: [https, http]`;

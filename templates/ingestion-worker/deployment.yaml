@@ -71,16 +71,7 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           {{- if include "ai-stack.valkeyAuthEnabled" . }}
           env:
-            - name: VALKEYCLI_AUTH
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
-                  key: password
-            - name: REDISCLI_AUTH
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
-                  key: password
+            {{- include "ai-stack.valkeyCliAuthEnv" . | nindent 12 }}
           {{- end }}
           command:
             - sh
@@ -166,18 +157,9 @@ spec:
             - name: PYTHONPATH
               value: "/deps"
             {{- end }}
-            {{- if include "ai-stack.valkeyAuthEnabled" . }}
-            - name: _VALKEY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
-                  key: password
+            {{- include "ai-stack.valkeyPasswordEnv" . | nindent 12 }}
             - name: VALKEY_URL
-              value: 'redis://:$(_VALKEY_PASSWORD)@{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
-            {{- else }}
-            - name: VALKEY_URL
-              value: 'redis://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
-            {{- end }}
+              value: 'redis://{{ include "ai-stack.valkeyUrlCred" . }}{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
             {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.schemes }}
             - name: INGESTION_SOURCE_SCHEMES
               value: {{ join "," .Values.ingestionWorker.sources.schemes | quote }}

@@ -32,7 +32,10 @@ The Collector accepts OTLP only from `part-of: ai-stack` pods and Prometheus
 scrapes only from `global.monitoringNamespace`. Its **export egress is
 namespace-scoped** (since 2.12.0): OTLP/Loki/remote-write ports are reachable
 only in `global.otel.exportNamespace` and `global.monitoringNamespace` — set
-`exportNamespace` if your pipeline lives elsewhere.
+`exportNamespace` if your pipeline lives in another namespace. An
+**off-cluster** export endpoint cannot be matched by namespace selectors: add
+your own additive NetworkPolicy with an `ipBlock` egress for the collector
+pods.
 
 ## Related HOWTO sections
 

@@ -15,7 +15,9 @@ metadata:
     {{- include "ai-stack.governanceControlRefs" "postgres" | nindent 4 }}
 spec:
   instances: {{ .Values.postgres.cnpg.instances }}
-  imageName: "{{ .Values.postgres.cnpg.image.repository }}:{{ .Values.postgres.cnpg.image.tag }}"
+  {{- /* parenthesized access + required: a nulled/partial image block fails
+  with an actionable message instead of a nil-map template panic */}}
+  imageName: "{{ required "postgres.cnpg.image.repository is required (replaces postgres.cnpg.imageName since chart 2.12.0)" (.Values.postgres.cnpg.image).repository }}:{{ required "postgres.cnpg.image.tag is required (digest-pinned, ADR-002)" (.Values.postgres.cnpg.image).tag }}"
 
   bootstrap:
     initdb:
