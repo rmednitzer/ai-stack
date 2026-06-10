@@ -103,6 +103,16 @@ tests:
           path: data["valkey.conf"]
           value: cmVxdWlyZXBhc3MgdGVzdC1wYXNzd29yZAo=  # b64("requirepass test-password\n")
 
+  - it: rejects a non-URL-safe password override at render time (whitespace would silently truncate requirepass)
+    set:
+      valkey.auth.enabled: true
+      valkey.auth.password: "my secret"
+    templates:
+      - templates/common/secrets.yaml
+    asserts:
+      - failedTemplate:
+          errorPattern: "URL-safe unreserved characters"
+
   - it: embeds the credential in Open WebUI session/websocket URLs via env substitution
     set:
       valkey.auth.enabled: true

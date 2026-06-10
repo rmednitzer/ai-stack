@@ -13,6 +13,7 @@ when a collection becomes ready or changes state.
 """
 
 import errno
+import fcntl
 import hashlib
 import ipaddress
 import json
@@ -537,6 +538,11 @@ def read_source(file_url: str) -> bytes:
         try:
             if not stat.S_ISREG(os.fstat(fd).st_mode):
                 raise ValueError(f"local source is not a regular file: {rp}")
+            # O_NONBLOCK's only job was keeping a FIFO open from hanging; clear
+            # it before reading — some network filesystems return EAGAIN on
+            # regular-file reads, which BufferedReader would surface as
+            # BlockingIOError instead of retrying.
+            fcntl.fcntl(fd, fcntl.F_SETFL, fcntl.fcntl(fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
             with os.fdopen(fd, "rb") as f:
                 fd = -1  # ownership moved to the file object
                 return f.read()
