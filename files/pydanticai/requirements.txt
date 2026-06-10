@@ -666,9 +666,9 @@ pydantic==2.13.4 \
     #   openai
     #   pydantic-ai-slim
     #   pydantic-graph
-pydantic-ai-slim[dbos,openai]==1.104.0 \
-    --hash=sha256:b67e3a398de3d7d9a88d3ed17d042f46dba9fa2bb5bdb120e4ae5b5199dd776a \
-    --hash=sha256:bab0b1ac74603c789a629e5dcb7a0a7f720d198ce7726cc2a891f819a973cf49
+pydantic-ai-slim[dbos,openai]==1.106.0 \
+    --hash=sha256:0dd7a99ea3fa89b490098406c2240ba7d75c327eea094c3fd057dd7aa9f3d163 \
+    --hash=sha256:e265598c8ee0e903ebb02d0494bb232be4cc8aa463ba1a55aa743cf34135dacf
     # via -r requirements.in
 pydantic-core==2.46.4 \
     --hash=sha256:00c603d540afdd6b80eb39f078f33ebd46211f02f33e34a32d9f053bba711de0 \
@@ -792,9 +792,9 @@ pydantic-core==2.46.4 \
     --hash=sha256:fc3e9034a63de20e15e8ade85358bc6efc614008cab72898b4b4952bea0509ff \
     --hash=sha256:fd8b3d9fd264be37976686c7f65cd52a83f5e84f4bfd2adf9c1d469676bbb6ae
     # via pydantic
-pydantic-graph==1.104.0 \
-    --hash=sha256:09f962be494b1b2855e748b0bae116797cdbd4194834af61b4591048ab0fba35 \
-    --hash=sha256:fbaa7d2eff41c32c987e9b3751d99c27bb9e0172a72e561774139c739b01a2d7
+pydantic-graph==1.106.0 \
+    --hash=sha256:55afa33df4f699ed5c1185f81b6a06e2161958f1aa0c20742b2dae5745e84cce \
+    --hash=sha256:e6bb61aef0fdb49185a81142d311f94fc3315329345471d12cab85ab5845221f
     # via pydantic-ai-slim
 pygments==2.20.0 \
     --hash=sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f \

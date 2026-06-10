@@ -7,7 +7,7 @@
 #     -o files/pydanticai/requirements.txt
 #
 # (or: make pydanticai-lock). Upper bounds pin the major version.
-pydantic-ai-slim[openai,dbos]>=1.0,<2
+pydantic-ai-slim[openai,dbos]>=1.106.0,<2
 fastapi>=0.115,<1
 uvicorn[standard]>=0.49.0,<1
 httpx>=0.27,<1
