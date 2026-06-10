@@ -128,8 +128,17 @@ spec:
         - protocol: TCP
           port: 8888
   egress:
-    # Forward to platform OTel Collector / Prometheus / Loki
-    - ports:
+    # Forward to the platform observability pipeline — scoped to the export
+    # namespace (OTLP/Loki, see global.otel.exportNamespace) and the
+    # monitoring namespace (Prometheus remote write), not the whole cluster.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.global.otel.exportNamespace | default "observability" }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.global.monitoringNamespace }}
+      ports:
         - protocol: TCP
           port: 4317  # OTLP gRPC
         - protocol: TCP
@@ -217,8 +226,18 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    # In-namespace clients, least-privilege: only the helm-test pod and (when
+    # telemetry is on) the OTel Collector's Prometheus scrape of /metrics —
+    # not every pod in the namespace.
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connection-test
+        {{- if .Values.global.otel.enabled }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+        {{- end }}
       ports:
         - protocol: TCP
           port: 8080

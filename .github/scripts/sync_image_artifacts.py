@@ -95,12 +95,33 @@ def digest_hex(digest: str) -> str:
     return digest
 
 
-def rewrite_purl(purl: str, new_tag: str) -> str:
-    """Replace the version after '@' in a pkg:docker purl, preserving path and query."""
-    m = re.match(r"^(pkg:docker/[^@?]+)@([^?]+)(\?.*)?$", purl)
+def rewrite_purl(purl: str, new_tag: str, new_digest_hex: str) -> str:
+    """Rewrite a pkg:docker purl to the spec form for the new tag/digest.
+
+    The purl spec allows exactly ONE '@' separator (name@version); the digest
+    belongs in the `checksum` qualifier, not appended as a second '@'. So a
+    values.yaml tag `0.30.4@sha256:<hex>` becomes
+    `pkg:docker/<name>@0.30.4?checksum=sha256:<hex>`. Pre-existing qualifiers
+    (e.g. repository_url) are preserved; qualifiers are emitted sorted by key
+    per the purl canonical form. Also normalises the legacy double-'@' purls
+    this repo carried before 2.12.0 (anything after the first '@' up to '?' is
+    treated as the old version and replaced wholesale).
+    """
+    m = re.match(r"^(pkg:docker/[^@?]+)@([^?]+)(?:\?(.*))?$", purl)
     if not m:
         return purl
-    return f"{m.group(1)}@{new_tag}{m.group(3) or ''}"
+    quals: dict[str, str] = {}
+    for part in (m.group(3) or "").split("&"):
+        if part:
+            k, _, v = part.partition("=")
+            quals[k] = v
+    if new_digest_hex:
+        quals["checksum"] = f"{DIGEST_PREFIX}{new_digest_hex}"
+    else:
+        quals.pop("checksum", None)
+    version = new_tag.split("@", 1)[0]
+    qstr = "&".join(f"{k}={quals[k]}" for k in sorted(quals))
+    return f"{m.group(1)}@{version}" + (f"?{qstr}" if qstr else "")
 
 
 def update_sbom(bom: dict[str, Any], images: list[dict[str, str]]) -> tuple[dict[str, Any], list[str]]:
@@ -128,7 +149,7 @@ def update_sbom(bom: dict[str, Any], images: list[dict[str, str]]) -> tuple[dict
         comp = components[idx]
         comp["version"] = img["tag"]
         if isinstance(comp.get("purl"), str):
-            comp["purl"] = rewrite_purl(comp["purl"], img["tag"])
+            comp["purl"] = rewrite_purl(comp["purl"], img["tag"], digest_hex(img["digest"]))
 
         hex_ = digest_hex(img["digest"])
         if hex_:

@@ -8,14 +8,19 @@ metadata:
     {{- include "ai-stack.labels" . | nindent 4 }}
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "ingestion-worker") | nindent 4 }}
 data:
-  # worker.py and requirements.txt are maintained as real source files under
-  # files/ingestion-worker/ (lintable, testable, syntax-highlighted) and loaded
-  # here via .Files.Get rather than inlined in this template. The deployment's
-  # checksum/config annotation hashes these files so pods roll when code changes.
+  # worker.py and the requirements files are maintained as real source files
+  # under files/ingestion-worker/ (lintable, testable, syntax-highlighted) and
+  # loaded here via .Files.Get rather than inlined in this template. The
+  # deployment's checksum/config annotation hashes these files so pods roll
+  # when code changes. requirements.txt is the hashed lock (installed with
+  # --require-hashes); requirements.in carries the direct-dependency ranges
+  # used when operator-selected sources.pipPackages must be co-resolved.
   worker.py: |
 {{ .Files.Get "files/ingestion-worker/worker.py" | indent 4 }}
   requirements.txt: |
 {{ .Files.Get "files/ingestion-worker/requirements.txt" | indent 4 }}
+  requirements.in: |
+{{ .Files.Get "files/ingestion-worker/requirements.in" | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,7 +49,7 @@ spec:
       annotations:
         {{- include "ai-stack.governanceControlRefs" "ingestion-worker" | nindent 8 }}
         {{- include "ai-stack.podAnnotations" . | nindent 8 }}
-        checksum/config: {{ printf "%s%s%s" (.Files.Get "files/ingestion-worker/worker.py") (.Files.Get "files/ingestion-worker/requirements.txt") (toJson .Values.ingestionWorker.env) | sha256sum }}
+        checksum/config: {{ printf "%s%s%s%s" (.Files.Get "files/ingestion-worker/worker.py") (.Files.Get "files/ingestion-worker/requirements.txt") (.Files.Get "files/ingestion-worker/requirements.in") (toJson .Values.ingestionWorker.env) | sha256sum }}
     spec:
       serviceAccountName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}
       automountServiceAccountToken: false
@@ -64,6 +69,10 @@ spec:
         - name: init-valkey-stream
           image: "{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          {{- if include "ai-stack.valkeyAuthEnabled" . }}
+          env:
+            {{- include "ai-stack.valkeyCliAuthEnv" . | nindent 12 }}
+          {{- end }}
           command:
             - sh
             - -c
@@ -101,7 +110,16 @@ spec:
             - -c
             - |
               set -e
-              pip install --no-cache-dir --target=/deps -r /scripts/requirements.txt{{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}{{- end }}
+              {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.pipPackages }}
+              {{- /* Operator-selected backends must be co-resolved with the base
+              set in ONE pass (a conflicting backend fails at build, not at
+              runtime). pip hash-checking is all-or-nothing, so this path
+              resolves from the requirements.in ranges instead of the hashed
+              lock; for a fully pinned install bake a prebuilt image. */}}
+              pip install --no-cache-dir --target=/deps -r /scripts/requirements.in{{- range .Values.ingestionWorker.sources.pipPackages }} '{{ . }}'{{- end }}
+              {{- else }}
+              pip install --no-cache-dir --target=/deps --require-hashes -r /scripts/requirements.txt
+              {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -139,11 +157,24 @@ spec:
             - name: PYTHONPATH
               value: "/deps"
             {{- end }}
+            {{- include "ai-stack.valkeyPasswordEnv" . | nindent 12 }}
             - name: VALKEY_URL
-              value: 'redis://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
+              value: 'redis://{{ include "ai-stack.valkeyUrlCred" . }}{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}:{{ .Values.valkey.service.port }}'
             {{- if and .Values.ingestionWorker.sources.enabled .Values.ingestionWorker.sources.schemes }}
             - name: INGESTION_SOURCE_SCHEMES
               value: {{ join "," .Values.ingestionWorker.sources.schemes | quote }}
+            {{- end }}
+            {{- /* URL-fetch hardening (ADR-009): the scheme allowlist always
+            renders (it has a meaningful https-only default and is the audit
+            surface); the CIDR allowlist renders only when set, so an audit
+            never sees an empty, misleading variable. $fetch tolerates values
+            files predating the fetch block (reuse-values upgrades). */}}
+            {{- $fetch := .Values.ingestionWorker.fetch | default dict }}
+            - name: INGESTION_FETCH_SCHEMES
+              value: {{ join "," ($fetch.schemes | default (list "https")) | quote }}
+            {{- if $fetch.allowedCidrs }}
+            - name: INGESTION_FETCH_ALLOWED_CIDRS
+              value: {{ join "," $fetch.allowedCidrs | quote }}
             {{- end }}
             {{- range $key, $value := .Values.ingestionWorker.env }}
             - name: {{ $key }}

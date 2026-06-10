@@ -67,7 +67,7 @@ redis-cli -p 6379 XADD ingestion:documents '*' \
 
 | Scheme | Resolver | Notes |
 |--------|----------|-------|
-| `http://`, `https://` | `httpx` GET (redirects followed; **non-2xx rejected**) | Always available. Covers **presigned** S3/GCS/Azure URLs. |
+| `http://`, `https://` | `httpx` GET, SSRF-screened (ADR-009): scheme allowlist (`INGESTION_FETCH_SCHEMES`, default **https-only**), per-hop redirect re-screening, **non-2xx rejected** | Covers **presigned** S3/GCS/Azure URLs. URL hosts must resolve to permitted addresses: loopback/link-local (IMDS)/multicast/reserved are always refused; private ranges require `INGESTION_FETCH_ALLOWED_CIDRS`. |
 | *(bare path)*, `file://` | local **regular-file** read | Always available. Covers **CSI-mounted NFS/SMB** shares (the recommended, lowest-risk pattern). `file://` follows RFC 8089 (`file:///p` and `file://localhost/p` → `/p`); devices/FIFOs/dirs and credential/system prefixes are rejected (see [§7](#7-security-and-limitations)). |
 | `s3://`, `gs://`, `az://`, `smb://`, `sftp://`, … | `fsspec` | **Opt-in & deny-by-default**: honored only when the scheme is in `INGESTION_SOURCE_SCHEMES` (set from `ingestionWorker.sources.schemes`). An unknown or disabled scheme is **rejected**, never read as a local path. |
 
@@ -204,7 +204,7 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 | `TIKA_SERVER_URL` | Tika service URL | **Yes** | Text extraction endpoint. |
 | `OLLAMA_BASE_URL` | Ollama service URL | **Yes** | Embedding endpoint. |
 | `QDRANT_URI` | Qdrant service URL | **Yes** | Vector upsert endpoint. |
-| `VALKEY_URL` | `redis://<release>-valkey:6379` | injected by the deployment | Stream + status backend. |
+| `VALKEY_URL` | `redis://<release>-valkey:6379` | injected by the deployment | Stream + status backend. With `valkey.auth.enabled` (ADR-008) the chart injects the credential form `redis://:$(_VALKEY_PASSWORD)@…` from the valkey Secret. |
 | `QDRANT_API_KEY` | from `qdrant-secret` | injected | Qdrant auth header. |
 | `POSTGRES_URI` | injected when `postgres.enabled` | injected | Enables the corpus state machine. |
 | `RAG_EMBEDDING_MODEL` | `nomic-embed-text` | no | Ollama embedding model (must be pulled). |
@@ -221,6 +221,8 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
 | `CORPUS_PUBSUB_CHANNEL` | `corpus:state` | no | Corpus event channel. |
 | `LOG_LEVEL` | `INFO` | no | Log verbosity. |
 | `INGESTION_SOURCE_SCHEMES` | `""` (none) | from `sources.schemes` when `sources.enabled` | Comma-list of allow-listed native fsspec schemes (ADR-007); empty = http(s) + local only. |
+| `INGESTION_FETCH_SCHEMES` | `https` | from `fetch.schemes` | Comma-list of fetchable URL schemes (ADR-009). Code fallback `https`; add `http` deliberately. |
+| `INGESTION_FETCH_ALLOWED_CIDRS` | unset | from `fetch.allowedCidrs` when non-empty | Comma-list of private/non-global CIDRs a URL host may resolve to (ADR-009). Unset = public addresses only. Invalid CIDRs fail at startup. |
 | `HOSTNAME` | pod name | injected by K8s | Consumer name within the group. |
 
 ---
@@ -231,22 +233,31 @@ All keys are set under `ingestionWorker.env` in `values.yaml` unless noted.
   are restricted to **regular files** — devices (`/dev/urandom`, `/dev/zero`),
   FIFOs, sockets and directories are rejected, closing an unbounded-`read_bytes`
   DoS — and are fenced away from sensitive system + credential prefixes (`/proc`,
-  `/sys`, `/etc`, `/root`, `/run`, `/var/run`); paths are `resolve()`-canonicalized
-  first, so a producer-supplied `file_url` cannot read e.g. `/proc/self/environ`
-  (which carries the credentials projected via `sources.existingSecret`) into the
-  store. A symlink swapped between the resolve-time check and the read (TOCTOU) is
-  tracked as **R10**. **`http(s)`** fetches **reject non-2xx responses** (no
-  error-page body is ingested) but still follow the producer-supplied host: treat
-  stream producers as trusted and restrict who can write to the stream; a
-  private/link-local CIDR allow/deny list for the HTTP path is tracked as **R5**
-  in [`docs/audit/AUDIT-2026-06.md`](../audit/AUDIT-2026-06.md).
+  `/sys`, `/etc`, `/root`, `/run`, `/var/run`); paths are `resolve()`-canonicalized,
+  then the **live file handle** is validated (`O_NOFOLLOW` open + `fstat
+  S_ISREG`, audit R10 fix), so a producer-supplied `file_url` cannot read e.g.
+  `/proc/self/environ` (which carries the credentials projected via
+  `sources.existingSecret`) into the store, and a symlink swapped in after the
+  resolve cannot redirect the read. **`http(s)`** fetches are SSRF-screened
+  (ADR-009, audit R5 fix): https-only by default (`INGESTION_FETCH_SCHEMES`),
+  loopback/link-local (IMDS)/multicast/reserved addresses always refused,
+  private ranges refused unless in `INGESTION_FETCH_ALLOWED_CIDRS`, redirects
+  re-screened per hop, **non-2xx rejected** (no error-page body is ingested).
+  Residuals: the screened host is re-resolved by the HTTP client (DNS-rebinding
+  window) and parent-directory symlink races are out of scope — treat stream
+  producers as trusted and restrict who can write to the stream
+  ([`LIMITATIONS.md`](../../LIMITATIONS.md) L9).
 - **Liveness is file-based.** The probe checks `/tmp/healthy`; a hung-but-alive
   process is not self-healed. See audit backlog.
 - **Dependency pinning.** [`requirements.txt`](../../files/ingestion-worker/requirements.txt)
-  is major-version-bounded but **not hash-locked** (unlike the Pydantic AI app).
-  Air-gapped/hardened deployments should bake a prebuilt image
+  is a fully pinned, hashed, universal lock compiled from
+  [`requirements.in`](../../files/ingestion-worker/requirements.in)
+  (`make ingestion-worker-lock`); the initContainer installs it with
+  `--require-hashes` (audit R7 fix). Exception: when `sources.pipPackages`
+  adds fsspec backends, the base set is co-resolved from the `.in` ranges in
+  one unhashed pass (pip hash mode is all-or-nothing). Air-gapped/hardened
+  deployments should bake a prebuilt image
   ([`Dockerfile`](../../files/ingestion-worker/Dockerfile), `buildDeps: false`).
-  Hash-locking is audit item **R7**.
 - **`error` content.** On failure the raw exception string is written to the
   status hash; readers of `ingestion:status:*` may see internal detail. The HTTP
   fetch path reports only the status code (never the URL), so a **presigned URL's

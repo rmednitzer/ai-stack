@@ -1,6 +1,6 @@
 # ai-stack — Security & Operations Baseline
 
-**Chart version:** 2.11.0 · **Last reviewed:** 2026-06-07
+**Chart version:** 2.12.0 · **Last reviewed:** 2026-06-09
 
 This is the **operator-facing baseline**: the secure-by-default posture the chart
 ships, the validated external standards each default maps to, and the commands to

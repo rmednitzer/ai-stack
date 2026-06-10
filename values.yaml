@@ -32,8 +32,14 @@ global:
   # also where the Gateway listeners live, so it doubles as the default
   # HTTPRoute parent namespace (see global.gateway and per-component httpRoute).
   ingressNamespace: "envoy-gateway-system"
-  # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for scrape ingress)
+  # -- Namespace where Prometheus/monitoring runs (used in NetworkPolicy for
+  # scrape ingress and for the OTel Collector's Prometheus remote-write egress)
   monitoringNamespace: "monitoring"
+
+  # -- GitHub repository slug used to build runbook URLs in PrometheusRule
+  # alert annotations (https://github.com/<repoSlug>/blob/main/HOWTO.md#...).
+  # Point it at your fork so on-call runbook links resolve to your docs.
+  repoSlug: "rmednitzer/ai-stack"
 
   # -- Gateway API defaults. The chart emits opt-in HTTPRoutes (per-component
   # `httpRoute` blocks) as a modern alternative to Ingress; both can be used.
@@ -56,6 +62,11 @@ global:
     endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
     protocol: grpc  # grpc | http/protobuf | http/json
     insecure: true
+    # -- Namespace of the platform observability pipeline the in-stack OTel
+    # Collector exports to (OTLP forward, Loki push). Together with
+    # global.monitoringNamespace this scopes the Collector's NetworkPolicy
+    # egress — keep it in sync with the `endpoint` / exporter endpoints above.
+    exportNamespace: "observability"
 
   # -- Network policy: default-deny with explicit allow rules per component
   networkPolicy:
@@ -320,6 +331,11 @@ openwebui:
   # chart guarantees this by sourcing it from one Secret. Set explicitly only
   # to share a key with an external system.
   secretKey: ""
+  # -- Encryption key for OAuth session tokens at rest
+  # (OAUTH_SESSION_TOKEN_ENCRYPTION_KEY) — independent of secretKey since
+  # 2.12.0. Auto-generated and stable across upgrades; set explicitly only to
+  # align with external key management or restore a pre-provisioned key.
+  oauthTokenEncryptionKey: ""
   # -- Open WebUI database name on the shared PostgreSQL (its own DB, separate
   # from the LangGraph/DBOS database). For postgres.mode=standalone the chart
   # creates it automatically; for cnpg/external you must provision it.
@@ -1058,9 +1074,17 @@ postgres:
   cnpg:
     # -- Number of PostgreSQL instances (1 = single, 3 = HA with streaming replication)
     instances: 3
-    # -- PostgreSQL major version. Aligned with the standalone image (PG 18) so
-    # switching postgres.mode does not change the engine major version.
-    imageName: "ghcr.io/cloudnative-pg/postgresql:18"
+    # -- Operand image rendered into the CNPG Cluster's `imageName`
+    # (`<repository>:<tag>`; CNPG accepts the `tag@sha256:...` digest form).
+    # PostgreSQL major 18, aligned with the standalone image so switching
+    # postgres.mode does not change the engine major version. Digest-pinned and
+    # catalogued in sbom.cdx.json / zarf.yaml like every chart image (ADR-002);
+    # the CNPG operator itself is BYO and not part of this chart.
+    # (Replaces the flat `imageName` key — chart 2.12.0; the template fails
+    # with a migration hint if the legacy key is still set.)
+    image:
+      repository: ghcr.io/cloudnative-pg/postgresql
+      tag: "18@sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
@@ -1129,6 +1153,21 @@ valkey:
   image:
     repository: valkey/valkey
     tag: "9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9"
+  # -- Optional Valkey AUTH (`requirepass`, ADR-008). Defense-in-depth on top of
+  # the default-deny NetworkPolicy: with AUTH on, a compromised pod that is on
+  # the Valkey ingress allowlist still needs the password to read sessions or
+  # enqueue ingestion tasks. Opt-in (default off) because enabling it restarts
+  # Valkey and re-renders every consumer URL (Open WebUI, ingestion worker,
+  # Authelia session store, probes, helm test) in one rollout — sequence it as
+  # a deliberate change. The password lives in the chart-managed valkey Secret
+  # (stable across upgrades); the server reads it from a Secret-mounted config
+  # file, never from process args. Rotating the password requires a manual
+  # `kubectl rollout restart` of Valkey and its consumers.
+  auth:
+    enabled: false
+    # -- Override password (auto-generated if empty; stored in Secret). Use
+    # URL-safe characters only — it is embedded in redis:// connection URLs.
+    password: ""
   service:
     type: ClusterIP
     port: 6379
@@ -1232,6 +1271,27 @@ ingestionWorker:
     # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, AZURE_STORAGE_ACCOUNT, etc.
     # Never inline credentials here; reference a Secret you manage.
     existingSecret: ""
+
+  # -- URL-fetch hardening for producer-supplied `file_url` tasks (ADR-009,
+  # SSRF defense). Applies only to the http(s) source path; local paths and
+  # native (fsspec) schemes are governed by their own fences above.
+  # Regardless of these settings the worker ALWAYS refuses URLs that resolve to
+  # loopback, link-local (incl. the cloud metadata service 169.254.169.254),
+  # multicast, or reserved addresses — those have no legitimate ingestion use.
+  fetch:
+    # -- URL schemes the worker will fetch. https-only by default; add "http"
+    # explicitly if producers enqueue plain-HTTP URLs (e.g. an in-cluster
+    # object store without TLS). Upgrade note: pre-2.12.0 workers accepted
+    # http:// unconditionally.
+    schemes:
+      - https
+    # -- CIDRs (IPv4/IPv6) a URL host may resolve to even though they are
+    # private/non-global — e.g. your cluster Service CIDR for in-cluster
+    # presigned object-store URLs, or an internal document server range.
+    # Empty (default) means: URLs must resolve to public addresses only.
+    # The right list is deployment-specific; keep it as narrow as possible.
+    allowedCidrs: []
+      # - 10.96.0.0/12
 
   env:
     # -- Tika document extraction URL

@@ -18,6 +18,7 @@ Primary user-facing chat UI and orchestrator for the ai-stack. Handles authentic
 | `openwebui.image.{repository,tag}` | Container image override |
 | `openwebui.replicaCount` | Replicas (prod overlay sets HA) |
 | `openwebui.secretKey` | Signs sessions/JWTs; auto-generated, stable across restarts and replicas |
+| `openwebui.oauthTokenEncryptionKey` | Encrypts OAuth session tokens at rest; independent of `secretKey` (2.12.0); auto-generated unless set |
 | `openwebui.databaseName` | Open WebUI's database on the shared PostgreSQL (default `openwebui`) |
 | `openwebui.resources` | CPU / memory requests and limits |
 | `openwebui.persistence.{enabled,size,storageClass}` | PVC for uploads and local cache |
@@ -30,14 +31,18 @@ Open WebUI is stateless only when its session and config state live in shared
 backends, so the chart wires that up by default (per Open WebUI's
 [Scaling & HA](https://docs.openwebui.com/) guidance):
 
-- **`WEBUI_SECRET_KEY`** (and `OAUTH_SESSION_TOKEN_ENCRYPTION_KEY`) come from the
-  generated `openwebui-secret` and stay stable across restarts, so sessions stay
-  valid and every replica signs tokens identically.
+- **`WEBUI_SECRET_KEY`** and **`OAUTH_SESSION_TOKEN_ENCRYPTION_KEY`** come from
+  the generated `openwebui-secret` — two **independent** keys since 2.12.0
+  (`secret-key` / `oauth-token-encryption-key`), both stable across restarts,
+  so sessions stay valid and every replica signs tokens identically. (Upgrading
+  from ≤2.11.x re-keys OAuth token encryption: SSO users re-authenticate once.)
 - **`DATABASE_URL`** points at the shared PostgreSQL (`openwebui.databaseName`,
   auto-created in `standalone` mode) when `postgres.enabled=true`, replacing the
   single-pod SQLite file.
 - **`REDIS_URL` + `WEBSOCKET_MANAGER=redis` + `WEBSOCKET_REDIS_URL`** use Valkey
-  to coordinate websocket and config state across replicas.
+  to coordinate websocket and config state across replicas (with
+  `valkey.auth.enabled` the URLs embed the password from the valkey Secret —
+  [ADR-008](../architecture/ADR-008-valkey-auth.md)).
 
 To scale out, raise `openwebui.replicaCount` (or enable `openwebui.autoscaling`)
 with `postgres.enabled=true` and `valkey.enabled=true` (both default on). For an

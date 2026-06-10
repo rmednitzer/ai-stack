@@ -39,8 +39,11 @@ CHANGELOG.md
 LICENSE
 docs/
 
-# Chart unit tests (helm-unittest; not part of the released chart)
-tests/
+# Chart unit tests (helm-unittest; not part of the released chart).
+# Anchored to the chart root: a bare `tests/` matches any directory named
+# tests at any depth — including templates/tests/, which silently dropped the
+# helm-test connection hook from the chart (no Pod rendered for `helm test`).
+/tests/
 
 # Supply chain artefacts (distributed separately)
 sbom.cdx.json

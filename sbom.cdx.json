@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:2e7c46c5-20e8-4296-bca6-73ab329758ce",
+  "serialNumber": "urn:uuid:0934c6d7-1d5e-4251-8b51-fcfb4cce7b6e",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-06-07T00:00:00Z",
+    "timestamp": "2026-06-09T00:00:00Z",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       "type": "application",
       "bom-ref": "ai-stack",
       "name": "ai-stack",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "description": "Comprehensive AI inference and tooling stack for EU-regulated on-premises and hybrid platform operations",
       "licenses": [
         {
@@ -61,7 +61,7 @@
       "name": "open-webui",
       "version": "v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158",
       "description": "Primary user interface for LLM interaction",
-      "purl": "pkg:docker/open-webui/open-webui@v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-webui@v0.9.6?checksum=sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -102,7 +102,7 @@
       "name": "ollama",
       "version": "0.30.6@sha256:fbaaecc6c632a73c2b4ca25ef52dbee0b68d07783fcb850f916404c004040f90",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.30.6@sha256:fbaaecc6c632a73c2b4ca25ef52dbee0b68d07783fcb850f916404c004040f90",
+      "purl": "pkg:docker/ollama/ollama@0.30.6?checksum=sha256:fbaaecc6c632a73c2b4ca25ef52dbee0b68d07783fcb850f916404c004040f90",
       "licenses": [
         {
           "license": {
@@ -143,7 +143,7 @@
       "name": "qdrant",
       "version": "v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c",
+      "purl": "pkg:docker/qdrant/qdrant@v1.18.2?checksum=sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c",
       "licenses": [
         {
           "license": {
@@ -184,7 +184,7 @@
       "name": "tika",
       "version": "3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973",
       "description": "Document content extraction for RAG pipeline",
-      "purl": "pkg:docker/apache/tika@3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973",
+      "purl": "pkg:docker/apache/tika@3.3.1.0?checksum=sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973",
       "licenses": [
         {
           "license": {
@@ -225,7 +225,7 @@
       "name": "searxng",
       "version": "2026.5.31-300695de5@sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396",
       "description": "Privacy-respecting metasearch engine for web RAG",
-      "purl": "pkg:docker/searxng/searxng@2026.5.31-300695de5@sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396",
+      "purl": "pkg:docker/searxng/searxng@2026.5.31-300695de5?checksum=sha256:75e85884da87a717655d6313421c8fb42aede84219b06873311179ae830ab396",
       "licenses": [
         {
           "license": {
@@ -270,7 +270,7 @@
       "name": "valkey",
       "version": "9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9",
       "description": "In-memory session cache and rate-limiting backend",
-      "purl": "pkg:docker/valkey/valkey@9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9",
+      "purl": "pkg:docker/valkey/valkey@9.1.0?checksum=sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9",
       "licenses": [
         {
           "license": {
@@ -311,7 +311,7 @@
       "name": "opentelemetry-collector-contrib",
       "version": "0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.153.0?checksum=sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa",
       "licenses": [
         {
           "license": {
@@ -352,7 +352,7 @@
       "name": "langgraph-server",
       "version": "0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-server@0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce?repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.9-py3.12?checksum=sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -398,7 +398,7 @@
       "name": "postgres",
       "version": "18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88",
       "description": "PostgreSQL for LangGraph checkpoint persistence",
-      "purl": "pkg:docker/library/postgres@18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88?repository_url=docker.io",
+      "purl": "pkg:docker/library/postgres@18-alpine?checksum=sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -435,11 +435,58 @@
     },
     {
       "type": "container",
+      "bom-ref": "cnpg-postgresql",
+      "name": "postgresql",
+      "version": "18@sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3",
+      "description": "CloudNativePG PostgreSQL operand image (postgres.mode=cnpg HA cluster; the CNPG operator itself is BYO)",
+      "purl": "pkg:docker/cloudnative-pg/postgresql@18?checksum=sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3&repository_url=ghcr.io",
+      "licenses": [
+        {
+          "license": {
+            "id": "PostgreSQL"
+          }
+        },
+        {
+          "license": {
+            "id": "Apache-2.0",
+            "acknowledgement": "declared"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "assurance.platform/tier",
+          "value": "T2"
+        },
+        {
+          "name": "assurance.platform/boundary",
+          "value": "storage"
+        },
+        {
+          "name": "chart.ai-stack/default-enabled",
+          "value": "false (postgres.mode=cnpg, prod overlay)"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/cloudnative-pg/postgres-containers"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3"
+        }
+      ]
+    },
+    {
+      "type": "container",
       "bom-ref": "open-terminal",
       "name": "open-terminal",
       "version": "0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e",
       "description": "Sandboxed terminal with REST API for AI agent code execution",
-      "purl": "pkg:docker/open-webui/open-terminal@0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/open-terminal@0.11.34?checksum=sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -480,7 +527,7 @@
       "name": "mcpo",
       "version": "main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467",
       "description": "MCP-to-OpenAPI proxy for Open WebUI tool integration",
-      "purl": "pkg:docker/open-webui/mcpo@main@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467?repository_url=ghcr.io",
+      "purl": "pkg:docker/open-webui/mcpo@main?checksum=sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -521,7 +568,7 @@
       "name": "authelia",
       "version": "4.39.20@sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b",
       "description": "OIDC identity provider for SSO, MFA, and federated authentication",
-      "purl": "pkg:docker/authelia/authelia@4.39.20@sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b?repository_url=ghcr.io",
+      "purl": "pkg:docker/authelia/authelia@4.39.20?checksum=sha256:1b363e9279e742397966333f364e0876ae02bf5c876de73e83af6d48c57ff51b&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -562,7 +609,7 @@
       "name": "python",
       "version": "3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97?repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -603,7 +650,7 @@
       "name": "uv",
       "version": "python3.13-trixie-slim@sha256:2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356",
       "description": "Pydantic AI agentic runtime base image (Astral uv + Python) — MIT-licensed alternative to the LangGraph runtime",
-      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim@sha256:2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356?repository_url=ghcr.io",
+      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:2d1f9176bcfbd00528f7e527557790307833b5d75c9825a88ed433ba3be6e356&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -653,7 +700,7 @@
       "name": "ai-gateway-controller",
       "version": "v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3",
       "description": "Envoy AI Gateway controller for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart, installed by the platform from the upstream controller chart.",
-      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3?repository_url=docker.io",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v0.7.0?checksum=sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -694,7 +741,7 @@
       "name": "ai-gateway-extproc",
       "version": "v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29",
       "description": "Envoy AI Gateway external processor (extproc) for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart.",
-      "purl": "pkg:docker/envoyproxy/ai-gateway-extproc@v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29?repository_url=docker.io",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-extproc@v0.7.0?checksum=sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -744,6 +791,7 @@
         "langgraph-api",
         "pydanticai",
         "postgres",
+        "cnpg-postgresql",
         "open-terminal",
         "mcpo",
         "ingestion-worker",

@@ -1,7 +1,7 @@
 # EU Legal Framework Compliance Check — ai-stack
 
 **Date:** 2026-06-07 (re-validated)
-**Chart version:** 2.11.0 | **appVersion:** 2026.5
+**Chart version:** 2.12.0 | **appVersion:** 2026.5
 **Assessor:** Automated (Claude Code)
 **Scope:** EU regulatory framework applicability and gap analysis
 

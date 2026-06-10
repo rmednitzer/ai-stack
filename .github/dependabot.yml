@@ -48,3 +48,23 @@ updates:
     reviewers:
       - "rmednitzer"
     open-pull-requests-limit: 5
+
+  # --- Python (hashed requirements locks under files/) ---
+  # Each dir carries a requirements.in (ranges) + a uv-compiled, hashed,
+  # universal requirements.txt lock. Review bot PRs against the Makefile
+  # lock targets (pydanticai-lock / ingestion-worker-lock): the committed
+  # locks must stay universal (env markers) and fully hashed.
+  - package-ecosystem: "pip"
+    directories:
+      - "/files/ingestion-worker"
+      - "/files/pydanticai"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      timezone: "Europe/Vienna"
+    labels:
+      - "dependencies"
+      - "python"
+    reviewers:
+      - "rmednitzer"
+    open-pull-requests-limit: 5

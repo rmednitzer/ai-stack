@@ -53,6 +53,17 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
+          {{- if include "ai-stack.valkeyAuthEnabled" . }}
+          # AUTH (ADR-008): requirepass is read from the Secret-mounted config
+          # file — never passed as a process argument (visible in `ps`/audit
+          # trails). The *CLI_AUTH env keeps the values-defined valkey-cli
+          # probes working unchanged.
+          args:
+            - valkey-server
+            - /etc/valkey/valkey.conf
+          env:
+            {{- include "ai-stack.valkeyCliAuthEnv" . | nindent 12 }}
+          {{- end }}
           ports:
             - name: valkey
               containerPort: 6379
@@ -62,6 +73,11 @@ spec:
               mountPath: {{ .Values.valkey.persistence.mountPath | default "/data" }}
             - name: tmp
               mountPath: /tmp
+            {{- if include "ai-stack.valkeyAuthEnabled" . }}
+            - name: auth-config
+              mountPath: /etc/valkey
+              readOnly: true
+            {{- end }}
           startupProbe:
             exec:
               command: ["valkey-cli", "ping"]
@@ -90,6 +106,14 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 50Mi
+        {{- if include "ai-stack.valkeyAuthEnabled" . }}
+        - name: auth-config
+          secret:
+            secretName: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "valkey") }}-secret
+            items:
+              - key: valkey.conf
+                path: valkey.conf
+        {{- end }}
       {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
 {{- if .Values.valkey.persistence.enabled }}
 ---

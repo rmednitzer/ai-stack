@@ -183,6 +183,11 @@ jobs:
               return out
 
           def sbom_images(bom):
+              # purl form (since 2.12.0): pkg:docker/<name>@<tag>?checksum=sha256:<hex>
+              # — one '@' separator, digest in the checksum qualifier per the
+              # purl spec. component.version still carries the full values.yaml
+              # tag string (tag[@sha256:<hex>]); its tag part must equal the
+              # purl version.
               out = {}
               issues = []
               for c in bom.get('components', []):
@@ -192,7 +197,7 @@ jobs:
                   m = re.match(r'pkg:docker/([^@?]+)@([^?]+)', purl)
                   if m:
                       out[m.group(1)] = version
-                      if version and m.group(2) != version:
+                      if version and m.group(2) != version.split('@', 1)[0]:
                           issues.append((name or m.group(1), version, m.group(2)))
                   elif name and version:
                       out[name] = version
@@ -294,14 +299,22 @@ jobs:
               return out
 
           def sbom_digests(bom):
+              # Digest source of record is the SHA-256 hashes[] entry; the purl
+              # checksum qualifier (spec form since 2.12.0) must agree with it.
               out = {}
+              issues = []
               for c in bom.get('components', []):
-                  m = re.match(r'pkg:docker/([^@?]+)@', c.get('purl', ''))
+                  purl = c.get('purl', '')
+                  m = re.match(r'pkg:docker/([^@?]+)@', purl)
                   if not m:
                       continue
                   h = [x for x in c.get('hashes', []) if x.get('alg') == 'SHA-256']
-                  out[basename(m.group(1))] = 'sha256:' + h[0]['content'] if h else ''
-              return out
+                  digest = 'sha256:' + h[0]['content'] if h else ''
+                  out[basename(m.group(1))] = digest
+                  qm = re.search(r'[?&]checksum=([^&]+)', purl)
+                  if qm and qm.group(1) != digest:
+                      issues.append((c.get('name') or m.group(1), qm.group(1), digest))
+              return out, issues
 
           def zarf_digests(text):
               out = {}
@@ -320,8 +333,13 @@ jobs:
               ztext = f.read()
 
           v = values_digests(vals)
-          b = sbom_digests(bom)
+          b, checksum_issues = sbom_digests(bom)
           z = zarf_digests(ztext)
+
+          if checksum_issues:
+              for name, qual, digest in checksum_issues:
+                  print(f"::error::sbom.cdx.json {name!r}: purl checksum qualifier={qual!r} but hashes[] SHA-256={digest!r}", file=sys.stderr)
+              sys.exit(2)
 
           all_keys = sorted(set(v) | set(b) | set(z))
           bad = False
@@ -366,15 +384,25 @@ jobs:
         run: |
           python3 -c "
           import yaml
+          # Recursive walk — same image model as the parity checks. A top-level
+          # walk silently skipped nested image blocks (postgres.cnpg.image, the
+          # aiGateway controller/extproc), leaving them out of the deep
+          # SBOM/CVE scans even though they are tag/digest-parity enforced.
+          def walk(node, out):
+              if isinstance(node, dict):
+                  img = node.get('image')
+                  if isinstance(img, dict) and img.get('repository'):
+                      out.append(f\"{img['repository']}:{img.get('tag', 'latest')}\")
+                  for v in node.values():
+                      walk(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      walk(it, out)
           with open('values.yaml') as f:
               vals = yaml.safe_load(f)
-          for key, section in vals.items():
-              if isinstance(section, dict) and 'image' in section:
-                  img = section['image']
-                  repo = img.get('repository', '')
-                  tag = img.get('tag', 'latest')
-                  if repo:
-                      print(f'{repo}:{tag}')
+          refs = []
+          walk(vals, refs)
+          print('\n'.join(dict.fromkeys(refs)))
           " | tee /tmp/images.txt
           echo "count=$(wc -l < /tmp/images.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
@@ -499,15 +527,25 @@ jobs:
         run: |
           python3 -c "
           import yaml
+          # Recursive walk — same image model as the parity checks. A top-level
+          # walk silently skipped nested image blocks (postgres.cnpg.image, the
+          # aiGateway controller/extproc), leaving them out of the deep
+          # SBOM/CVE scans even though they are tag/digest-parity enforced.
+          def walk(node, out):
+              if isinstance(node, dict):
+                  img = node.get('image')
+                  if isinstance(img, dict) and img.get('repository'):
+                      out.append(f\"{img['repository']}:{img.get('tag', 'latest')}\")
+                  for v in node.values():
+                      walk(v, out)
+              elif isinstance(node, list):
+                  for it in node:
+                      walk(it, out)
           with open('values.yaml') as f:
               vals = yaml.safe_load(f)
-          for key, section in vals.items():
-              if isinstance(section, dict) and 'image' in section:
-                  img = section['image']
-                  repo = img.get('repository', '')
-                  tag = img.get('tag', 'latest')
-                  if repo:
-                      print(f'{repo}:{tag}')
+          refs = []
+          walk(vals, refs)
+          print('\n'.join(dict.fromkeys(refs)))
           " | tee /tmp/images.txt
 
       - name: Scan images for CVEs with Grype

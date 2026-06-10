@@ -103,10 +103,27 @@ single-arch manifest digest).
 | Python (ingestion worker) | `python` | `3.14-slim` | `sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97` |
 | Pydantic AI (uv base) | `ghcr.io/astral-sh/uv` | `python3.13-trixie-slim` | `sha256:6181d17d152967488408b4ced7b2930cc91c2b39adb7af6fb339965afce3404e` |
 
-> This table is kept in lockstep with `values.yaml` per ADR-001 and CI digest
-> parity. Rows added or updated since the 2026-05-27 acceptance snapshot include
-> the Pydantic AI `uv` base image (added in v2.4.0, 2026-05-31). The GPU
-> Workbench image was removed in v2.5.0, so the chart now pins **14** images.
+> This table is the 2026-05-27 acceptance snapshot; `values.yaml` (enforced by
+> CI digest parity) is the live source of truth. Rows added or updated since
+> acceptance include the Pydantic AI `uv` base image (v2.4.0, 2026-05-31). The
+> GPU Workbench image was removed in v2.5.0; the Envoy AI Gateway controller +
+> extproc images were added in v2.9.0, and the CloudNativePG operand image in
+> v2.12.0 (below), so the chart now pins **17** images.
+
+### CNPG operand image pinned (2026-06-09, post-acceptance)
+
+The CloudNativePG operand image escaped this ADR for a year of releases: it was
+configured as a flat `postgres.cnpg.imageName: "ghcr.io/cloudnative-pg/postgresql:18"`
+string, invisible to the `{repository, tag}` walkers behind Renovate's
+`helm-values` manager, the sync script, and both CI parity checks — so the
+regulated datastore (cnpg mode) ran on an unpinned major tag (audit
+[AUDIT-2026-06](../audit/AUDIT-2026-06.md) R1). v2.12.0 replaced the key with
+the standard `postgres.cnpg.image.{repository,tag}` block, digest-pinned
+(`18@sha256:afbcd2ca…`, resolved 2026-06-09 via the same registry-native HEAD
+method as the table above), catalogued in `sbom.cdx.json`, and mirrored by the
+`postgres-cnpg` Zarf component. The lesson generalises: **every image reference
+must use the standard image block** — flat strings silently opt out of the
+entire pinning/parity machinery.
 
 ### MCPO digest resolved (2026-05-31, post-acceptance)
 

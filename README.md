@@ -3,7 +3,7 @@
 [![Lint and Validate](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/lint.yaml)
 [![Release](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml/badge.svg)](https://github.com/rmednitzer/ai-stack/actions/workflows/release.yaml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.11.0-blue.svg)](Chart.yaml)
+[![Helm Chart](https://img.shields.io/badge/helm%20chart-v2.12.0-blue.svg)](Chart.yaml)
 [![App Version](https://img.shields.io/badge/appVersion-2026.5-informational.svg)](Chart.yaml)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.27%2B-blue.svg)](https://kubernetes.io/releases/)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -687,6 +687,8 @@ ct lint --config ct.yaml --charts .
 | [docs/architecture/ADR-005-governance-label-integrity.md](docs/architecture/ADR-005-governance-label-integrity.md) | ADR — canonical tier/boundary vocabulary, `control-refs` on every workload, and drift enforcement in tests + CI |
 | [docs/architecture/ADR-006-envoy-ai-gateway-model-egress.md](docs/architecture/ADR-006-envoy-ai-gateway-model-egress.md) | ADR — opt-in Envoy AI Gateway as a governed, Apache-2.0 model-egress boundary |
 | [docs/architecture/ADR-007-ingestion-source-connectors.md](docs/architecture/ADR-007-ingestion-source-connectors.md) | ADR — opt-in native ingestion source connectors (S3/GCS/Azure/SMB/…) via fsspec |
+| [docs/architecture/ADR-008-valkey-auth.md](docs/architecture/ADR-008-valkey-auth.md) | ADR — opt-in Valkey AUTH (requirepass) as defense-in-depth on the session/pipeline datastore |
+| [docs/architecture/ADR-009-ingestion-url-fetch-hardening.md](docs/architecture/ADR-009-ingestion-url-fetch-hardening.md) | ADR — SSRF hardening of the ingestion worker's URL-fetch path (https-only default, address screening, redirect re-screening) |
 | [docs/components/](docs/components/README.md) | Per-component reference pages (tier, image, key values, integrations) |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Pull request process, SemVer rules, security-context and governance-label requirements |

@@ -16,9 +16,9 @@ In-memory key/value store used for session caching (Open WebUI, Authelia) and as
 |-----|---------|
 | `valkey.enabled` | Toggle the component |
 | `valkey.image.{repository,tag}` | Container image override |
+| `valkey.auth.{enabled,password}` | Opt-in AUTH (`requirepass`, [ADR-008](../architecture/ADR-008-valkey-auth.md)). Password auto-generated (stable across upgrades) unless overridden; overrides must be URL-safe (embedded in `redis://` URLs). |
 | `valkey.persistence.{enabled,size,accessMode}` | Provision a PVC (RDB snapshots under `/data`) to preserve Streams across restarts; switches the Deployment to the `Recreate` strategy. Storage class comes from `global.storageClass`. |
 | `valkey.resources` | CPU / memory |
-| `valkey.config` | Extra config passed to `valkey-server` |
 
 ## Persistence recommendation
 
@@ -28,7 +28,17 @@ When the ingestion worker is enabled, set `valkey.persistence.enabled=true` — 
 
 - Read-only root filesystem enforced
 - No external exposure; `ClusterIP` only
-- Auth via `requirepass` (auto-generated when unset)
+- Default access control is the default-deny NetworkPolicy + per-pod ingress
+  allowlist (Open WebUI, SearXNG, ingestion worker, Authelia, helm test)
+- **Opt-in AUTH** (`valkey.auth.enabled`, [ADR-008](../architecture/ADR-008-valkey-auth.md)):
+  `requirepass` is read from a Secret-mounted config file (never process
+  args); probes authenticate via `VALKEYCLI_AUTH`/`REDISCLI_AUTH`; consumer
+  URLs (Open WebUI, ingestion worker, Authelia session store, helm test)
+  embed the password via `$(...)` env substitution. Enabling/disabling is a
+  coordinated rollout of Valkey + consumers; rotation is manual
+  (`kubectl rollout restart`). The chart's SearXNG config does not use
+  Valkey — if you wire it yourself (e.g. the limiter), add the password to
+  your settings override.
 
 ## Related HOWTO sections
 
