@@ -9,8 +9,9 @@ name: Sync Image Artifacts
 #
 # Notes:
 #   * on: pull_request (NOT pull_request_target) — relies on the PR head
-#     being a same-repo branch (Renovate App or a maintainer fork
-#     of *this* repo). Fork PRs cannot get write access by design.
+#     being a same-repo branch (the Renovate App, or a maintainer pushing
+#     a branch to *this* repo). PRs opened from a fork cannot get write
+#     access by design, so the auto-sync push is skipped for them.
 #   * Pushes made with the default GITHUB_TOKEN do NOT re-trigger downstream
 #     workflows, so the sbom-validate check on the synced commit will stay
 #     stale until a re-run unless AUTOSYNC_TOKEN (fine-grained PAT or a

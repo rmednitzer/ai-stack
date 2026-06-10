@@ -48,9 +48,13 @@ forward record of the reversal.
    a universal, fully-hashed lock (the ADR-002 supply-chain posture, extended to
    Python deps). The `pydanticai` lock header — previously a custom block — is
    normalised to `uv`'s standard form so the manager detects it; **the locked
-   pins and hashes are unchanged by this PR**. `pip-compile` updates require
-   `uv` in the Renovate runtime (present in the Mend-hosted app; ensure it on
-   any self-hosted runner).
+   pins and hashes are unchanged by this PR**. The recorded command uses the
+   long-form `--output-file` (not `-o`): Renovate's `uv` option allowlist
+   (`lib/modules/manager/pip-compile/common.ts`) rejects the short form, which
+   would make it skip the lock, so both `Makefile` targets and both lock headers
+   use `--output-file`. `pip-compile` updates require `uv` in the Renovate
+   runtime (present in the Mend-hosted app; ensure it on any self-hosted
+   runner).
 
 3. **Action and base-image digest pinning are preserved.** `pinDigests: true`
    plus `config:best-practices` keep GitHub Actions and Dockerfile base images

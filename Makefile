@@ -34,11 +34,11 @@ unittest:
 
 pydanticai-lock:
 	uv pip compile files/pydanticai/requirements.in --universal --generate-hashes \
-		--python-version 3.13 -o files/pydanticai/requirements.txt
+		--python-version 3.13 --output-file files/pydanticai/requirements.txt
 
 ingestion-worker-lock:
 	uv pip compile files/ingestion-worker/requirements.in --universal --generate-hashes \
-		--python-version 3.14 -o files/ingestion-worker/requirements.txt
+		--python-version 3.14 --output-file files/ingestion-worker/requirements.txt
 
 test:
 	helm lint . && helm template ai-stack . --debug > /dev/null && helm unittest . && echo "smoke test + unit tests passed"
