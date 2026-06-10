@@ -68,7 +68,7 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158
       # Ollama
-      - ollama/ollama:0.30.6@sha256:fbaaecc6c632a73c2b4ca25ef52dbee0b68d07783fcb850f916404c004040f90
+      - ollama/ollama:0.30.7@sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a
       # Qdrant
       - qdrant/qdrant:v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c
       # Apache Tika
@@ -194,7 +194,7 @@ components:
             description: "Maps the OTEL_ENABLED variable to global.otel.enabled"
             path: global.otel.enabled
     images:
-      - otel/opentelemetry-collector-contrib:0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa
+      - otel/opentelemetry-collector-contrib:0.154.0@sha256:b3079f45e19bdb7326bf49cdddce6cf60dfd865138db39f2733ea48ab17bc4cb
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
