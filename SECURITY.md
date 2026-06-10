@@ -120,7 +120,8 @@ The ai-stack implements the following security controls by default:
 - **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
 - **CORS:** Open Terminal origins are scoped to the Open WebUI origin (never `*`)
 - **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, CVE scanning (Grype),
-  Dependabot for GitHub Actions; container images tracked manually
+  Renovate for GitHub Actions, Dockerfile base images, and hashed Python locks
+  (ADR-010); container images tracked manually
 - **PII + secret redaction:** OTel Collector strips email, SSN, and credit-card
   patterns plus bearer tokens, JWTs, private keys, and provider API-key shapes
 - **Telemetry opt-out:** `DO_NOT_TRACK=true`, `ANONYMIZED_TELEMETRY=false`

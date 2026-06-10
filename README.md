@@ -624,10 +624,10 @@ dependency order (secrets/identity → datastores → platform services).
 
 Dependency updates are automated:
 
-- **Container images** in `values.yaml` / `values-prod.yaml` are managed by [Renovate](https://docs.renovatebot.com/) via its `helm-values` manager with `pinDigests: true`, so each bump updates the `tag:` and the `digest:` together (per [ADR-002](docs/architecture/ADR-002-image-digest-pinning.md)). Configuration is in [`renovate.json5`](renovate.json5).
-- **GitHub Actions** are managed by [Dependabot](https://docs.github.com/en/code-security/dependabot) (and Dependabot's `docker` ecosystem may also open image PRs against `values.yaml`; the overlap with Renovate is tolerated). Configuration is in [`.github/dependabot.yml`](.github/dependabot.yml).
+- **Container images** in `values.yaml` / `values-prod.yaml` are managed by [Renovate](https://docs.renovatebot.com/) via its `helm-values` manager with `pinDigests: true`, so each bump updates the `tag:` and the `digest:` together (per [ADR-002](docs/architecture/ADR-002-image-digest-pinning.md)).
+- **GitHub Actions, Dockerfile base images, and the hashed `uv` Python locks** (`files/*/requirements.txt`) are also managed by Renovate (its `github-actions`, `dockerfile`, and `pip-compile` managers; Dependabot was retired per [ADR-010](docs/architecture/ADR-010-consolidate-dependency-automation-on-renovate.md)). All dependency automation lives in one config, [`renovate.json5`](renovate.json5).
 
-Whichever bot proposes an image bump, the maintainer keeps `sbom.cdx.json`, `zarf.yaml`, and the version-bearing docs in lockstep with `values.yaml` (per [ADR-001](docs/architecture/ADR-001-component-version-management.md)); CI's **tag- and digest-parity** checks enforce this.
+Whenever Renovate or a maintainer proposes an image bump, the maintainer keeps `sbom.cdx.json`, `zarf.yaml`, and the version-bearing docs in lockstep with `values.yaml` (per [ADR-001](docs/architecture/ADR-001-component-version-management.md)); CI's **tag- and digest-parity** checks enforce this.
 
 ## Verification
 

@@ -24,8 +24,8 @@ templates/common/serviceaccounts.yaml @rmednitzer
 docs/ @rmednitzer
 
 # CI/CD and dependency management
-.github/dependabot.yml @rmednitzer
 .github/release.yml @rmednitzer
+renovate.json5 @rmednitzer
 ct.yaml @rmednitzer
 sbom.cdx.json @rmednitzer
 zarf.yaml @rmednitzer

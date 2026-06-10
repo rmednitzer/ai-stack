@@ -9,7 +9,7 @@ name: Sync Image Artifacts
 #
 # Notes:
 #   * on: pull_request (NOT pull_request_target) — relies on the PR head
-#     being a same-repo branch (Renovate App, Dependabot, maintainer fork
+#     being a same-repo branch (Renovate App or a maintainer fork
 #     of *this* repo). Fork PRs cannot get write access by design.
 #   * Pushes made with the default GITHUB_TOKEN do NOT re-trigger downstream
 #     workflows, so the sbom-validate check on the synced commit will stay
