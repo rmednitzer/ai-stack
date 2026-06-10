@@ -3,8 +3,8 @@
 # requirements.txt via:
 #
 #   uv pip compile files/pydanticai/requirements.in \
-#     --generate-hashes --python-version 3.13 \
-#     -o files/pydanticai/requirements.txt
+#     --universal --generate-hashes --python-version 3.13 \
+#     --output-file files/pydanticai/requirements.txt
 #
 # (or: make pydanticai-lock). Upper bounds pin the major version.
 pydantic-ai-slim[openai,dbos]>=1.106.0,<2

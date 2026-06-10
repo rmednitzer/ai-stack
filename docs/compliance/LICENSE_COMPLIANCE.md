@@ -132,9 +132,9 @@ self-hosting** — these terms change and Enterprise pricing is negotiated.
 | Copyleft components identified | Done | SearXNG (AGPL-3.0) — low risk when unmodified |
 | Source-available components identified | Done | LangGraph API (ELv2) — opt-in; production self-host needs a commercial license key (MIT alternative: Pydantic AI) |
 | Attribution requirements met | Done | License file included; component licenses in SBOM |
-| Dependency update tracking | Done | Renovate (helm-values, pinDigests) for container images; Dependabot for GitHub Actions |
+| Dependency update tracking | Done | Renovate for container images (helm-values, pinDigests), GitHub Actions, Dockerfiles, and hashed Python locks (ADR-010) |
 | Deep SBOM generation | Done | Syft scans all images in CI (`syft-sbom` job) |
-| License review on update | Recommended | Add license check to Dependabot PR review process |
+| License review on update | Recommended | Add license check to Renovate PR review process |
 
 ---
 

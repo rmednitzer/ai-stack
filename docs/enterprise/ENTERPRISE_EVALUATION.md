@@ -51,7 +51,7 @@ alignment with governance, security, observability, and operational requirements
 
 - **Helm 3.12+** with dual profiles (lab/prod) — clean separation of concerns
 - **ArgoCD** integration with manual sync for change-control compliance
-- **Renovate** (`helm-values` manager, `pinDigests: true`) for digest-pinned container image bumps; **Dependabot** for GitHub Actions — SBOM/Zarf kept in lockstep per ADR-001/002
+- **Renovate** for digest-pinned container image bumps (`helm-values`), GitHub Actions, Dockerfile base images, and hashed `uv` Python locks (`pip-compile`) — single-tool dependency automation per ADR-010; SBOM/Zarf kept in lockstep per ADR-001/002
 - **Pod Disruption Budgets** for single-replica/stateful components (Ollama, Qdrant, SearXNG, Valkey, Authelia, standalone PostgreSQL)
 - **Topology spread constraints** in prod profile for HA
 - **HPA autoscaling** for stateless components (Open WebUI, Tika)
@@ -93,7 +93,7 @@ alignment with governance, security, observability, and operational requirements
 
 | Area | Status | Recommendation |
 |------|--------|----------------|
-| Image digests | All images digest-pinned in values.yaml (ADR-002) | Renovate raises digest-pinned image bumps; Dependabot covers GitHub Actions; sync SBOM + Zarf in the same PR (ADR-001) |
+| Image digests | All images digest-pinned in values.yaml (ADR-002) | Renovate raises digest-pinned image bumps and covers GitHub Actions, Dockerfiles, and Python locks (ADR-010); sync SBOM + Zarf in the same PR (ADR-001) |
 | Velero integration | Not included | Use Velero with CSI volume snapshots for full cluster DR |
 | External secret manager | Supported but optional | Use ESO or Vault CSI for production secret rotation |
 | WAF | Not included | Deploy upstream WAF (ModSecurity, Coraza) for deep packet inspection |
@@ -109,7 +109,7 @@ alignment with governance, security, observability, and operational requirements
 | Observability | Production-grade |
 | High Availability | Good (HPA for stateless; stateful needs operator for full HA) |
 | Disaster Recovery | Good (PVC snapshots; external DR tooling recommended) |
-| Supply Chain Security | Excellent (digest-pinned images, Renovate + Dependabot, CycloneDX SBOM with parity CI, license compliance) |
+| Supply Chain Security | Excellent (digest-pinned images, single-tool Renovate automation, CycloneDX SBOM with parity CI, license compliance) |
 | Scalability | Good (HPA autoscaling for stateless components) |
 | Operational Maturity | Strong |
 

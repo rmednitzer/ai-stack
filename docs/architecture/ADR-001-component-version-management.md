@@ -118,13 +118,20 @@ chasing on different cadences.
    updates are bot-driven but split across two managers:
    [`renovate.json5`](../../renovate.json5) (`enabledManagers: ["helm-values"]`)
    bumps `values.yaml` and `values-prod.yaml`;
-   [`.github/dependabot.yml`](../../.github/dependabot.yml) handles
+   `.github/dependabot.yml` handles
    `github-actions` and `docker` (Dockerfile / docker-compose) ecosystems
    only. **Neither bot updates `sbom.cdx.json` or `zarf.yaml`** — these
    downstream artifacts are the source of the recurring drift documented in
    the Context above. Audit-mode lag is recorded in this ADR rather than
    acted upon automatically so that downstream syncs remain explicit,
    reviewable changes.
+   - **Status update (2026-06-10):** The two-manager split is superseded by
+     [ADR-010](ADR-010-consolidate-dependency-automation-on-renovate.md):
+     Dependabot is retired and Renovate now owns `github-actions`, `dockerfile`,
+     and the `pip-compile` locks in addition to `helm-values`. The "neither bot
+     updates `sbom.cdx.json` or `zarf.yaml`" property is unchanged — that
+     enforcement still lives in the `sbom-validate` parity job and
+     `sync-image-artifacts.yml`.
 
 4. **Future ADRs** are numbered sequentially in `docs/architecture/` and use the
    `ADR-NNN-short-slug.md` filename pattern. This file is the template.

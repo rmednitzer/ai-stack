@@ -197,7 +197,7 @@ cybersecurity risk-management measures.
 | **Configuration review** | Monthly | Helm values, NetworkPolicies, RBAC, secrets |
 | **Penetration testing** | Annually | External and internal testing of deployed stack |
 | **Red team exercise** | Annually | Full attack simulation including AI-specific vectors |
-| **Dependency audit** | Continuous | Dependabot PRs reviewed for security implications |
+| **Dependency audit** | Continuous | Renovate PRs reviewed for security implications |
 | **SBOM review** | Per release | CycloneDX SBOM validated in CI |
 
 ### 5.2 AI-Specific Security Testing

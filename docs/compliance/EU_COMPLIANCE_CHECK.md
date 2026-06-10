@@ -126,7 +126,7 @@ NIS2 applicability depends on whether the deploying organization falls within An
 | **(a)** Risk analysis & IS security policies | Strong | Tier classification, boundary annotations, governance-as-code |
 | **(b)** Incident handling | Strong | OTel observability for detection; incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 | **(c)** Business continuity & DR | Good | PVC snapshots with external DR (Velero), PDB, HA in prod profile |
-| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Renovate (digest-pinned images) + Dependabot (GitHub Actions), license compliance matrix |
+| **(d)** Supply chain security | Strong | CycloneDX SBOM, Syft deep SBOMs, Renovate (digest-pinned images, GitHub Actions, Dockerfiles, hashed Python locks — ADR-010), license compliance matrix |
 | **(e)** Security in acquisition/development | Strong | PSA restricted, default-deny networking, CI validation (Helm lint, kubeconform, SBOM) |
 | **(f)** Effectiveness assessment | Good | Penetration testing cadence, AI-specific security testing, and assessment programme documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §5 |
 | **(g)** Cyber hygiene & training | Addressed | Operator training requirements and role-based training matrix documented in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §6 |
@@ -160,7 +160,7 @@ The CRA applies to "products with digital elements" placed on the EU market. Whe
 | CRA Requirement | Status | Evidence |
 |----------------|--------|----------|
 | SBOM (Part II, Annex I) | Strong | CycloneDX 1.6 SBOM, Syft deep SBOMs in CI, validated against schema |
-| Vulnerability handling | Strong | Dependabot for GitHub Actions updates; Grype CVE scanning in CI; CVD policy in SECURITY.md |
+| Vulnerability handling | Strong | Renovate for GitHub Actions, Dockerfile, and hashed Python lock updates (ADR-010); Grype CVE scanning in CI; CVD policy in SECURITY.md |
 | Cybersecurity risk assessment | Partial | Tier classification, boundary annotations; no formal risk assessment document |
 | Security updates for support period | N/A | Depends on distribution model |
 | CE marking / Declaration of Conformity | N/A | Only if commercially distributed |
