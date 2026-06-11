@@ -1231,7 +1231,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
+    tag: "3.14-slim@sha256:81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
