@@ -100,9 +100,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.30.7@sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a",
+      "version": "0.30.8@sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.30.7?checksum=sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a",
+      "purl": "pkg:docker/ollama/ollama@0.30.8?checksum=sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c",
       "licenses": [
         {
           "license": {
@@ -133,7 +133,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a"
+          "content": "05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c"
         }
       ]
     },
@@ -350,9 +350,9 @@
       "type": "container",
       "bom-ref": "langgraph-api",
       "name": "langgraph-server",
-      "version": "0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce",
+      "version": "0.10-py3.12@sha256:812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-server@0.9-py3.12?checksum=sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce&repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.10-py3.12?checksum=sha256:812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -388,7 +388,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
+          "content": "812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c"
         }
       ]
     },
@@ -607,9 +607,9 @@
       "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
-      "version": "3.14-slim@sha256:81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d",
+      "version": "3.14-slim@sha256:d7a925f9eb9639a93e455b9f12c167569358818c0f62b51b88edbc8fcf34c421",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d&repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:d7a925f9eb9639a93e455b9f12c167569358818c0f62b51b88edbc8fcf34c421&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -640,7 +640,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d"
+          "content": "d7a925f9eb9639a93e455b9f12c167569358818c0f62b51b88edbc8fcf34c421"
         }
       ]
     },
@@ -648,9 +648,9 @@
       "type": "container",
       "bom-ref": "pydanticai",
       "name": "uv",
-      "version": "python3.13-trixie-slim@sha256:237f21ec146a3c45b5a14ab531607648868c6062064b80a0f5313956d96c3f1c",
+      "version": "python3.13-trixie-slim@sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78",
       "description": "Pydantic AI agentic runtime base image (Astral uv + Python) — MIT-licensed alternative to the LangGraph runtime",
-      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:237f21ec146a3c45b5a14ab531607648868c6062064b80a0f5313956d96c3f1c&repository_url=ghcr.io",
+      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -690,7 +690,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "237f21ec146a3c45b5a14ab531607648868c6062064b80a0f5313956d96c3f1c"
+          "content": "29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78"
         }
       ]
     },

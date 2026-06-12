@@ -68,7 +68,7 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158
       # Ollama
-      - ollama/ollama:0.30.7@sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a
+      - ollama/ollama:0.30.8@sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c
       # Qdrant
       - qdrant/qdrant:v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c
       # Apache Tika
@@ -80,7 +80,7 @@ components:
       # Valkey
       - valkey/valkey:9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
       # Ingestion worker
-      - python:3.14-slim@sha256:81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d
+      - python:3.14-slim@sha256:d7a925f9eb9639a93e455b9f12c167569358818c0f62b51b88edbc8fcf34c421
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows
@@ -103,7 +103,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - docker.io/langchain/langgraph-server:0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce
+      - docker.io/langchain/langgraph-server:0.10-py3.12@sha256:812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:237f21ec146a3c45b5a14ab531607648868c6062064b80a0f5313956d96c3f1c
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78
       - docker.io/library/postgres:18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88
 
   # ---------------------------------------------------------------------------
