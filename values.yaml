@@ -479,7 +479,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.30.7@sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a"
+    tag: "0.30.8@sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c"
   service:
     type: ClusterIP
     port: 11434
@@ -821,7 +821,7 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.9-py3.12@sha256:916a50e069663b244e56370691db97d04d8aa1c0add2057653f924f51724a2ce"
+    tag: "0.10-py3.12@sha256:812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c"
   service:
     type: ClusterIP
     port: 8000
@@ -914,7 +914,7 @@ pydanticai:
     # uv-based Python image (fast, deterministic installs). Override with a
     # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
     repository: ghcr.io/astral-sh/uv
-    tag: "python3.13-trixie-slim@sha256:237f21ec146a3c45b5a14ab531607648868c6062064b80a0f5313956d96c3f1c"
+    tag: "python3.13-trixie-slim@sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78"
   # -- Install Python deps at startup via an initContainer (default). Set false
   # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
   buildDeps: true
@@ -1231,7 +1231,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:81ada6cb56bcbe3909644b4cb76ebe5354c65eaaad788a437bc1340a7638d49d"
+    tag: "3.14-slim@sha256:d7a925f9eb9639a93e455b9f12c167569358818c0f62b51b88edbc8fcf34c421"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
