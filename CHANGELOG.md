@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Application configuration tuning, validated against upstream docs
+  ([runbook](docs/operations/RUNBOOK-remediation.md) A5).** Qdrant now stores point
+  payloads on disk by default (`QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"`) — lower
+  RAM on large corpora at negligible RAG latency (Qdrant "Storage" guide; add a
+  payload index before filtering on a payload field). Ollama gains documented
+  opt-in VRAM knobs (`OLLAMA_FLASH_ATTENTION` + `OLLAMA_KV_CACHE_TYPE: q8_0`, which
+  roughly halve KV-cache memory; KV quantization needs flash attention and is
+  architecture-dependent, so they ship commented), with a guard note never to set
+  `OLLAMA_MAX_LOADED_MODELS` below 2 (RAG keeps the chat model and the embedder
+  resident). The production overlay enables `valkey.persistence` so session /
+  websocket-manager and rate-limit state survive a Valkey restart. Asserted in
+  `tests/config_tuning_test.yaml`. No image or chart-version change.
+
 - **POL-002 — credential management as a traceable governance policy
   ([runbook](docs/operations/RUNBOOK-remediation.md) A4).** The chart already
   delivers every component credential through a generated-and-persisted Kubernetes

@@ -1,0 +1,65 @@
+suite: application configuration tuning (validated against upstream docs)
+# Pins the known-good performance/durability defaults applied from official docs:
+# Qdrant on-disk payload storage (RAM saving; Qdrant "Storage" guide) as a default,
+# and Valkey PVC persistence (restart survivability) when enabled. The Ollama VRAM
+# knobs (flash attention + KV-cache quantization) ship commented/opt-in because
+# they are architecture-dependent, so there is no default to assert for them.
+# See docs/operations/RUNBOOK-remediation.md (B11) and CHANGELOG.
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: Qdrant stores point payloads on disk by default (memory optimization)
+    templates:
+      - templates/qdrant/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: QDRANT__STORAGE__ON_DISK_PAYLOAD
+            value: "true"
+
+  - it: Valkey uses the Recreate strategy when persistence is enabled
+    templates:
+      - templates/common/valkey.yaml
+    set:
+      valkey.persistence.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: Valkey provisions a PVC when persistence is enabled
+    templates:
+      - templates/common/valkey.yaml
+    set:
+      valkey.persistence.enabled: true
+    documentSelector:
+      path: kind
+      value: PersistentVolumeClaim
+    asserts:
+      - isKind:
+          of: PersistentVolumeClaim
+      - equal:
+          path: spec.accessModes[0]
+          value: ReadWriteOnce
+
+  - it: Valkey stays ephemeral (no PVC) by default
+    templates:
+      - templates/common/valkey.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ai-stack-valkey

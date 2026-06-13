@@ -124,6 +124,14 @@ searxng:
       image_proxy: false
 
 valkey:
+  # Persist to a PVC so the Open WebUI session/websocket-manager and rate-limit
+  # state (and any ingestion-stream backlog) survive a Valkey restart, instead of
+  # logging every user out and resetting limits. RDB snapshots under /data; the
+  # Deployment uses the Recreate strategy (single-replica RWO PVC). For
+  # stronger durability, layer AOF (appendonly) on top -- see
+  # docs/operations/RUNBOOK-remediation.md.
+  persistence:
+    enabled: true
   resources:
     requests:
       cpu: 200m

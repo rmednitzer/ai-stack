@@ -5,8 +5,9 @@ in-depth architecture review. It has two parts:
 
 - **Part A — Executed in-chart**: the fail-closed Open WebUI HA guard, the
   corrected production database default, the CTL-003 execution isolation control,
-  the opt-in-path Qdrant collection bootstrap, and the POL-002 credential-management
-  control. Each entry lists the exact verification command.
+  the opt-in-path Qdrant collection bootstrap, the POL-002 credential-management
+  control, and the upstream-validated application configuration tuning. Each entry
+  lists the exact verification command.
 - **Part B — Deferred remediations**: real findings that are out of scope for one
   surgical change (opt-in code paths with no test home, cluster-level controls
   outside the chart, or larger reworks). Each entry states the finding, the
@@ -150,6 +151,38 @@ discriminating. `tests/governance_labels_test.yaml` pins the new value on each.
 helm unittest -f tests/governance_labels_test.yaml .
 helm template ai-stack . -s templates/ollama/deployment.yaml | grep control-refs   # POL-002 absent
 helm template ai-stack . -s templates/qdrant/deployment.yaml | grep control-refs   # POL-002 present
+```
+
+### A5. Application configuration tuning (B11) — FIXED
+
+**Severity:** low (performance / durability). **Type:** config, validated against upstream docs.
+
+**Finding.** Several known-good performance and durability settings were unset.
+
+**Fix applied**, each validated against the upstream documentation:
+
+- **Qdrant on-disk payload (default).** `QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"`
+  in `qdrant.env` keeps point payloads on disk rather than in RAM (Qdrant
+  "Storage" guide). Payloads here are chunk text fetched only with results, so the
+  latency cost is negligible and the RAM saving is material on a large corpus;
+  vector search (in-memory HNSW) is unaffected. Applies to collections created
+  while set; add a payload index before filtering on a payload field.
+- **Ollama VRAM knobs (documented opt-in).** `OLLAMA_FLASH_ATTENTION` +
+  `OLLAMA_KV_CACHE_TYPE` (`q8_0`) roughly halve KV-cache memory for long contexts
+  (Ollama FAQ); KV quantization requires flash attention and is
+  architecture-dependent, so they ship commented, not as a blanket default. A note
+  warns **not** to drop `OLLAMA_MAX_LOADED_MODELS` below 2, since RAG keeps both
+  the chat model and the embedder resident (the default 3×GPU already covers this).
+- **Valkey persistence in prod.** `valkey.persistence.enabled: true` in
+  `values-prod.yaml` so the Open WebUI session / websocket-manager and rate-limit
+  state survive a Valkey restart (RDB on a PVC; Recreate strategy).
+
+**Verify.**
+
+```
+helm unittest -f tests/config_tuning_test.yaml .
+helm template ai-stack . -s templates/qdrant/deployment.yaml | grep ON_DISK_PAYLOAD
+helm template ai-stack . -f values.yaml -f values-prod.yaml | grep -A3 "kind: PersistentVolumeClaim" | grep valkey
 ```
 
 ---
@@ -362,27 +395,14 @@ secrets (model-provider keys, MCPO / Open Terminal API keys, Qdrant API key, Val
 AUTH, PostgreSQL). **Tracking.** [CONTROLS.md](../governance/CONTROLS.md); ADR-008
 (Valkey AUTH).
 
-### B11. Performance and operational tuning (recommendations)
+### B11. Performance and operational tuning — DONE
 
-**Severity:** low. **Type:** opt-in knobs (not default changes).
-
-These change runtime defaults or are environment-specific, so they are
-recommendations, not chart defaults (the chart does not weaken or second-guess a
-default without cause):
-
-- **Qdrant memory:** set `QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"` in `qdrant.env`
-  to keep payloads on disk; trades a little latency for materially lower RAM on
-  large corpora.
-- **Ollama GPU memory:** tune `OLLAMA_KEEP_ALIVE` and set
-  `OLLAMA_MAX_LOADED_MODELS` to bound concurrent model residency on a single GPU
-  and avoid OOM; the right value depends on VRAM and model mix.
-- **Valkey durability in prod:** if Valkey holds session/websocket and rate-limit
-  state you want to survive a restart, enable `valkey.persistence` in
-  `values-prod.yaml`; otherwise a restart is a cold cache (not data loss, given
-  Postgres holds durable state).
-
-**Validate.** Re-render and confirm the env/persistence is present; observe the
-resource effect. **Rollback.** Remove the knob. **Tracking.** per-component docs.
+Implemented; see **A5**. Validated against upstream docs and applied: Qdrant
+on-disk payload as a default, Valkey prod persistence, and the Ollama VRAM knobs as
+documented opt-in. Remaining deeper durability follow-up: layer **AOF**
+(`appendonly`) on Valkey on top of RDB for ~1 s worst-case loss (Valkey persistence
+docs) — needs a config-file launch path for the no-AUTH case, so it is left as a
+follow-up rather than bundled here.
 
 ---
 

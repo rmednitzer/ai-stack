@@ -531,6 +531,21 @@ ollama:
     OLLAMA_KEEP_ALIVE: "5m"
     # -- Restrict to specific models (comma-separated) — empty = all
     # OLLAMA_MODELS: ""
+    # -- VRAM tuning (opt-in; uncomment on a GPU node). Flash attention plus an
+    #    8-bit K/V cache roughly halves the KV-cache memory for long contexts,
+    #    letting a given GPU hold a larger context or a second model. KV-cache
+    #    quantization is only applied when flash attention is enabled (Ollama
+    #    FAQ); it is architecture-dependent, so validate on your model/GPU before
+    #    enabling fleet-wide. Leave OFF by default (CPU profile, and not all
+    #    models/GPUs support it).
+    # OLLAMA_FLASH_ATTENTION: "1"
+    # OLLAMA_KV_CACHE_TYPE: "q8_0"   # q8_0 (balanced) or q4_0 (max saving); needs flash attention
+    # -- Concurrency: parallel requests per model. RAM/VRAM scales with
+    #    OLLAMA_NUM_PARALLEL * context length (Ollama FAQ). Default 1.
+    # OLLAMA_NUM_PARALLEL: "1"
+    # NOTE: do NOT set OLLAMA_MAX_LOADED_MODELS below 2 — RAG keeps both the chat
+    # model and the embedding model (nomic-embed-text) resident; the Ollama
+    # default (3 x GPU) already covers this.
   persistence:
     enabled: true
     size: 50Gi
@@ -578,6 +593,15 @@ qdrant:
   env:
     QDRANT__SERVICE__HTTP_PORT: "6333"
     QDRANT__SERVICE__GRPC_PORT: "6334"
+    # -- Store point payloads on disk instead of holding them in RAM (Qdrant
+    #    docs, "Storage"). Payloads here are document-chunk text fetched only
+    #    with returned results, so the latency cost is negligible while the RAM
+    #    saving is material on a large corpus; vector search itself (in-memory
+    #    HNSW) is unaffected. Applies to collections created while set; existing
+    #    collections keep their stored setting. If you later filter on a payload
+    #    field (e.g. per-tenant retrieval), add a payload index on that field so
+    #    filtering does not read from disk.
+    QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
     # -- Enable API key authentication (set via secret)
     # QDRANT__SERVICE__API_KEY: ""
   persistence:
