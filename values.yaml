@@ -401,6 +401,15 @@ openwebui:
     RAG_EMBEDDING_ENGINE: "ollama"
     # -- Embedding model (must be pulled in Ollama: ollama pull nomic-embed-text)
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    # -- Task-instruction prefixes for the embedding model. Instruction-tuned
+    #    embedders (nomic-embed-text, the chart default) embed queries and
+    #    documents with distinct prefixes, which materially improves retrieval
+    #    quality; omitting them is a silent quality regression. Clear BOTH if you
+    #    switch to an embedder that does not use task prefixes. Changing these
+    #    changes the embedding space: re-index existing knowledge afterwards
+    #    (docs/components/openwebui.md, ADR-011).
+    RAG_EMBEDDING_QUERY_PREFIX: "search_query: "
+    RAG_EMBEDDING_CONTENT_PREFIX: "search_document: "
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
     # -- Overlap between chunks (10% of chunk size for coherent context boundaries)
@@ -409,6 +418,33 @@ openwebui:
     RAG_TOP_K: "5"
     # -- Minimum relevance score (filter low-quality chunks to reduce noise)
     RAG_RELEVANCE_THRESHOLD: "0.2"
+
+    # --- Hybrid retrieval + reranking (opt-in; OFF by default, ADR-011) ---
+    # Dense-vector search alone misses exact-term matches (error codes, function
+    # names, IDs). Enabling hybrid adds a BM25 lexical leg fused with the vector
+    # results, plus a CrossEncoder reranking second stage — together a large
+    # retrieval-quality gain. OFF by default because the reranking model is
+    # downloaded from Hugging Face at RUNTIME: that needs egress and so does not
+    # fit the default-deny / air-gap posture out of the box.
+    # To enable: set ENABLE_RAG_HYBRID_SEARCH=true AND a RAG_RERANKING_MODEL,
+    # then either allow Open WebUI egress to the model host or pre-stage the
+    # model into the openwebui PVC. See docs/components/openwebui.md.
+    # -- Enable BM25 + vector hybrid retrieval
+    ENABLE_RAG_HYBRID_SEARCH: "false"
+    # -- Cross-encoder reranking model (empty = disabled). Recommended models are
+    #    small and Apache-2.0, e.g. "BAAI/bge-reranker-v2-m3" or
+    #    "cross-encoder/ms-marco-MiniLM-L-6-v2" (docs/compliance/LICENSE_COMPLIANCE.md).
+    RAG_RERANKING_MODEL: ""
+    # -- Reranking engine: "" = local sentence-transformers CrossEncoder;
+    #    "external" = call an external reranking API.
+    RAG_RERANKING_ENGINE: ""
+    # -- Candidates kept after reranking (retrieve-wide-then-rerank; 10-20 is the
+    #    validated range, Open WebUI's own default is 3). Inert until reranking is on.
+    RAG_TOP_K_RERANKER: "20"
+    # -- BM25 weight in the hybrid blend: 0 = vector only, 1 = BM25 only.
+    #    Inert until ENABLE_RAG_HYBRID_SEARCH=true.
+    RAG_HYBRID_BM25_WEIGHT: "0.5"
+
     # -- Verify TLS when loading web content for RAG
     ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION: "true"
 
@@ -942,6 +978,11 @@ pydanticai:
     QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     QDRANT_COLLECTION: "documents"
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    # -- Query task-instruction prefix for the embedding model (nomic-embed-text
+    #    expects "search_query: "). Must match the prefix the corpus was embedded
+    #    with (the ingestion worker uses RAG_EMBEDDING_CONTENT_PREFIX). Clear it
+    #    for a non-instruction-tuned embedder. See ADR-011.
+    RAG_EMBEDDING_QUERY_PREFIX: "search_query: "
     RAG_TOP_K: "5"
     # -- SearXNG web search (enables the web_search tool)
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
@@ -1302,6 +1343,12 @@ ingestionWorker:
     QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     # -- Embedding model (must match the model used by Open WebUI RAG)
     RAG_EMBEDDING_MODEL: "nomic-embed-text"
+    # -- Document task-instruction prefix for the embedding model
+    #    (nomic-embed-text expects "search_document: " on passages). Must pair
+    #    with the query prefix used by readers of this collection (Open WebUI /
+    #    Pydantic AI use RAG_EMBEDDING_QUERY_PREFIX). Clear it for a
+    #    non-instruction-tuned embedder; re-index after changing. See ADR-011.
+    RAG_EMBEDDING_CONTENT_PREFIX: "search_document: "
     # -- Chunk size in characters for document splitting
     RAG_CHUNK_SIZE: "1500"
     # -- Overlap between chunks (10% of chunk size)

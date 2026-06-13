@@ -22,7 +22,6 @@ import os
 import signal
 import socket
 import stat
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -46,10 +45,18 @@ OLLAMA_URL = os.environ["OLLAMA_BASE_URL"]
 QDRANT_URL = os.environ["QDRANT_URI"]
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 EMBEDDING_MODEL = os.environ.get("RAG_EMBEDDING_MODEL", "nomic-embed-text")
+# Task-instruction prefix prepended to passages before embedding. Instruction-
+# tuned embedders (e.g. nomic-embed-text) require "search_document: " on stored
+# passages and "search_query: " on queries; readers of this collection (Open
+# WebUI, Pydantic AI) embed queries with the matching RAG_EMBEDDING_QUERY_PREFIX.
+# Empty default keeps the worker model-agnostic when run outside the chart.
+EMBEDDING_CONTENT_PREFIX = os.environ.get("RAG_EMBEDDING_CONTENT_PREFIX", "")
 COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "documents")
 
 CHUNK_SIZE = int(os.environ.get("RAG_CHUNK_SIZE", "1500"))
-CHUNK_OVERLAP = int(os.environ.get("RAG_CHUNK_OVERLAP", "100"))
+# Default aligned with the chart's values.yaml (RAG_CHUNK_OVERLAP=150) and Open
+# WebUI so a chartless run matches the deployed splitter.
+CHUNK_OVERLAP = int(os.environ.get("RAG_CHUNK_OVERLAP", "150"))
 
 BATCH_SIZE = int(os.environ.get("INGESTION_BATCH_SIZE", "5"))
 BLOCK_MS = int(os.environ.get("INGESTION_BLOCK_MS", "5000"))
@@ -592,12 +599,16 @@ def chunk_text(text: str) -> list[str]:
 
 
 def embed_chunks(chunks: list[str]) -> list[list[float]]:
-    """Generate embeddings via Ollama API."""
+    """Generate embeddings via Ollama API.
+
+    The configured task-instruction prefix is prepended to the embedding input
+    only; the unprefixed chunk text is what gets stored in the Qdrant payload.
+    """
     embeddings: list[list[float]] = []
     for chunk in chunks:
         resp = http.post(
             urljoin(OLLAMA_URL, "/api/embed"),
-            json={"model": EMBEDDING_MODEL, "input": chunk},
+            json={"model": EMBEDDING_MODEL, "input": f"{EMBEDDING_CONTENT_PREFIX}{chunk}"},
             timeout=120.0,
         )
         resp.raise_for_status()

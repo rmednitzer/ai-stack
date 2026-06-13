@@ -51,6 +51,10 @@ QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "documents")
 SEARXNG_QUERY_URL = os.environ.get("SEARXNG_QUERY_URL", "")
 EMBEDDING_MODEL = os.environ.get("RAG_EMBEDDING_MODEL", "nomic-embed-text")
+# Task-instruction prefix for query embeddings. Instruction-tuned embedders
+# (e.g. nomic-embed-text) expect "search_query: " on queries; it must match the
+# prefix the corpus was embedded with. Empty default keeps this model-agnostic.
+EMBEDDING_QUERY_PREFIX = os.environ.get("RAG_EMBEDDING_QUERY_PREFIX", "")
 RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "5"))
 POSTGRES_URI = os.environ.get("POSTGRES_URI", "")
 API_KEY = os.environ.get("PYDANTICAI_API_KEY", "")
@@ -158,7 +162,8 @@ async def _searxng_search(query: str) -> str:
 @durable_step
 async def _qdrant_retrieve(query: str) -> str:
     emb = await _http.post(
-        f"{OLLAMA_BASE_URL}/api/embed", json={"model": EMBEDDING_MODEL, "input": query}
+        f"{OLLAMA_BASE_URL}/api/embed",
+        json={"model": EMBEDDING_MODEL, "input": f"{EMBEDDING_QUERY_PREFIX}{query}"},
     )
     emb.raise_for_status()
     vector = emb.json()["embeddings"][0]

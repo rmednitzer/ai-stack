@@ -1,0 +1,102 @@
+suite: RAG retrieval quality — hybrid/rerank opt-in defaults + embedding task prefixes
+# Locks in the ADR-011 retrieval behaviour so it cannot silently regress
+# (AGENTS.md §2.7 / CLAUDE.md principle 3 — assert security- and quality-relevant
+# defaults in tests/):
+#   1. Hybrid search + cross-encoder reranking ship OFF by default. The reranking
+#      model is fetched from Hugging Face at runtime, so leaving it off keeps the
+#      default-deny / air-gap posture intact with no egress — enabling it is a
+#      conscious, documented opt-in.
+#   2. nomic-embed-text task-instruction prefixes are applied by default on every
+#      embedding surface (Open WebUI, the ingestion worker, Pydantic AI). The
+#      query and document prefixes pair up so each collection stays internally
+#      consistent between its writer and its reader.
+#   3. The opt-in knob actually wires through to the container env when set.
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/openwebui/deployment.yaml
+  - templates/pydanticai/deployment.yaml
+  - templates/ingestion-worker/deployment.yaml
+tests:
+  - it: ships hybrid search and reranking OFF by default (no runtime model download, no egress)
+    template: templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_RAG_HYBRID_SEARCH
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_RERANKING_MODEL
+            value: ""
+
+  - it: applies nomic-embed-text query/document task prefixes on the Open WebUI RAG path by default
+    template: templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_EMBEDDING_QUERY_PREFIX
+            value: "search_query: "
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_EMBEDDING_CONTENT_PREFIX
+            value: "search_document: "
+
+  - it: wires the hybrid/rerank opt-in through to the container env when enabled
+    set:
+      openwebui.env.ENABLE_RAG_HYBRID_SEARCH: "true"
+      openwebui.env.RAG_RERANKING_MODEL: "BAAI/bge-reranker-v2-m3"
+    template: templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_RAG_HYBRID_SEARCH
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_RERANKING_MODEL
+            value: "BAAI/bge-reranker-v2-m3"
+
+  - it: gives the Pydantic AI retrieval tool the matching query prefix
+    set:
+      pydanticai.enabled: true
+    template: templates/pydanticai/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_EMBEDDING_QUERY_PREFIX
+            value: "search_query: "
+
+  - it: embeds ingested passages with the document prefix (collection stays consistent with readers)
+    set:
+      ingestionWorker.enabled: true
+    template: templates/ingestion-worker/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RAG_EMBEDDING_CONTENT_PREFIX
+            value: "search_document: "

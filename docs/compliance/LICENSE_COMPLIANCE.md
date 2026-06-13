@@ -1,6 +1,6 @@
 # License Compliance — ai-stack
 
-**Chart version:** 2.12.0 | **Last reviewed:** 2026-06-09
+**Chart version:** 2.12.0 | **Last reviewed:** 2026-06-13
 
 This document tracks licenses for all container images deployed by the
 ai-stack Helm chart and evaluates compliance implications for enterprise use.
@@ -21,7 +21,7 @@ and `zarf.yaml`.
 
 | Component | Image | Version | License (SPDX) | Type | Default | Copyleft |
 |-----------|-------|---------|----------------|------|---------|----------|
-| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | MIT | Permissive | Enabled | No |
+| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | Open WebUI License | BSD-3 + branding | Enabled | No |
 | Ollama | `ollama/ollama` | 0.30.6 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.18.2 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.1.0 | Apache-2.0 | Permissive | Enabled | No |
@@ -118,6 +118,52 @@ self-hosting** — these terms change and Enterprise pricing is negotiated.
   [docs/components/pydanticai.md](../components/pydanticai.md)) — which reuses the
   same PostgreSQL, Ollama, MCPO, Qdrant, and OTel integrations.
 - LangGraph remains opt-in (disabled by default) to ensure conscious adoption.
+
+### Branded — Open WebUI License (BSD-3-Clause + branding clause)
+
+**Risk level: Low (for internal / regulated deployments).**
+
+The deployed `open-webui` image is **not MIT**. Since v0.6.6 the project ships
+under the custom **"Open WebUI License"**: BSD-3-Clause terms plus a
+branding-protection clause (§4) that prohibits altering, removing, or obscuring
+the "Open WebUI" branding in deployments or distributions. The clause does
+**not** apply when:
+
+- the deployment has **50 or fewer end users** (individual natural persons with
+  direct access) in any rolling 30-day window, **or**
+- you have prior written permission, or a commercial enterprise license that
+  permits rebranding.
+
+Implications for ai-stack:
+
+- **No copyleft and no network-source obligation** — unlike AGPL, the branding
+  clause does not require disclosing source and does not affect the licenses of
+  other stack components or of the chart itself (Apache-2.0).
+- **Internal / regulated use is unaffected** as long as the "Open WebUI"
+  branding is left intact. The chart does not alter it; the AI Act Art. 50(1)
+  transparency banner (`WEBUI_BANNER_TEXT`) is additive, not a branding change.
+- **If you white-label** the UI above the 50-user threshold, obtain an
+  enterprise license. The chart's MIT/Apache alternative is the agentic runtime
+  (Pydantic AI), not a replacement front-end.
+
+## Runtime-downloaded models (not container images)
+
+Some models are **pulled at runtime** (into a PVC on first use, like any Ollama
+model) rather than baked into the container images, so they are not part of the
+image SBOM / Zarf mirror set. Operators selecting models must verify the model
+license; the chart's defaults and recommendations are:
+
+| Model | Used for | Default | License (SPDX) | Notes |
+|-------|----------|---------|----------------|-------|
+| `nomic-embed-text` | RAG embeddings (Open WebUI, ingestion worker, Pydantic AI) | Yes (pulled post-deploy) | Apache-2.0 | Instruction-tuned; the chart applies its task prefixes (ADR-011) |
+| `BAAI/bge-reranker-v2-m3` | Optional cross-encoder reranker | No (opt-in) | Apache-2.0 | Fetched by Open WebUI when `RAG_RERANKING_MODEL` is set and hybrid search is enabled |
+| `cross-encoder/ms-marco-MiniLM-L-6-v2` | Optional cross-encoder reranker (lighter) | No (opt-in) | Apache-2.0 | Alternative reranker |
+| Chat LLMs (e.g. `llama3.2`) | Inference via Ollama | Operator-selected | **Per model** | Llama models use the Llama Community License (usage restrictions, not OSI-approved); Mistral / Qwen / Gemma vary — verify before production |
+
+Reranking models download from Hugging Face at runtime: enabling reranking under
+the default-deny NetworkPolicy requires an egress grant or pre-staging the model
+into the Open WebUI PVC (see
+[ADR-011](../architecture/ADR-011-rag-retrieval-quality.md)).
 
 ---
 

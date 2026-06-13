@@ -422,6 +422,15 @@ helm upgrade ai-stack . -n ai-stack
 
 **Note:** Changing the embedding model requires re-embedding all existing documents, as vector dimensions and representations differ between models.
 
+**Embedding task prefixes.** `nomic-embed-text` (the default) is instruction-tuned:
+queries and passages must be embedded with `search_query: ` and `search_document: `
+prefixes respectively, or retrieval quality silently degrades. The chart sets these
+by default (`RAG_EMBEDDING_QUERY_PREFIX` / `RAG_EMBEDDING_CONTENT_PREFIX`, applied
+consistently by Open WebUI, the ingestion worker, and Pydantic AI). If you switch to
+an embedder that does not use task prefixes, clear both. Changing a prefix changes the
+embedding space, so **re-index existing documents** afterwards (the same re-embed step
+as a model change). See [ADR-011](docs/architecture/ADR-011-rag-retrieval-quality.md).
+
 ### 4.3 Tune Chunking and Retrieval
 
 Adjust these parameters in your values override:
@@ -431,12 +440,21 @@ openwebui:
   env:
     # Larger chunks = more context per retrieval, but fewer distinct matches
     RAG_CHUNK_SIZE: "1500"
-    # Overlap prevents splitting relevant content at chunk boundaries
-    RAG_CHUNK_OVERLAP: "100"
+    # Overlap prevents splitting relevant content at chunk boundaries (~10%)
+    RAG_CHUNK_OVERLAP: "150"
     # Number of top matching chunks to include in the prompt
     RAG_TOP_K: "5"
     # Minimum similarity score (0.0 = return all, higher = stricter)
     RAG_RELEVANCE_THRESHOLD: "0.0"
+
+    # Hybrid retrieval + reranking (opt-in; OFF by default — see ADR-011).
+    # Adds a BM25 lexical leg plus a cross-encoder reranking stage. The
+    # reranking model downloads from Hugging Face at runtime, so enabling it
+    # needs egress (or a pre-staged model) under the default-deny NetworkPolicy.
+    ENABLE_RAG_HYBRID_SEARCH: "true"
+    RAG_RERANKING_MODEL: "BAAI/bge-reranker-v2-m3"   # small, Apache-2.0
+    RAG_TOP_K_RERANKER: "20"
+    RAG_HYBRID_BM25_WEIGHT: "0.5"                    # 0 = vector only, 1 = BM25 only
 ```
 
 **Guidelines:**

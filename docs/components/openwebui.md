@@ -59,6 +59,30 @@ Open WebUI talks to every T1/T2 service over in-cluster DNS:
 - Valkey — session cache
 - MCPO, LangGraph, Open Terminal, external APIs — opt-in routes
 
+## RAG retrieval
+
+Open WebUI is the primary RAG surface; defaults and tuning live in
+`openwebui.env.*` (full list in [`values.yaml`](../../values.yaml)):
+
+- **Embedding task prefixes (on by default).** `RAG_EMBEDDING_QUERY_PREFIX`
+  (`search_query: `) and `RAG_EMBEDDING_CONTENT_PREFIX` (`search_document: `)
+  are required by the default `nomic-embed-text` embedder for good retrieval.
+  The ingestion worker and Pydantic AI apply the matching prefixes, so a Qdrant
+  collection stays consistent between its writer and reader. Clear both for a
+  non-instruction-tuned embedder. **Changing a prefix or the embedding model
+  changes the vector space — re-index existing knowledge afterwards.**
+- **Hybrid search + reranking (opt-in, OFF by default).**
+  `ENABLE_RAG_HYBRID_SEARCH` adds a BM25 lexical leg fused with the dense-vector
+  results; `RAG_RERANKING_MODEL` enables a cross-encoder reranking stage
+  (tuned by `RAG_TOP_K_RERANKER` and `RAG_HYBRID_BM25_WEIGHT`). The reranking
+  model is **downloaded from Hugging Face at runtime**, so enabling it requires
+  an egress grant (the default-deny NetworkPolicy blocks it) or pre-staging the
+  model into the Open WebUI PVC. Recommended rerankers are small and Apache-2.0
+  (`BAAI/bge-reranker-v2-m3`, `cross-encoder/ms-marco-MiniLM-L-6-v2`).
+
+See [ADR-011](../architecture/ADR-011-rag-retrieval-quality.md) and
+[HOWTO §4](../../HOWTO.md#4-rag-retrieval-augmented-generation).
+
 ## Security
 
 - Runs as non-root (UID 1000), read-only root filesystem where upstream permits
