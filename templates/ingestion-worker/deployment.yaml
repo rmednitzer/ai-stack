@@ -246,7 +246,12 @@ spec:
             name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "ingestion-worker") }}-script
         {{- if .Values.ingestionWorker.buildDeps }}
         - name: deps
-          emptyDir: {}
+          # Bounded like the `tmp` sibling: caps the pip-installed dependency tree
+          # (install-deps target, plus any opt-in fsspec connector backends) so a
+          # runaway or compromised install cannot exhaust node ephemeral storage.
+          # 1Gi is ample for the worker's deps (ADR-016).
+          emptyDir:
+            sizeLimit: 1Gi
         {{- end }}
         - name: tmp
           emptyDir:

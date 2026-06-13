@@ -220,6 +220,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model and the optional reranker) are now catalogued with their licenses. The
   chart's own license (Apache-2.0) is unaffected.
 
+- **In-depth audit and adversarial review — probe, identity, and parity fixes
+  ([ADR-016](docs/architecture/ADR-016-audit-2026-06.md);
+  [audit](docs/audit/AUDIT-2026-06.md) §6–§11).** A full-pass repository audit
+  fixed two High-severity defects and a set of minor parity/precision issues, and
+  re-verified the 2026-06-07 backlog as essentially closed:
+  - **MCPO readiness never passed.** Both probes hit `GET /`, which MCPO (a
+    FastAPI gateway) answers with 404, so the pod never became Ready. Now probes
+    `/openapi.json` (validated against `open-webui/mcpo`).
+  - **Authelia OIDC SSO was broken when enabled.** `client_secret` relied on
+    Authelia's `${VAR}` expansion, which is off by default (and `expand-env` is
+    deprecated, removed in v4.40), so the literal placeholder became the secret.
+    It is now read from a mounted file via the `template` config filter's `secret`
+    function (`X_AUTHELIA_CONFIG_FILTERS=template`); the value no longer rides a
+    pod env var or the rendered manifest. Validated against `authelia/authelia`.
+  - **Unbounded agent `deps` emptyDirs.** Pydantic AI and the ingestion worker now
+    bound their dependency-install volume (`sizeLimit: 1Gi`, matching the `tmp`
+    sibling) so a runaway install cannot exhaust node ephemeral storage.
+  - **Parity / precision:** SBOM Valkey `boundary` aligned to the governance map
+    (`cache` → `storage`); three stale `LICENSE_COMPLIANCE.md` versions re-aligned
+    to `values.yaml` (Ollama, OTel, LangGraph); LangGraph tracing var
+    canonicalised to `LANGSMITH_TRACING`; the OTel redaction compliance claim
+    qualified to telemetry-enabled. The Tika-egress "finding" was verified a false
+    positive (already closed by the additive default-deny). New
+    `tests/authelia_oidc_test.yaml` plus assertions in `tests/mcpo_test.yaml` and
+    `tests/hardening_test.yaml` (122 tests). No image or chart-version change.
+
 ## [2.12.0] - 2026-06-09
 
 Works the deferred recommendation backlog of the 2026-06 deep audit

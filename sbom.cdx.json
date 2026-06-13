@@ -285,7 +285,7 @@
         },
         {
           "name": "assurance.platform/boundary",
-          "value": "cache"
+          "value": "storage"
         },
         {
           "name": "chart.ai-stack/default-enabled",

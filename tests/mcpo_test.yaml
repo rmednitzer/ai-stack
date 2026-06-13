@@ -79,3 +79,17 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.runtimeClassName
+
+  # MCPO is a FastAPI gateway with no GET / route (404). Probing / would fail
+  # readiness and the pod would never become Ready; probe /openapi.json (200).
+  - it: probes the FastAPI OpenAPI schema, not / (which 404s — ADR-016)
+    set:
+      mcpo.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /openapi.json
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /openapi.json

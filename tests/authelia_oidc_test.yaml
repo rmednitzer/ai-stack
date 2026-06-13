@@ -1,0 +1,61 @@
+suite: Authelia OIDC client-secret handling (template filter, no plaintext in manifest)
+# An OIDC client secret is a config list item, so it cannot use a _FILE env var,
+# and Authelia's legacy ${VAR} expansion is off by default (the `expand-env`
+# filter is deprecated and removed in v4.40). The secret is therefore read from a
+# mounted file via the `template` config filter's `secret` function. These tests
+# pin that wiring and guard against the prior broken `${VAR}` form regressing or a
+# plaintext secret leaking into the rendered manifest. See ADR-016.
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: reads the OIDC client secret from a file via the template filter (no ${VAR})
+    set:
+      authelia.enabled: true
+    template: templates/authelia/configmap.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      # The rendered config carries the literal Authelia template call, $plaintext$-prefixed.
+      - matchRegex:
+          path: data["configuration.yml"]
+          pattern: '\$plaintext\$\{\{ secret "/secrets/oidc-client-secret" \}\}'
+      # The broken ${VAR} expansion form (off by default in Authelia) must be gone.
+      - notMatchRegex:
+          path: data["configuration.yml"]
+          pattern: '\$\{AUTHELIA_OIDC_CLIENT_SECRET\}'
+
+  - it: enables the template config filter and stops injecting the secret as a pod env var
+    set:
+      authelia.enabled: true
+    template: templates/authelia/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: X_AUTHELIA_CONFIG_FILTERS
+            value: template
+      # The OIDC client secret is no longer injected as an environment variable.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTHELIA_OIDC_CLIENT_SECRET
+          any: true
+
+  - it: mounts the OIDC client secret as a file in the projected secrets volume
+    set:
+      authelia.enabled: true
+    template: templates/authelia/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes[?(@.name=="secrets")].projected.sources[0].secret.items
+          content:
+            key: oidc-client-secret
+            path: oidc-client-secret

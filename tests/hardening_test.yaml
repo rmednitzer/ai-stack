@@ -19,6 +19,8 @@ templates:
   - templates/openwebui/deployment.yaml
   - templates/common/secrets.yaml
   - templates/tests/connection-test.yaml
+  - templates/pydanticai/deployment.yaml
+  - templates/ingestion-worker/deployment.yaml
 tests:
   - it: renders the helm-test hook Pod with a digest-pinned image (ADR-002)
     template: templates/tests/connection-test.yaml
@@ -117,3 +119,28 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "sk-"
+
+  # The agent dep-install emptyDirs are bounded like their `tmp` siblings, so a
+  # runaway/compromised `pip install` cannot exhaust node ephemeral storage (ADR-016).
+  - it: bounds the Pydantic AI deps emptyDir (resource-exhaustion guard)
+    set:
+      pydanticai.enabled: true
+    template: templates/pydanticai/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="deps")].emptyDir.sizeLimit
+          value: 1Gi
+  - it: bounds the ingestion worker deps emptyDir (resource-exhaustion guard)
+    set:
+      ingestionWorker.enabled: true
+    template: templates/ingestion-worker/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="deps")].emptyDir.sizeLimit
+          value: 1Gi
