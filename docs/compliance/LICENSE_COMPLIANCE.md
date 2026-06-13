@@ -145,7 +145,7 @@ Implications for ai-stack:
   other stack components or of the chart itself (Apache-2.0).
 - **Internal / regulated use is unaffected** as long as the "Open WebUI"
   branding is left intact. The chart does not alter it; the AI Act Art. 50(1)
-  transparency banner (`WEBUI_BANNER_TEXT`) is additive, not a branding change.
+  transparency banner (`WEBUI_BANNERS`) is additive, not a branding change.
 - **If you white-label** the UI above the 50-user threshold, obtain an
   enterprise license. The chart's MIT/Apache alternative is the agentic runtime
   (Pydantic AI), not a replacement front-end.

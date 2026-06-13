@@ -52,9 +52,9 @@ The chart provides a configurable banner to remind users of data retention:
 ```yaml
 openwebui:
   env:
-    # Inform users about data retention (AI Act Art. 50 + GDPR transparency)
-    WEBUI_BANNER_TEXT: "AI-powered assistant. Conversations are retained for [X months]. See our privacy notice at [URL]."
-    WEBUI_BANNER_DISMISSIBLE: "true"
+    # Inform users about data retention (AI Act Art. 50 + GDPR transparency).
+    # Open WebUI reads WEBUI_BANNERS, a JSON array of banner objects.
+    WEBUI_BANNERS: '[{"id":"retention-notice","type":"info","title":"","content":"AI-powered assistant. Conversations are retained for [X months]. See our privacy notice at [URL].","dismissible":true,"timestamp":0}]'
 ```
 
 ---

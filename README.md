@@ -715,7 +715,7 @@ The chart ships with templates and guidance for EU-regulated deployments:
 | [docs/compliance/DSAR_PROCEDURES.md](docs/compliance/DSAR_PROCEDURES.md) | Data subject rights procedures (GDPR Art. 15–22) |
 | [docs/compliance/EU_OPERATIONS_GUIDE.md](docs/compliance/EU_OPERATIONS_GUIDE.md) | Data retention, DPA guidance, encryption, content marking, training |
 
-AI Act Art. 50(1) transparency is implemented via a configurable `WEBUI_BANNER_TEXT` environment variable that informs users they are interacting with an AI system.
+AI Act Art. 50(1) transparency is implemented via the configurable `WEBUI_BANNERS` environment variable (Open WebUI's JSON banner list), which ships a default banner informing users they are interacting with an AI system.
 
 ## License
 

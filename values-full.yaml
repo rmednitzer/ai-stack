@@ -1,0 +1,103 @@
+# values-full.yaml — feature-complete "everything wired" reference overlay.
+#
+# Layer it on the base defaults:
+#   helm install ai-stack . -f values.yaml -f values-full.yaml \
+#     -n ai-stack --create-namespace
+#
+# It turns ON the optional plane that the conservative base ships off (async
+# document ingestion, the Pydantic AI agent, SearXNG web search, the full
+# observability pipeline) and WIRES it into Open WebUI. Everything enabled here
+# works out of the box once the Ollama models are pulled; the operator-specific
+# edges (MCPO tool servers, LangGraph, Authelia SSO, ingress/TLS) are left as
+# clearly-marked ready-to-enable blocks.
+#
+# This overlay is feature-complete, NOT hardened-for-HA. For production, ALSO
+# layer values-prod.yaml (HA CloudNativePG, topology spread, tighter limits) and
+# the operator-owned hardening in docs/operations/hardening-guide.md.
+#
+# Full walkthrough — model pulls, the two RAG paths, feeding the worker, and the
+# MCPO / Authelia steps: docs/operations/full-deployment.md.
+
+# Full observability pipeline (OTel Collector + redaction).
+global:
+  otel:
+    enabled: true
+
+# Shared state store. Open WebUI users/chats/settings, the Pydantic AI DBOS
+# durable-execution checkpoints, and the ingestion worker's corpus-state machine
+# all persist here. Standalone keeps the reference deployable without the
+# CloudNativePG operator; use mode: cnpg + values-prod.yaml for HA Postgres.
+postgres:
+  enabled: true
+  mode: standalone
+
+# Persist Valkey so in-flight ingestion-stream tasks (and Open WebUI session /
+# websocket state) survive a pod restart. RDB snapshot on a PVC; see ADR notes.
+valkey:
+  persistence:
+    enabled: true
+
+# Async document ingestion: Valkey stream -> Tika extract -> Ollama embed ->
+# Qdrant upsert. Enqueue documents with XADD (see the full-deployment guide §
+# "Feeding the ingestion worker"); they land in the "documents" collection.
+ingestionWorker:
+  enabled: true
+
+# Pydantic AI agent (MIT-licensed). exposeToOpenWebUI registers it as a model in
+# the Open WebUI picker (id = OPENAI_MODEL_ID, "pydanticai-agent"). Its
+# search_knowledge_base tool reads the SAME Qdrant collection the ingestion
+# worker writes, so documents you enqueue to the worker become answerable in
+# Open WebUI by chatting with this model. THIS is how the ingestion worker is
+# wired into Open WebUI. Pull AGENT_MODEL (llama3.2) and the embedding model
+# (nomic-embed-text) in Ollama first — see the guide.
+pydanticai:
+  enabled: true
+  exposeToOpenWebUI: true
+  env:
+    # MUST equal ingestionWorker.env.QDRANT_COLLECTION for the worker -> agent
+    # RAG path. Both default to "documents"; kept explicit here as the contract.
+    QDRANT_COLLECTION: "documents"
+
+# Open WebUI: make SearXNG web search usable. The base ships it disabled because
+# web content is attacker-influenced (SECURITY.md threat model); enabling it is
+# the deliberate opt-in for this fuller deployment. SearXNG runs in both cases.
+openwebui:
+  env:
+    ENABLE_WEB_SEARCH: "true"
+
+# =============================================================================
+# Operator-specific edges — fill in, then enable. Left off so this overlay
+# deploys cleanly as-is.
+# =============================================================================
+
+# --- MCPO tool gateway (MCP -> OpenAPI) --------------------------------------
+# MCPO needs (a) your MCP servers under config.mcpServers and (b) a manual Open
+# WebUI tool-server connection. The chart will NOT bake MCPO's API key into the
+# Open WebUI pod as plaintext (TOOL_SERVER_CONNECTIONS is inline JSON; that would
+# violate POL-002), so add the connection in the Open WebUI admin UI using the
+# key from the <release>-mcpo-secret Secret. Steps: docs/operations/full-deployment.md.
+# mcpo:
+#   enabled: true
+#   config:
+#     mcpServers:
+#       time:
+#         command: "uvx"
+#         args: ["mcp-server-time"]
+
+# --- LangGraph agentic runtime -----------------------------------------------
+# Alternative to Pydantic AI above. Its server image is Elastic License 2.0 — a
+# commercial key gates production self-hosting (docs/compliance/LICENSE_COMPLIANCE.md).
+# Pydantic AI is the MIT path already enabled above. Enable only if you hold the
+# licence; it shares the same Ollama / Qdrant / SearXNG / Postgres surface.
+# langgraph:
+#   enabled: true
+
+# --- Authelia OIDC single sign-on for Open WebUI -----------------------------
+# Environment-specific (your domain, issuer URL, TLS, ingress). Configure per
+# docs/operations/full-deployment.md, then enable:
+# authelia:
+#   enabled: true
+#   oidc:
+#     clientId: "open-webui"
+#     issuerUrl: "https://auth.example.com"
+#     scopes: ["openid", "email", "profile", "groups"]

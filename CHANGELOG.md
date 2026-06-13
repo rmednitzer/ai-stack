@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Full deployment wired into Open WebUI — corrected env wiring, `values-full.yaml`,
+  and a full-deployment guide
+  ([ADR-015](docs/architecture/ADR-015-openwebui-wiring-full-deployment.md);
+  [guide](docs/operations/full-deployment.md)).** Fixes Open WebUI environment
+  variables that the pinned image (v0.9.6) no longer reads — validated against
+  `open-webui` `config.py` — and which were therefore **silently ignored**:
+  web search (`RAG_WEB_SEARCH_ENGINE` → `WEB_SEARCH_ENGINE`, plus the missing
+  `ENABLE_WEB_SEARCH`), chunking (`RAG_CHUNK_SIZE`/`RAG_CHUNK_OVERLAP` →
+  `CHUNK_SIZE`/`CHUNK_OVERLAP`), the upload cap (`MAX_UPLOAD_SIZE` bytes →
+  `FILE_MAX_SIZE` **megabytes**, `50`), and the **AI Act Art. 50(1) transparency
+  banner** (`WEBUI_BANNER_TEXT`/`_DISMISSIBLE` → `WEBUI_BANNERS` JSON — the
+  disclosure had never rendered). The worker's own `RAG_CHUNK_SIZE`/`_OVERLAP`
+  (a separate contract) are unchanged. New `values-full.yaml` overlay enables the
+  optional plane and wires the **ingestion worker → Pydantic AI agent → Open
+  WebUI** RAG path (the agent's `search_knowledge_base` tool reads the same
+  `documents` collection the worker writes; `exposeToOpenWebUI` surfaces it as a
+  model), turns SearXNG web search on (off in base — attacker-influenced content),
+  and enables the observability pipeline. MCPO tool-server wiring stays a
+  documented admin-UI step (its key is inline in `TOOL_SERVER_CONNECTIONS`, so the
+  chart will not bake it into a pod manifest — POL-002). Asserted in
+  `tests/openwebui_wiring_test.yaml`; all affected docs updated. No image or
+  chart-version change.
+
 - **Supply-chain and runtime enforcement — blocking CVE gate, chart signing, and
   operator hardening examples
   ([ADR-014](docs/architecture/ADR-014-supply-chain-runtime-enforcement.md);

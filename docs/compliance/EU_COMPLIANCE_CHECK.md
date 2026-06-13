@@ -90,7 +90,7 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 | AI Act Article | Requirement | Status | Evidence |
 |---------------|-------------|--------|----------|
-| **Art. 50(1)** | Inform users they interact with AI | Addressed | Configurable `WEBUI_BANNER_TEXT` in values.yaml with default AI disclosure text |
+| **Art. 50(1)** | Inform users they interact with AI | Addressed | Configurable `WEBUI_BANNERS` (JSON banner list) in values.yaml with default AI disclosure text |
 | **Art. 50(2)** | Machine-readable marking of AI-generated content | Gap | No watermarking or C2PA metadata applied to AI outputs |
 | **Art. 50(4)** | Deep fake disclosure | N/A | Not applicable unless generating synthetic media for public dissemination |
 | **Art. 13** | Transparency — provider obligation to inform deployers (high-risk) | Conditional | Tier labels and boundary annotations provide governance metadata; full compliance depends on use case. Note: Art. 13 is a provider obligation; deployers consume this information per Art. 26(9) |
@@ -101,7 +101,7 @@ The ai-stack deploys and integrates multiple AI systems. Classification depends 
 
 #### Gaps Requiring Action
 
-1. **Art. 50(1) Transparency Disclosure** — Addressed: Configurable `WEBUI_BANNER_TEXT` in values.yaml provides an AI disclosure banner by default.
+1. **Art. 50(1) Transparency Disclosure** — Addressed: Configurable `WEBUI_BANNERS` (JSON banner list) in values.yaml provides an AI disclosure banner by default.
 
 2. **Art. 50(2) Content Marking** — AI-generated text, images, audio, and video must be marked in a machine-readable format. No C2PA, watermarking, or metadata injection is implemented. Deployers must address this at the application layer.
 
@@ -234,7 +234,7 @@ If the platform is accessible via web browser (Open WebUI), ePrivacy provisions 
 | # | Action | Regulation | Effort |
 |---|--------|-----------|--------|
 | 1 | ~~**Create DPIA template**~~ | GDPR Art. 35, AI Act Art. 27 | Done — [DPIA_TEMPLATE.md](DPIA_TEMPLATE.md) |
-| 2 | ~~**Add AI transparency disclosure**~~ | AI Act Art. 50(1) | Done — `WEBUI_BANNER_TEXT` in values.yaml |
+| 2 | ~~**Add AI transparency disclosure**~~ | AI Act Art. 50(1) | Done — `WEBUI_BANNERS` in values.yaml |
 | 3 | ~~**Document data retention policy**~~ and provide guidance for automated purge of conversations, embeddings, uploaded docs | GDPR Art. 5(1)(e) | Done — [EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §1 |
 | 4 | ~~**Create incident response playbook**~~ | GDPR + NIS2 | Done — [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 

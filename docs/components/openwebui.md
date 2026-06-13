@@ -53,9 +53,9 @@ ephemeral single-pod lab, `postgres.enabled=false` falls back to SQLite.
 Open WebUI talks to every T1/T2 service over in-cluster DNS:
 
 - Ollama (`OLLAMA_BASE_URL`) — local inference
-- Qdrant (`RAG_VECTOR_DB`) — vector retrieval
+- Qdrant (`VECTOR_DB=qdrant`, `QDRANT_URI`) — vector retrieval
 - Tika (`CONTENT_EXTRACTION_ENGINE`) — document text extraction
-- SearXNG (`RAG_WEB_SEARCH_ENGINE`) — web search
+- SearXNG (`WEB_SEARCH_ENGINE`, opt-in via `ENABLE_WEB_SEARCH`; off by default) — web search
 - Valkey — session cache
 - MCPO, LangGraph, Open Terminal, external APIs — opt-in routes
 
@@ -88,7 +88,8 @@ See [ADR-011](../architecture/ADR-011-rag-retrieval-quality.md) and
 - Runs as non-root (UID 1000), read-only root filesystem where upstream permits
 - Dedicated ServiceAccount with `automountServiceAccountToken: false` ([POL-001](../governance/CONTROLS.md#policies-pol))
 - Telemetry opt-out env vars (`DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false`) set by default
-- AI Act Art. 50(1) transparency banner via `WEBUI_BANNER_TEXT`
+- AI Act Art. 50(1) transparency banner via `WEBUI_BANNERS` (a JSON banner list;
+  the chart ships a default AI-disclosure banner)
 
 ## Reference architecture
 
