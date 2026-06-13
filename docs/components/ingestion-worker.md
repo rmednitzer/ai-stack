@@ -30,6 +30,7 @@ and (optionally) tracks a per-collection corpus lifecycle in PostgreSQL.
 | `ingestionWorker.resources` | CPU / memory requests + limits |
 | `ingestionWorker.env.RAG_CHUNK_SIZE`, `…RAG_CHUNK_OVERLAP` | Text-splitter parameters |
 | `ingestionWorker.env.RAG_EMBEDDING_MODEL` | Ollama embedding model (e.g. `nomic-embed-text`) |
+| `ingestionWorker.env.RAG_EMBEDDING_CONTENT_PREFIX` | Passage task-instruction prefix for the embedder (`nomic-embed-text` → `search_document: `); must pair with readers' `RAG_EMBEDDING_QUERY_PREFIX`. Prefixes the embedding input only; re-index after changing ([ADR-011](../architecture/ADR-011-rag-retrieval-quality.md)) |
 | `ingestionWorker.env.QDRANT_COLLECTION` | Default target Qdrant collection |
 | `ingestionWorker.env.INGESTION_*` | Stream/group/status/batch/retry tuning ([spec §6](ingestion-worker-spec.md#6-configuration-reference)) |
 | `ingestionWorker.sources.*` | **Opt-in** native object-store / network-share connectors via fsspec (`s3://`, `gs://`, `az://`, `smb://`, …) — see [ADR-007](../architecture/ADR-007-ingestion-source-connectors.md) |

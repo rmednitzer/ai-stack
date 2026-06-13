@@ -7,7 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in hybrid retrieval + cross-encoder reranking for RAG
+  ([ADR-011](docs/architecture/ADR-011-rag-retrieval-quality.md)).** New Open
+  WebUI knobs in `openwebui.env` — `ENABLE_RAG_HYBRID_SEARCH`,
+  `RAG_RERANKING_MODEL`, `RAG_RERANKING_ENGINE`, `RAG_TOP_K_RERANKER`, and
+  `RAG_HYBRID_BM25_WEIGHT` — add a BM25 lexical leg fused with the dense-vector
+  results plus a CrossEncoder reranking stage. **OFF by default:** the reranking
+  model is fetched from Hugging Face at runtime, which needs egress the
+  default-deny NetworkPolicy does not grant, so enabling it is a conscious opt-in
+  (allow egress or pre-stage the model). Recommended rerankers are small and
+  Apache-2.0 (see [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md)).
+  Asserted in `tests/rag_retrieval_test.yaml`. No image or chart-version change.
+
 ### Changed
+
+- **Embedding task-instruction prefixes now applied by default
+  ([ADR-011](docs/architecture/ADR-011-rag-retrieval-quality.md)).**
+  `nomic-embed-text` (the chart's default embedder) is instruction-tuned and
+  requires `search_query: ` on queries and `search_document: ` on passages; the
+  stack previously embedded raw text on every surface, a silent
+  retrieval-quality regression. New `RAG_EMBEDDING_QUERY_PREFIX` /
+  `RAG_EMBEDDING_CONTENT_PREFIX` knobs (Open WebUI, the ingestion worker, and
+  Pydantic AI) default to the correct nomic prefixes; the in-repo apps prefix
+  only the embedding input, leaving the stored Qdrant payload text unchanged.
+  The ingestion worker's `RAG_CHUNK_OVERLAP` code default was aligned to the
+  chart value (`150`). **Upgrade note:** changing the prefixes changes the
+  embedding space — **re-index existing collections / Open WebUI knowledge**
+  after upgrading so queries match the stored vectors (greenfield deployments are
+  correct immediately).
 
 - **Consolidated dependency automation on Renovate — `.github/dependabot.yml`
   retired ([ADR-010](docs/architecture/ADR-010-consolidate-dependency-automation-on-renovate.md)).**
@@ -27,6 +56,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `EU_OPERATIONS_GUIDE.md`, `ENTERPRISE_EVALUATION.md`) updated to match
   (ADR-001 §2 docs-as-code). No chart template, `values.yaml`, SBOM, or Zarf
   change.
+
+### Fixed
+
+- **License matrix corrected: Open WebUI is not MIT
+  ([LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md)).** The deployed
+  `open-webui` image is licensed under the custom **Open WebUI License**
+  (BSD-3-Clause plus a branding-protection clause that applies above 50 end users
+  in any rolling 30-day window), not MIT. Recorded in the license matrix with a
+  dedicated analysis subsection, and the runtime-downloaded models (the embedding
+  model and the optional reranker) are now catalogued with their licenses. The
+  chart's own license (Apache-2.0) is unaffected.
 
 ## [2.12.0] - 2026-06-09
 
