@@ -564,7 +564,7 @@ Control and policy identifiers used in this chart are defined in
 | CTL-002 | AI gateway policy | NetworkPolicy, tier/boundary labels + control-refs annotation on every workload |
 | CTL-003 | Model-driven execution isolation | Open Terminal / MCPO: opt-in hardened `runtimeClassName`, scoped CORS (never `*`), bounded root filesystem, no token automount |
 | POL-001 | Least-privilege | Per-component ServiceAccounts, no automount |
-| POL-002 | Credential management | Generated-and-persisted Secrets (no plaintext in values, no baked-in creds), `existingSecret`/ESO override; on every credential-bearing component |
+| POL-002 | Credential management | Generated-and-persisted Secrets (no hardcoded plaintext defaults, no baked-in creds), explicit override or `existingSecret`/ESO; on every credential-bearing component |
 | GDPR Art 5(1)(c) | Data minimisation | PII redaction in OTel pipeline |
 | NIS2 | Network security | Default-deny NetworkPolicies |
 | AI Act | Risk classification | Tier and boundary labeling |

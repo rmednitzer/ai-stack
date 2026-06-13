@@ -12,8 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **POL-002 — credential management as a traceable governance policy
   ([runbook](docs/operations/RUNBOOK-remediation.md) A4).** The chart already
   delivers every component credential through a generated-and-persisted Kubernetes
-  `Secret` (`ai-stack.persistentSecret`), overridable by `existingSecret`, never
-  plaintext in `values.yaml` — but this traced to no policy identifier. `POL-002`
+  `Secret` (`ai-stack.persistentSecret`) with no hardcoded plaintext defaults and
+  never baked into an image, overridable by an explicit value or `existingSecret` —
+  but this traced to no policy identifier. `POL-002`
   is added to `docs/governance/CONTROLS.md` and the `README.md` governance table,
   and referenced via `ai-stack.governanceMap` by exactly the credential-bearing
   components (Open WebUI, Authelia, MCPO, Open Terminal, Qdrant, SearXNG, Valkey,

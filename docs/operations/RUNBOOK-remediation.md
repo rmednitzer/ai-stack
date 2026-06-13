@@ -131,9 +131,10 @@ ruff check files/ingestion-worker/
 **Finding.** The chart already manages every component credential through a
 Kubernetes `Secret` — generated and kept stable across upgrades via
 `ai-stack.persistentSecret`, overridable by an explicit value or an
-`existingSecret`, never plaintext in `values.yaml` (`templates/common/secrets.yaml`)
-— but this discipline traced to no policy identifier, so it could not be
-referenced from an annotation, a test, or an audit.
+`existingSecret`, with no hardcoded plaintext defaults and never rendered inline in
+a workload manifest (`templates/common/secrets.yaml`) — but this discipline traced
+to no policy identifier, so it could not be referenced from an annotation, a test,
+or an audit.
 
 **Fix applied.** `POL-002` (credential management) added to the registry
 (`docs/governance/CONTROLS.md`) and the `README.md` governance table. It is
