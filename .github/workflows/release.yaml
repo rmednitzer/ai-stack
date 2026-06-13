@@ -100,10 +100,41 @@ jobs:
             --username "$GHCR_USER" --password-stdin
 
       - name: Push chart to OCI registry
+        id: push
         if: steps.ref.outputs.is_release == 'true'
         run: |
+          set -euo pipefail
           helm push "${{ steps.package.outputs.package }}" \
-            "oci://ghcr.io/${{ github.repository_owner }}/charts"
+            "oci://ghcr.io/${{ github.repository_owner }}/charts" 2>&1 | tee /tmp/helm-push.log
+          # Match the digest token by shape (sha256:<64 hex>) anywhere in the
+          # output rather than by field position, so a helm output-format change
+          # cannot silently feed a bad value into signing. Validate before use.
+          DIGEST=$(grep -oiE 'sha256:[0-9a-f]{64}' /tmp/helm-push.log | head -n1)
+          if ! printf '%s' "${DIGEST}" | grep -qiE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::could not parse a valid chart digest (sha256:<64 hex>) from helm push output"
+            exit 1
+          fi
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Pushed chart digest: ${DIGEST}"
+
+      - name: Install cosign
+        if: steps.ref.outputs.is_release == 'true'
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+
+      - name: Sign the published chart (keyless, B5 / ADR-014)
+        if: steps.ref.outputs.is_release == 'true'
+        # Keyless OIDC signing: the job's id-token (Sigstore Fulcio) certifies the
+        # workflow identity; the signature + cert go to the Rekor transparency log.
+        # Verify with:
+        #   cosign verify ghcr.io/<owner>/charts/ai-stack@<digest> \
+        #     --certificate-identity-regexp '^https://github.com/<owner>/ai-stack/' \
+        #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes \
+            "ghcr.io/${{ github.repository_owner }}/charts/ai-stack@${DIGEST}"
 
       - name: Generate provenance attestation
         if: steps.ref.outputs.is_release == 'true'

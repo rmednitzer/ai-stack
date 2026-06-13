@@ -119,12 +119,19 @@ The ai-stack implements the following security controls by default:
   [CONTROLS.md](docs/governance/CONTROLS.md)
 - **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
 - **CORS:** Open Terminal origins are scoped to the Open WebUI origin (never `*`)
-- **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, CVE scanning (Grype),
-  Renovate for digest-pinned container images, GitHub Actions, Dockerfile base
-  images, and hashed Python locks (ADR-002/ADR-010)
+- **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, a **blocking** CVE
+  gate (Grype, fails on critical with a time-boxed `.grype.yaml` exception path),
+  **cosign keyless signing** of the released Helm chart artifact, Renovate for
+  digest-pinned container images, GitHub Actions, Dockerfile base images, and
+  hashed Python locks (ADR-002 / ADR-010 / ADR-014)
 - **PII + secret redaction:** OTel Collector strips email, SSN, and credit-card
   patterns plus bearer tokens, JWTs, private keys, and provider API-key shapes
 - **Telemetry opt-out:** `DO_NOT_TRACK=true`, `ANONYMIZED_TELEMETRY=false`
+
+For **operator-owned hardening** beyond the chart's floor — admission-time image
+signature verification, FQDN-aware egress, and in-cluster mTLS — see the
+[hardening guide](docs/operations/hardening-guide.md) and
+[`examples/hardening/`](examples/hardening/) (ADR-014).
 
 For details, see [ENTERPRISE_EVALUATION.md](docs/enterprise/ENTERPRISE_EVALUATION.md) and
 [LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md).

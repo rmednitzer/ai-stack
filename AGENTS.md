@@ -123,9 +123,11 @@ implementations evolve:
   `kubeconform`, `kube-linter`, `sbom-validate` (CycloneDX 1.6 schema +
   package-version parity with `Chart.yaml` + image tag/digest parity across
   `values.yaml` ↔ `sbom.cdx.json` ↔ `zarf.yaml`),
-  `zarf-lint`; `syft-sbom` + `cve-scan` (Grype) on merge to `main`.
+  `zarf-lint`; `syft-sbom` + `cve-scan` (Grype, **blocking on critical** with a
+  time-boxed `.grype.yaml` exception path, ADR-014) on merge to `main`.
 - **docs.yaml** — `markdown-links` (offline relative-link + `#anchor` checker).
-- **release.yaml** — tag-gated OCI push + SLSA build provenance.
+- **release.yaml** — tag-gated OCI push + SLSA build provenance + **cosign keyless
+  chart signing** (ADR-014).
 - CodeQL runs via repo **default setup** (Python in `files/`, Actions workflows).
 
 A green PR means all of the above pass; the `sbom-validate` parity job is the

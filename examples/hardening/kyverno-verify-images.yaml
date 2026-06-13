@@ -1,0 +1,62 @@
+# B5 — Admission-time image signature verification (Kyverno verifyImages).
+#
+# Operator-owned, out-of-chart (ADR-014). The chart already digest-pins every
+# image and enforces an SBOM + a blocking CVE gate; this adds a cluster admission
+# check that an image is cryptographically signed before a Pod runs.
+#
+# IMPORTANT scope note: the chart deploys third-party images (qdrant, ollama,
+# tika, ...). You can only keyless-verify a signer identity you trust. The
+# realistic pattern for an EU-sovereign deployment is to MIRROR the upstream
+# images into your own registry and sign them with your CI (keyless OIDC), then
+# verify that identity here. Upstream images you have not signed must either be
+# mirrored+signed or excluded (and covered by the chart's digest-pin + CVE gate).
+#
+# Roll out as Audit first (this file). Confirm the admission report is clean for
+# your full image set, then change validationFailureAction to Enforce.
+#
+# Requires Kyverno >= 1.11. Verify the schema against your installed version:
+# https://kyverno.io/docs/policy-types/cluster-policy/verify-images/
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-stack-verify-images
+  annotations:
+    policies.kyverno.io/title: Verify ai-stack workload image signatures
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/description: >-
+      Require that images admitted into the ai-stack namespace are signed by the
+      operator's keyless CI identity. Start in Audit; switch to Enforce after a
+      clean window.
+spec:
+  # Audit -> report only. Change to Enforce to block unsigned/tampered images.
+  validationFailureAction: Audit
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  background: false
+  rules:
+    - name: verify-mirrored-images-signed
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - ai-stack
+      verifyImages:
+        # Scope to the registry you mirror + sign into. Anything matching is
+        # required to carry a valid signature from the identity below.
+        - imageReferences:
+            - "ghcr.io/<your-org>/ai-stack/*"
+          # Per-rule action; keep aligned with validationFailureAction above.
+          failureAction: Audit
+          attestors:
+            - count: 1
+              entries:
+                # Keyless (Sigstore Fulcio + Rekor): match the OIDC identity your
+                # signing workflow runs as. For GitHub Actions keyless signing the
+                # subject is the workflow ref and the issuer is the Actions OIDC.
+                - keyless:
+                    subject: "https://github.com/<your-org>/*"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev

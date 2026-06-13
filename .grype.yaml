@@ -1,0 +1,20 @@
+# Grype configuration for the blocking CVE gate (cve-scan job; B4 / ADR-014).
+#
+# The job passes `--fail-on critical` per image and fails the build on any
+# critical finding. This file holds the *exception list*: the time-boxed relief
+# valve for a critical CVE with no available fix, so an unfixable upstream
+# advisory does not wedge releases.
+#
+# Exception format (enforced by .github/scripts/check_grype_exceptions.py):
+# every `- vulnerability:` entry MUST be preceded by a comment carrying an
+# `expires: YYYY-MM-DD` token (UTC), and should record the advisory and reason:
+#
+#   ignore:
+#     # reason: no upstream fix yet | advisory: https://github.com/.../GHSA-xxxx | expires: 2026-09-01
+#     - vulnerability: CVE-2026-12345
+#
+# The guard fails the build when an entry is missing `expires:` or is past it,
+# so an exception cannot silently become permanent. Keep this list empty in the
+# normal case; prefer bumping the affected image. See
+# docs/operations/hardening-guide.md.
+ignore: []

@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Supply-chain and runtime enforcement — blocking CVE gate, chart signing, and
+  operator hardening examples
+  ([ADR-014](docs/architecture/ADR-014-supply-chain-runtime-enforcement.md);
+  [runbook](docs/operations/RUNBOOK-remediation.md) A8;
+  [hardening guide](docs/operations/hardening-guide.md)).** The `cve-scan` CI job
+  is now **blocking** — a critical CVE in any referenced image fails the build
+  (B4), keeping the push-only cost design. The relief valve is a time-boxed
+  `.grype.yaml` exception (linked advisory + `expires:` date), enforced by
+  `.github/scripts/check_grype_exceptions.py` so an ignore cannot silently become
+  permanent. The release workflow **cosign-keyless-signs** the published Helm
+  chart OCI artifact (Sigstore Fulcio + Rekor, no key to manage) (B5). The
+  operator-owned controls ship as adaptable examples under `examples/hardening/`
+  with a guide: a Kyverno `verifyImages` admission policy (B5 admission, `Audit`
+  by default), a Cilium `toFQDNs` egress allowlist (B6), and Istio
+  `PeerAuthentication` / Linkerd mTLS (B7) — layered on the chart's secure-by-
+  default floor, never bundled into it. No image or chart-version change.
+
 - **Distributed Qdrant high availability — gated cluster mode
   ([ADR-013](docs/architecture/ADR-013-distributed-qdrant-ha.md);
   [runbook](docs/operations/RUNBOOK-remediation.md) A7).** New `qdrant.cluster`
