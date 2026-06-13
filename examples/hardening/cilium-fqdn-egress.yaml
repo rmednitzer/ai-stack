@@ -1,0 +1,50 @@
+# B6 — FQDN-aware egress allowlist (Cilium CiliumNetworkPolicy toFQDNs).
+#
+# Operator-owned, out-of-chart (ADR-014). The chart's NetworkPolicies are L3/L4
+# default-deny, but native NetworkPolicy cannot express destination hostnames, so
+# the internet-egress rules open :443/:80 to ANY host. A persuaded workload
+# (indirect prompt injection) could reach an arbitrary external host on those
+# ports. This layers a DNS/FQDN allowlist on top of that L3/L4 floor: egress on
+# :443 is narrowed to a named set of hosts.
+#
+# This example covers the Pydantic AI runtime (PyPI for the install-deps init
+# container + the model providers it calls). Duplicate the pattern, adjusting the
+# endpointSelector and FQDNs, for langgraph, searxng, ingestion-worker, etc.
+#
+# Requires the Cilium CNI with FQDN policy enabled. Cilium MUST see DNS to learn
+# the IPs behind the names, so the DNS rule below is mandatory and must precede
+# the toFQDNs rule. Docs: https://docs.cilium.io/en/stable/security/dns/
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ai-stack-pydanticai-fqdn-egress
+  namespace: ai-stack
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: pydanticai
+  egress:
+    # 1. Allow + snoop DNS to kube-dns so Cilium resolves the FQDNs below.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # 2. Allow HTTPS only to the named hosts. Replace with YOUR model providers
+    #    and package index. An unlisted host on :443 is denied.
+    - toFQDNs:
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+        # Example external model providers (drop the ones you do not use):
+        - matchPattern: "*.openai.com"
+        - matchName: api.anthropic.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

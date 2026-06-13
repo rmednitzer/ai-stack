@@ -100,10 +100,38 @@ jobs:
             --username "$GHCR_USER" --password-stdin
 
       - name: Push chart to OCI registry
+        id: push
         if: steps.ref.outputs.is_release == 'true'
         run: |
+          set -euo pipefail
           helm push "${{ steps.package.outputs.package }}" \
-            "oci://ghcr.io/${{ github.repository_owner }}/charts"
+            "oci://ghcr.io/${{ github.repository_owner }}/charts" 2>&1 | tee /tmp/helm-push.log
+          DIGEST=$(awk '/[Dd]igest:/ { print $2 }' /tmp/helm-push.log)
+          if [ -z "${DIGEST}" ]; then
+            echo "::error::could not parse the pushed chart digest from helm push output"
+            exit 1
+          fi
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Pushed chart digest: ${DIGEST}"
+
+      - name: Install cosign
+        if: steps.ref.outputs.is_release == 'true'
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+
+      - name: Sign the published chart (keyless, B5 / ADR-014)
+        if: steps.ref.outputs.is_release == 'true'
+        # Keyless OIDC signing: the job's id-token (Sigstore Fulcio) certifies the
+        # workflow identity; the signature + cert go to the Rekor transparency log.
+        # Verify with:
+        #   cosign verify ghcr.io/<owner>/charts/ai-stack@<digest> \
+        #     --certificate-identity-regexp '^https://github.com/<owner>/ai-stack/' \
+        #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes \
+            "ghcr.io/${{ github.repository_owner }}/charts/ai-stack@${DIGEST}"
 
       - name: Generate provenance attestation
         if: steps.ref.outputs.is_release == 'true'

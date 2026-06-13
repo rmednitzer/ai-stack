@@ -601,7 +601,7 @@ The GitHub Actions workflow (`lint.yaml`) runs on every PR and push to `main`:
 | **chart-testing** | `ct lint` with chart-testing for standards compliance |
 | **sbom-validate** | Validates `sbom.cdx.json` against CycloneDX 1.6 schema; checks the SBOM **package version** matches `Chart.yaml`; cross-checks component count against `values.yaml`; enforces **tag and digest parity** across `values.yaml`, `sbom.cdx.json`, and `zarf.yaml` (ADR-001/ADR-002) |
 | **syft-sbom** | Generates deep per-image SBOMs via Syft, validates them, and uploads as artifacts |
-| **cve-scan** | Scans all container images for CVEs using Grype; emits warnings on critical vulnerabilities |
+| **cve-scan** | Scans all container images for CVEs using Grype (on merge to `main`); **fails the build on a critical** CVE, with a time-boxed `.grype.yaml` exception path (see the [hardening guide](docs/operations/hardening-guide.md)) |
 | **kubeconform** | Validates rendered manifests against Kubernetes JSON schemas (lab + prod profiles) |
 | **kube-linter** | Policy-lints rendered manifests (lab, prod, and all-optional-components profiles); config in `.kube-linter.yaml` |
 

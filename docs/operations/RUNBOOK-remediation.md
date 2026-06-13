@@ -283,10 +283,50 @@ manages its own) must set their own replication at creation. **Rollback.** Set
 
 ---
 
+### A8. Supply-chain and runtime enforcement (B4–B7) — FIXED / ADDRESSED
+
+**Severity:** medium (supply chain) for B4/B5; low–medium (runtime) for B6/B7.
+
+**Finding.** Four hardening gaps: the CVE gate was advisory-only (B4); images were
+unsigned with no admission verification (B5); egress was port-level, not host-level
+(B6); inter-component traffic was plaintext (B7).
+
+**Fix applied.** Recorded in [ADR-014](../architecture/ADR-014-supply-chain-runtime-enforcement.md);
+operator steps in the [hardening guide](hardening-guide.md).
+
+- **B4 (FIXED, in CI).** `cve-scan` now fails on any critical CVE (`exit 1`),
+  keeping the push-only cost design. The relief valve is a time-boxed
+  [`.grype.yaml`](../../.grype.yaml) exception (advisory + `expires:` date),
+  enforced by `.github/scripts/check_grype_exceptions.py` so an ignore cannot
+  become permanent.
+- **B5 (signing FIXED; admission ADDRESSED).** `release.yaml` cosign-keyless-signs
+  the published chart OCI artifact (Sigstore Fulcio + Rekor, no key). Admission
+  verification of workload images is operator-owned: an `Audit`-mode Kyverno
+  example ([`examples/hardening/kyverno-verify-images.yaml`](../../examples/hardening/kyverno-verify-images.yaml))
+  plus the mirror-and-sign pattern in the guide.
+- **B6 (ADDRESSED).** A Cilium `toFQDNs` example
+  ([`examples/hardening/cilium-fqdn-egress.yaml`](../../examples/hardening/cilium-fqdn-egress.yaml))
+  narrows the open `:443`/`:80` egress to a host allowlist, on top of the chart's
+  L3/L4 default-deny floor.
+- **B7 (ADDRESSED).** Istio `PeerAuthentication` STRICT
+  ([`examples/hardening/istio-peerauthentication.yaml`](../../examples/hardening/istio-peerauthentication.yaml))
+  or Linkerd injection adds automatic mTLS over the per-component ServiceAccount
+  identities.
+
+**Verify.** `python3 .github/scripts/check_grype_exceptions.py` passes on an empty
+exception list and fails on an expired/missing-expiry entry; a seeded critical CVE
+fails `cve-scan`. cosign verification command in the guide. **Rollback.** Per item,
+in the guide (warning-only tail; policy to `Audit`; remove the FQDN policy / mesh
+label). **Tracking.** ADR-014; [SECURITY.md](../../SECURITY.md); this runbook.
+
+---
+
 ## Part B — Deferred remediations
 
-Ordered by recommended sequence. B2, B3, and B8 are done (see A3, A6, A7);
-B5–B7 are cluster-level controls outside a single Helm chart.
+Ordered by recommended sequence. B2, B3, B4, and B8 are done (see A3, A6, A8, A7),
+and B5–B7 are addressed as in-repo signing plus operator-owned examples + the
+[hardening guide](hardening-guide.md) (they remain cluster-level controls outside
+a single Helm chart).
 
 ### B1. Multi-node Open WebUI file durability
 
@@ -338,89 +378,35 @@ retrieval by the caller identity (threaded via agent `deps`); and erasure is a
 documented delete-by-filter. Covered by `files/pydanticai/test_app.py` and the
 worker tests. **Tracking.** [SECURITY.md](../../SECURITY.md); `docs/components/pydanticai.md`.
 
-### B4. Make the container CVE gate blocking
+### B4. Make the container CVE gate blocking — DONE
 
-**Severity:** medium (supply chain). **Type:** CI.
+Implemented; see **A8** and [ADR-014](../architecture/ADR-014-supply-chain-runtime-enforcement.md).
+`cve-scan` fails on any critical CVE, with a time-boxed [`.grype.yaml`](../../.grype.yaml)
+exception path enforced by `.github/scripts/check_grype_exceptions.py`.
 
-**Finding.** `cve-scan` runs Grype with `--fail-on critical` per image but captures
-the exit code into a `::warning::` and never fails the step
-(`.github/workflows/lint.yaml:561-573`), and runs on `push` only
-(`lint.yaml:504`) by deliberate cost/rate-limit design. Critical CVEs are visible
-in artifacts but do not block.
+### B5. Image signing and admission verification — ADDRESSED
 
-**Fix options (tradeoff).**
+Chart signing implemented; admission documented. See **A8**, ADR-014, and the
+[hardening guide](hardening-guide.md). `release.yaml` cosign-keyless-signs the
+published chart; the operator-owned admission half ships as an `Audit`-mode Kyverno
+example ([`examples/hardening/kyverno-verify-images.yaml`](../../examples/hardening/kyverno-verify-images.yaml)).
+**Tracking.** [ADR-002](../architecture/ADR-002-image-digest-pinning.md); ADR-014.
 
-- **(a) Fail on push (low cost).** Track a `CRITICAL` count and `exit 1` at the end
-  of the scan step. Signal arrives post-merge on `main` (red main), not pre-merge.
-- **(b) Gate on PRs (higher cost).** Add a PR-triggered scan limited to images that
-  changed in the PR diff, to bound pull cost and rate limits. Strongest gate.
+### B6. FQDN-aware egress — ADDRESSED
 
-**Ready patch (option a).** Replace the trailing summary with:
+Operator-owned example + guide; see **A8** and the
+[hardening guide](hardening-guide.md). A Cilium `toFQDNs` example
+([`examples/hardening/cilium-fqdn-egress.yaml`](../../examples/hardening/cilium-fqdn-egress.yaml))
+narrows the open `:443`/`:80` egress to a host allowlist on top of the chart's
+L3/L4 default-deny floor. **Tracking.** [SECURITY.md](../../SECURITY.md); CTL-002.
 
-```bash
-echo "=== CVE Scan Summary: ${TOTAL} images scanned, ${CRITICAL} with critical CVEs ==="
-if [ "$CRITICAL" -gt 0 ]; then
-  echo "::error::${CRITICAL} image(s) have critical CVEs"; exit 1
-fi
-```
+### B7. In-cluster mTLS — ADDRESSED
 
-Pair with a documented, time-boxed exception path (a Grype ignore file with an
-expiry and a linked advisory) so an unfixable upstream CVE does not wedge releases.
-
-**Validate.** A seeded critical CVE fails the job; a clean scan passes. **Rollback.**
-Restore the warning-only tail. **Tracking.** `AGENTS.md` (CI), this runbook.
-
-### B5. Image signing and admission verification
-
-**Severity:** medium (supply chain). **Type:** release + cluster policy
-(out-of-chart).
-
-**Finding.** Images are digest-pinned and SBOM-attested with parity enforced in CI,
-but are not cryptographically signed, and nothing verifies signatures at admission.
-
-**Fix design.** Sign release images with cosign (keyless/OIDC) in the release
-workflow; enforce with a cluster admission policy (Kyverno `verifyImages` or the
-sigstore policy-controller) scoped to the ai-stack namespace, requiring a valid
-signature and optionally an SBOM/SLSA attestation. Keep it out of the chart: it is
-a cluster-wide control an operator owns.
-
-**Validate.** An unsigned or tampered image is rejected at admission; the signed
-release set admits. **Rollback.** Set the policy to `audit` before `enforce`.
-**Tracking.** `SECURITY.md`; [ADR-002](../architecture/ADR-002-image-digest-pinning.md).
-
-### B6. FQDN-aware egress
-
-**Severity:** medium. **Type:** cluster networking (out-of-chart).
-
-**Finding.** NetworkPolicies are default-deny with explicit allows, but the
-internet egress rules open `:443`/`:80` to any destination (e.g. the LangGraph and
-Pydantic AI egress blocks in `templates/common/networkpolicies.yaml`, and the
-SearXNG search path). Native `NetworkPolicy` cannot express destination FQDNs, so a
-persuaded workload can reach arbitrary external hosts on those ports.
-
-**Fix design.** Layer an FQDN/DNS-aware egress control: Cilium
-`CiliumNetworkPolicy` `toFQDNs`, or an egress gateway / mesh
-`ServiceEntry`+`Sidecar` allowlist (PyPI, the configured model providers, the
-search engines SearXNG queries). Keep the chart's L3/L4 default-deny as the floor.
-
-**Validate.** Egress to an allow-listed FQDN succeeds; egress to an unlisted host on
-`:443` is denied. **Rollback.** Remove the FQDN policy; the chart's port-level
-default-deny remains. **Tracking.** [SECURITY.md](../../SECURITY.md); CTL-002.
-
-### B7. In-cluster mTLS
-
-**Severity:** low–medium. **Type:** cluster mesh (out-of-chart).
-
-**Finding.** Inter-component traffic is plaintext over ClusterIP; NetworkPolicy
-governs reachability, not encryption or workload identity.
-
-**Fix design.** Adopt a mesh providing automatic mTLS (Linkerd, or Istio ambient).
-The chart's per-component ServiceAccounts give the mesh stable identities. Treat as
-a platform capability, not a chart feature.
-
-**Validate.** Traffic between components is encrypted and peer-authenticated (mesh
-dashboard / `linkerd viz`). **Rollback.** Remove the mesh injection annotation.
-**Tracking.** `SECURITY.md`.
+Operator-owned example + guide; see **A8** and the
+[hardening guide](hardening-guide.md). Istio `PeerAuthentication` STRICT
+([`examples/hardening/istio-peerauthentication.yaml`](../../examples/hardening/istio-peerauthentication.yaml))
+or Linkerd injection adds automatic mTLS over the per-component ServiceAccount
+identities. **Tracking.** [SECURITY.md](../../SECURITY.md).
 
 ### B8. Distributed Qdrant high availability — DONE
 

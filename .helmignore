@@ -12,6 +12,7 @@
 ct.yaml
 renovate.json5
 .kube-linter.yaml
+.grype.yaml
 argocd/
 zarf.yaml
 Makefile
@@ -38,6 +39,9 @@ CODE_OF_CONDUCT.md
 CHANGELOG.md
 LICENSE
 docs/
+
+# Operator-owned hardening examples (out-of-chart; see docs/operations/hardening-guide.md)
+examples/
 
 # Chart unit tests (helm-unittest; not part of the released chart).
 # Anchored to the chart root: a bare `tests/` matches any directory named

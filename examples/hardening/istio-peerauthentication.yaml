@@ -1,0 +1,30 @@
+# B7 — In-cluster mTLS (Istio PeerAuthentication, STRICT).
+#
+# Operator-owned, out-of-chart (ADR-014). Inter-component traffic is plaintext
+# over ClusterIP; NetworkPolicy governs reachability, not encryption or workload
+# identity. A service mesh adds automatic mTLS: traffic between ai-stack
+# components is encrypted and peer-authenticated using the chart's per-component
+# ServiceAccount identities.
+#
+# This manifest enforces STRICT mTLS for the ai-stack namespace under Istio. It
+# assumes the namespace is meshed (sidecar injection or ambient). Label the
+# namespace first, e.g.:
+#   kubectl label namespace ai-stack istio-injection=enabled
+# and restart the workloads so sidecars are injected.
+#
+# Roll out PERMISSIVE first (accepts both mTLS and plaintext while sidecars roll
+# out), confirm telemetry shows mTLS, then switch mode to STRICT.
+#
+# Linkerd alternative (no PeerAuthentication needed): annotate the namespace
+#   kubectl annotate namespace ai-stack linkerd.io/inject=enabled
+# and restart; Linkerd enables mTLS between meshed pods automatically. See the
+# hardening guide for the trade-offs.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: ai-stack-mtls-strict
+  namespace: ai-stack
+spec:
+  mtls:
+    # Start as PERMISSIVE during rollout, then switch to STRICT.
+    mode: STRICT

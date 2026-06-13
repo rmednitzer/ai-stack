@@ -554,6 +554,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Enforce CVE-exception expiry (.grype.yaml)
+        # The gate below is blocking. The only relief valve is a time-boxed
+        # ignore in .grype.yaml; this guard fails the build if any exception is
+        # missing an `expires:` date or is past it, so an exception cannot
+        # silently become permanent. See docs/operations/hardening-guide.md.
+        run: python3 .github/scripts/check_grype_exceptions.py
+
       - name: Cache Grype binary
         id: cache-grype
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -604,6 +611,7 @@ jobs:
             SAFE_NAME=$(echo "$IMAGE" | tr '/:' '__')
             echo "::group::Scanning ${IMAGE}"
             if grype "registry:${IMAGE}" \
+                --config .grype.yaml \
                 --output json \
                 --file "grype-reports/${SAFE_NAME}.json" \
                 --fail-on critical 2>&1; then
@@ -621,9 +629,10 @@ jobs:
           done < /tmp/images.txt
 
           echo ""
-          echo "=== CVE Scan Summary: ${TOTAL} images scanned ==="
+          echo "=== CVE Scan Summary: ${TOTAL} images scanned, ${CRITICAL} with critical CVEs ==="
           if [ "$CRITICAL" -gt 0 ]; then
-            echo "::warning::${CRITICAL} image(s) have critical CVEs — review grype-reports artifacts and update affected images"
+            echo "::error::${CRITICAL} image(s) have critical CVEs. Update the affected image, or add a time-boxed exception to .grype.yaml (advisory + expiry). See docs/operations/hardening-guide.md."
+            exit 1
           fi
 
       - name: Upload Grype reports
