@@ -1,9 +1,13 @@
 # Full deployment — everything wired into Open WebUI
 
-This guide deploys the **complete** ai-stack: every component enabled and wired
-through Open WebUI, including the async ingestion worker, the Pydantic AI agent,
-SearXNG web search, and the tool gateway. It pairs with
-[`values-full.yaml`](../../values-full.yaml).
+This guide deploys the full ai-stack and wires it through Open WebUI. The
+[`values-full.yaml`](../../values-full.yaml) overlay enables the optional plane
+that works out of the box — the async ingestion worker, the Pydantic AI agent
+(surfaced as a model), SearXNG web search, and the observability pipeline. The
+operator-specific edges — the MCPO tool gateway, LangGraph, and Authelia SSO —
+are left as **ready-to-enable** blocks because each needs configuration only you
+can supply (your MCP servers, an Elastic licence, your OIDC domain); all three
+are covered in the sections below.
 
 ```bash
 helm install ai-stack . -f values.yaml -f values-full.yaml \
