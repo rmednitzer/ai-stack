@@ -64,6 +64,16 @@ pydanticai:
 openwebui:
   env:
     ENABLE_WEB_SEARCH: "true"
+    # Web-search tuning (validated against open-webui). Upstream defaults are
+    # conservative (3 results; unbounded concurrency): widen results modestly for
+    # better grounding and bound concurrency for predictable load.
+    WEB_SEARCH_RESULT_COUNT: "5"
+    WEB_SEARCH_CONCURRENT_REQUESTS: "10"
+    # Domain filter for the attacker-influenced web plane (defense-in-depth,
+    # ADR-017). JSON list of strings: a bare domain restricts results to it, a
+    # "!" prefix excludes it (e.g. ["example.com"] or ["!malicious.example"]).
+    # Empty = no filter. Pair with the FQDN egress control (hardening guide, B6).
+    WEB_SEARCH_DOMAIN_FILTER_LIST: "[]"
 
 # =============================================================================
 # Operator-specific edges — fill in, then enable. Left off so this overlay
@@ -83,6 +93,15 @@ openwebui:
 #       time:
 #         command: "uvx"
 #         args: ["mcp-server-time"]
+
+# --- Open Terminal sandboxed code execution ----------------------------------
+# Runs model-generated commands, so it is the highest-risk plane. Like MCPO it is
+# connected in the Open WebUI admin UI (TERMINAL_SERVER_CONNECTIONS is inline
+# JSON; the chart will not bake the key into the pod, POL-002). Harden the runtime
+# for production. Steps: docs/operations/full-deployment.md ("Open Terminal").
+# openTerminal:
+#   enabled: true
+#   runtimeClassName: "gvisor"   # or "kata"; empty = cluster default runtime
 
 # --- LangGraph agentic runtime -----------------------------------------------
 # Alternative to Pydantic AI above. Its server image is Elastic License 2.0 — a

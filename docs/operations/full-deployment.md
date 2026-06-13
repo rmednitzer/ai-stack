@@ -4,10 +4,11 @@ This guide deploys the full ai-stack and wires it through Open WebUI. The
 [`values-full.yaml`](../../values-full.yaml) overlay enables the optional plane
 that works out of the box — the async ingestion worker, the Pydantic AI agent
 (surfaced as a model), SearXNG web search, and the observability pipeline. The
-operator-specific edges — the MCPO tool gateway, LangGraph, and Authelia SSO —
-are left as **ready-to-enable** blocks because each needs configuration only you
-can supply (your MCP servers, an Elastic licence, your OIDC domain); all three
-are covered in the sections below.
+operator-specific edges — the MCPO tool gateway, Open Terminal code execution,
+LangGraph, and Authelia SSO — are left as **ready-to-enable** blocks because each
+needs configuration only you can supply (your MCP servers, your risk acceptance
+for code execution, an Elastic licence, your OIDC domain); each is covered in the
+sections below.
 
 ```bash
 helm install ai-stack . -f values.yaml -f values-full.yaml \
@@ -39,8 +40,8 @@ helm install ai-stack . -f values.yaml -f values-full.yaml -f values-prod.yaml \
 | OTel Collector | Observability with secret/PII redaction | telemetry sink |
 
 Operator-specific edges are left as ready-to-enable blocks in the overlay: MCPO
-(tool gateway), LangGraph (alternative agent, Elastic-licensed), and Authelia
-(OIDC SSO). See the sections below.
+(tool gateway), Open Terminal (sandboxed code execution), LangGraph (alternative
+agent, Elastic-licensed), and Authelia (OIDC SSO). See the sections below.
 
 ## Prerequisite: pull the Ollama models
 
@@ -138,6 +139,30 @@ are required, and one is deliberately manual:
    - In Open WebUI: **Settings → Tools → Add Connection**, URL
      `http://ai-stack-mcpo:8000/<server-name>`, auth Bearer, paste the key. Open
      WebUI stores it in its database, not a pod spec.
+
+## Open Terminal — code execution (operator step)
+
+Open Terminal is the sandboxed code-execution / notebook backend. Like MCPO it is
+connected in the admin UI, **not** via env: Open WebUI's
+`TERMINAL_SERVER_CONNECTIONS` embeds the terminal-server API key as inline JSON,
+so the chart will not bake it into the Open WebUI pod manifest as plaintext
+(POL-002). Two steps:
+
+1. **Enable it and harden the runtime.** Set `openTerminal.enabled=true`. Because
+   it runs model-generated (attacker-influenced) commands, set a hardened
+   `openTerminal.runtimeClassName` (`gvisor`/`kata`) for production — see
+   [open-terminal.md](../components/open-terminal.md) and the
+   [hardening guide](hardening-guide.md).
+2. **Connect it in the admin UI**, not via env:
+   - Get the key:
+     `kubectl get secret -n ai-stack ai-stack-open-terminal-secret -o jsonpath='{.data.api-key}' | base64 -d`
+   - In Open WebUI: **Admin Settings → Integrations → Open Terminal → Add
+     Connection**, URL `http://ai-stack-open-terminal:8000`, auth Bearer, paste
+     the key. Open WebUI stores it in its database, not a pod spec.
+
+Code execution is the highest-risk plane in the stack: keep it off unless you
+need it, and pair it with the FQDN egress control (B6) to bound where executed
+code can reach.
 
 ## LangGraph (optional, licensed)
 

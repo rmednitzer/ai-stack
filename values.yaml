@@ -483,6 +483,18 @@ openwebui:
     # --- Auth and security ---
     # -- Require authentication (disable only in lab with single-user)
     WEBUI_AUTH: "true"
+    # -- New-user signup. Open WebUI's default is open self-registration (the
+    #    first user becomes admin; later users land in DEFAULT_USER_ROLE). Kept
+    #    "true" so the first admin can bootstrap; set "false" in production once an
+    #    admin exists, or when Authelia OIDC is the front door (OIDC signup is
+    #    handled separately via ENABLE_OAUTH_SIGNUP). See docs/operations/MULTI_USER.md.
+    ENABLE_SIGNUP: "true"
+    # -- Role for new (non-first) users. "pending" gates access behind explicit
+    #    admin approval (a new account sees nothing until promoted) — the governed
+    #    default per docs/operations/MULTI_USER.md. Pinned (matches upstream's
+    #    default) so it cannot silently regress; use "user" only for a trusted
+    #    single-tenant deployment. Validated against open-webui. See ADR-017.
+    DEFAULT_USER_ROLE: "pending"
     # -- Enable websocket for streaming responses
     ENABLE_WEBSOCKET_SUPPORT: "true"
 
@@ -491,6 +503,16 @@ openwebui:
     SCARF_NO_ANALYTICS: "true"
     DO_NOT_TRACK: "true"
     ANONYMIZED_TELEMETRY: "false"
+    # -- OpenTelemetry export. Open WebUI gates OTel behind its OWN ENABLE_OTEL
+    #    flag PLUS the per-signal ENABLE_OTEL_TRACES / ENABLE_OTEL_METRICS (all
+    #    default-off upstream), so the shared OTEL_EXPORTER_OTLP_* vars the chart
+    #    injects when global.otel.enabled are inert without these. Gated on
+    #    global.otel.enabled so telemetry stays off by default and activates with
+    #    the collector pipeline (its redaction processor covers Open WebUI too).
+    #    OTel added in Open WebUI 0.6.0; validated against open-webui. See ADR-017.
+    ENABLE_OTEL: '{{ .Values.global.otel.enabled }}'
+    ENABLE_OTEL_TRACES: '{{ .Values.global.otel.enabled }}'
+    ENABLE_OTEL_METRICS: '{{ .Values.global.otel.enabled }}'
   persistence:
     enabled: true
     size: 10Gi

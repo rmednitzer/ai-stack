@@ -90,6 +90,17 @@ See [ADR-011](../architecture/ADR-011-rag-retrieval-quality.md) and
 - Telemetry opt-out env vars (`DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY=false`) set by default
 - AI Act Art. 50(1) transparency banner via `WEBUI_BANNERS` (a JSON banner list;
   the chart ships a default AI-disclosure banner)
+- New-user signup ships the governed posture: `DEFAULT_USER_ROLE=pending` (new
+  accounts need explicit admin approval before they can access anything). Keep
+  `ENABLE_SIGNUP=true` only until the first admin exists, then set it `false` in
+  production, or when Authelia OIDC fronts Open WebUI. See
+  [MULTI_USER.md](../operations/MULTI_USER.md).
+- OpenTelemetry export activates with the observability pipeline: when
+  `global.otel.enabled=true` the chart sets Open WebUI's own `ENABLE_OTEL` /
+  `ENABLE_OTEL_TRACES` / `ENABLE_OTEL_METRICS` (off otherwise — these gate OTel
+  upstream and are independent of the shared `OTEL_EXPORTER_OTLP_*` vars),
+  exporting through the redaction-applying OTel Collector
+  ([ADR-017](../architecture/ADR-017-openwebui-wiring-completeness.md)).
 
 ## Reference architecture
 

@@ -98,3 +98,72 @@ tests:
       - matchRegex:
           path: spec.template.spec.containers[0].env[?(@.name=="OPENAI_API_BASE_URLS")].value
           pattern: "pydanticai:8000/v1"
+      # Web-search tuning is applied in the full overlay (ADR-017).
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WEB_SEARCH_RESULT_COUNT
+            value: "5"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WEB_SEARCH_DOMAIN_FILTER_LIST
+            value: "[]"
+
+  # --- ADR-017: governed signup defaults + Open WebUI OTel activation ---
+  - it: pins the governed signup defaults (pending role; signup toggle present)
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DEFAULT_USER_ROLE
+            value: "pending"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_SIGNUP
+            value: "true"
+
+  - it: leaves Open WebUI OTel off by default (telemetry is opt-in)
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # Open WebUI gates OTel behind its own flag; off unless the pipeline is on.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_OTEL
+            value: "false"
+
+  - it: activates Open WebUI OTel (all three flags) when the pipeline is enabled
+    set:
+      global.otel.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_OTEL
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_OTEL_TRACES
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENABLE_OTEL_METRICS
+            value: "true"
+      # The shared SDK vars the chart injects (otelEnv) are present alongside them.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_SERVICE_NAME
+            value: "openwebui"
