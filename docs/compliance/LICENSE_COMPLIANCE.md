@@ -21,7 +21,7 @@ and `zarf.yaml`.
 
 | Component | Image | Version | License (SPDX) | Type | Default | Copyleft |
 |-----------|-------|---------|----------------|------|---------|----------|
-| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | Open WebUI License | BSD-3 + branding | Enabled | No |
+| Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | LicenseRef-OpenWebUI | BSD-3 + branding | Enabled | No |
 | Ollama | `ollama/ollama` | 0.30.6 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.18.2 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.1.0 | Apache-2.0 | Permissive | Enabled | No |
@@ -40,6 +40,10 @@ and `zarf.yaml`.
 | Envoy AI Gateway (extproc) | `docker.io/envoyproxy/ai-gateway-extproc` | v0.7.0 | Apache-2.0 | Permissive | Opt-in | No |
 
 **ai-stack chart license:** Apache-2.0
+
+`LicenseRef-OpenWebUI` is an SPDX `LicenseRef-*` identifier for the custom
+**Open WebUI License** (BSD-3-Clause + branding clause), detailed in the license
+analysis below.
 
 ---
 
@@ -153,8 +157,8 @@ model) rather than baked into the container images, so they are not part of the
 image SBOM / Zarf mirror set. Operators selecting models must verify the model
 license; the chart's defaults and recommendations are:
 
-| Model | Used for | Default | License (SPDX) | Notes |
-|-------|----------|---------|----------------|-------|
+| Model | Used for | Default | License | Notes |
+|-------|----------|---------|---------|-------|
 | `nomic-embed-text` | RAG embeddings (Open WebUI, ingestion worker, Pydantic AI) | Yes (pulled post-deploy) | Apache-2.0 | Instruction-tuned; the chart applies its task prefixes (ADR-011) |
 | `BAAI/bge-reranker-v2-m3` | Optional cross-encoder reranker | No (opt-in) | Apache-2.0 | Fetched by Open WebUI when `RAG_RERANKING_MODEL` is set and hybrid search is enabled |
 | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Optional cross-encoder reranker (lighter) | No (opt-in) | Apache-2.0 | Alternative reranker |
