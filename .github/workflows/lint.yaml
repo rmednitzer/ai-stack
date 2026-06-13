@@ -76,6 +76,28 @@ jobs:
       - name: Run chart unit tests
         run: helm unittest .
 
+  worker-tests:
+    # Unit tests for the async ingestion worker's Qdrant interaction (collection
+    # bootstrap + per-task routing). The HTTP layer is mocked with respx, so no
+    # backing services are needed. See files/ingestion-worker/test_worker.py.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install --quiet -r files/ingestion-worker/requirements-dev.txt
+
+      - name: Run worker unit tests
+        run: python -m pytest files/ingestion-worker -q
+
   chart-testing:
     runs-on: ubuntu-latest
     permissions:
