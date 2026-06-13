@@ -192,7 +192,7 @@ Does the system produce decisions with legal or similarly significant effects?
 | Secret auto-generation | Art. 32(1)(a) | 64-byte keys |
 | Backup and disaster recovery | Art. 32(1)(c) | PVC snapshots via Velero |
 | Health monitoring | Art. 32(1)(d) | OTel + Prometheus |
-| AI transparency disclosure | AI Act Art. 50(1) | `WEBUI_BANNER_TEXT` |
+| AI transparency disclosure | AI Act Art. 50(1) | `WEBUI_BANNERS` |
 
 ### 5.2 Organisational Measures (deployer responsibility)
 
