@@ -1,0 +1,52 @@
+suite: agent workload defaults (bounded runs, temperature, recursion limit)
+# Pins the ADR-018 "useful defaults" for the agentic workloads: the Pydantic AI
+# agent ships bounded UsageLimits + a low default temperature + a grounded,
+# tool-aware, AI-transparent system prompt, and LangGraph ships a sane default
+# recursion limit (its loop bound) instead of the server image's effectively
+# unbounded 10007. Validated against pydantic-ai 1.106 and langchain-ai/langgraph.
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  - it: the Pydantic AI agent ships bounded-run + temperature defaults
+    set:
+      pydanticai.enabled: true
+    template: templates/pydanticai/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AGENT_REQUEST_LIMIT
+            value: "12"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AGENT_TOOL_CALLS_LIMIT
+            value: "8"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AGENT_TEMPERATURE
+            value: "0.2"
+      # A grounded, tool-aware, AI-transparent default prompt.
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="AGENT_SYSTEM_PROMPT")].value
+          pattern: "do not claim to be human"
+
+  - it: LangGraph ships a bounded default recursion limit (not the image's 10007)
+    set:
+      langgraph.enabled: true
+      postgres.enabled: true
+    template: templates/langgraph/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LANGGRAPH_DEFAULT_RECURSION_LIMIT
+            value: "25"

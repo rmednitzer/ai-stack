@@ -971,6 +971,15 @@ langgraph:
     # LANGCHAIN_TRACING_V2; tracing is off by default regardless (ADR-016).
     LANGSMITH_TRACING: "false"
     LANGSMITH_API_KEY: ""
+    # -- Default graph recursion limit: LangGraph's loop bound, the analogue of the
+    #    Pydantic AI agent's request limit (ADR-018). The langgraph-server image
+    #    defaults this to 10007 (effectively unbounded); 25 restores LangGraph's own
+    #    conventional default so a runaway graph cannot loop indefinitely. A
+    #    per-invocation config can still override it. The model, temperature, system
+    #    prompt, and token usage-limits live in YOUR graph code (not server env);
+    #    docs/components/langgraph.md lists the recommended values. Validated against
+    #    langchain-ai/langgraph.
+    LANGGRAPH_DEFAULT_RECURSION_LIMIT: "25"
   ingress:
     enabled: false
     className: ""
@@ -1067,8 +1076,20 @@ pydanticai:
     AGENT_MODEL: "llama3.2"
     # -- Model id advertised on /v1/models (what Open WebUI shows in the picker)
     OPENAI_MODEL_ID: "pydanticai-agent"
-    # -- System prompt / instructions
-    AGENT_SYSTEM_PROMPT: "You are a helpful assistant running on a self-hosted, EU-regulated AI stack."
+    # -- System prompt / instructions. Default is tool-aware (use the KB/web tools
+    #    when relevant), grounded (answer from retrieved context, admit uncertainty),
+    #    and AI-transparent (AI Act). Override freely. (ADR-018)
+    AGENT_SYSTEM_PROMPT: "You are a helpful assistant on a self-hosted, EU-regulated AI stack. When a question depends on the user's documents or current information, use your available knowledge-base and web-search tools and ground your answer in what they return. If the tools and your own knowledge do not cover it, say so plainly instead of guessing. Be concise and factual, and do not claim to be human."
+    # -- Bounded agent runs (safety + cost; enforced via pydantic-ai UsageLimits on
+    #    every run/stream, ADR-018). pydantic-ai's implicit request cap is 50 and the
+    #    token/tool-call caps are unbounded; these tighten them so a tool-calling loop
+    #    cannot run away on local inference. Set a dimension empty to make it unbounded.
+    AGENT_REQUEST_LIMIT: "12"        # max model requests per run (the tool-loop bound)
+    AGENT_TOOL_CALLS_LIMIT: "8"      # max successful tool calls per run
+    AGENT_TOTAL_TOKENS_LIMIT: ""     # max prompt+completion tokens (empty = unbounded)
+    # -- Default sampling temperature (low favours grounded, tool-using answers);
+    #    empty = the model/provider default. Applied as the agent's model_settings.
+    AGENT_TEMPERATURE: "0.2"
     # -- Qdrant vector store (enables the knowledge-base retrieval tool)
     QDRANT_URI: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}:6333'
     QDRANT_COLLECTION: "documents"

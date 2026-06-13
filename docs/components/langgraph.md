@@ -19,6 +19,7 @@ LangGraph Platform runtime for stateful agentic workflows. Requires PostgreSQL f
 | `langgraph.enabled` | Toggle the component |
 | `langgraph.image.{repository,tag}` | Container image override — typically a custom image with your graphs baked in |
 | `langgraph.apiKey` | Explicit API key; otherwise auto-generated into `langgraph-secret` |
+| `langgraph.env.LANGGRAPH_DEFAULT_RECURSION_LIMIT` | Default graph recursion limit, the loop bound. Default `25` (the server image's own default is `10007`) |
 | `langgraph.graphsVolume.*` | Alternative to custom image — mount graph code from a PVC |
 | `langgraph.postgres.*` | Connection settings (defaults to the in-cluster `postgres` component) |
 | `langgraph.resources` | CPU / memory |
@@ -32,6 +33,22 @@ LangGraph Platform runtime for stateful agentic workflows. Requires PostgreSQL f
 
 - `postgres.enabled: true` (any of `standalone`, `cnpg`, `external`)
 - Ollama, Qdrant, Tika, SearXNG — all standard T1/T2 services the chart already wires up
+
+## Bounded runs and defaults
+
+LangGraph splits configuration between the **server** (env) and your **graph code**
+([ADR-018](../architecture/ADR-018-agent-workload-defaults.md)):
+
+- **Recursion limit (server env).** `LANGGRAPH_DEFAULT_RECURSION_LIMIT` is the graph
+  loop bound, the analogue of the Pydantic AI agent's request limit. The chart sets
+  it to `25` (LangGraph's own conventional default) because the `langgraph-server`
+  image defaults it to `10007` (effectively unbounded); a per-invocation `config`
+  can still override it.
+- **Model, temperature, system prompt, token usage-limits (graph code).** These are
+  part of YOUR graph, not server env. For parity with the Pydantic AI defaults, set
+  a low temperature (e.g. `0.2`), a grounded and tool-aware system prompt, and
+  per-run usage limits in the graph you build (`langgraph build` or the
+  `graphsVolume`). Validated against `langchain-ai/langgraph`.
 
 ## Reference architecture
 

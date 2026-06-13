@@ -83,3 +83,48 @@ def test_agent_threads_deps_into_filter() -> None:
     must = json.loads(q.calls.last.request.content)["filter"]["must"]
     assert {"key": "user_id", "match": {"value": "u-42"}} in must
     assert {"key": "tenant_id", "match": {"value": "acme"}} in must
+
+
+# --- ADR-018: useful agent defaults (bounded runs, temperature, prompt) ---
+
+
+def test_usage_limits_default_to_bounded() -> None:
+    """Runs are bounded, not unlimited (ADR-018).
+
+    pydantic-ai's implicit request cap is 50 and its token/tool-call caps are
+    unbounded; the agent ships a tighter request bound and a tool-call cap so a
+    tool-using loop cannot run away on local inference. The total-token cap is
+    opt-in (None = unbounded) to avoid truncating long answers by default.
+    """
+    assert app.USAGE_LIMITS.request_limit == 12
+    assert app.USAGE_LIMITS.tool_calls_limit == 8
+    assert app.USAGE_LIMITS.total_tokens_limit is None
+
+
+def test_default_temperature_is_low() -> None:
+    """A low default temperature favours grounded, tool-using answers (ADR-018)."""
+    assert app.AGENT_TEMPERATURE == 0.2
+    assert app._MODEL_SETTINGS is not None
+    assert app._MODEL_SETTINGS["temperature"] == 0.2
+
+
+def test_optional_int_env_semantics() -> None:
+    """Unset -> code default; explicitly empty -> None (unbounded); value -> int."""
+    import os
+    from unittest import mock
+
+    with mock.patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("AGENT_X_LIMIT", None)
+        assert app._optional_int_env("AGENT_X_LIMIT", 7) == 7
+    with mock.patch.dict(os.environ, {"AGENT_X_LIMIT": ""}):
+        assert app._optional_int_env("AGENT_X_LIMIT", 7) is None
+    with mock.patch.dict(os.environ, {"AGENT_X_LIMIT": "3"}):
+        assert app._optional_int_env("AGENT_X_LIMIT", 7) == 3
+
+
+def test_default_system_prompt_is_grounded_and_transparent() -> None:
+    """The default prompt is tool-aware, grounded, and AI-transparent (ADR-018)."""
+    prompt = app.SYSTEM_PROMPT.lower()
+    assert "tool" in prompt  # instructs tool use
+    assert "ai" in prompt  # AI-transparency (AI Act)
+    assert "human" in prompt  # "do not claim to be human"
