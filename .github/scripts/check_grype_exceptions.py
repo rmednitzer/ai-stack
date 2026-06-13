@@ -26,18 +26,21 @@ ENTRY_RE = re.compile(r"^\s*-\s*vulnerability:\s*(\S+)")
 
 def main() -> int:
     if not CONFIG.is_file():
-        # No config means no exceptions, so there is nothing to enforce.
-        print(f"{CONFIG}: not present; no CVE exceptions to check.")
-        return 0
+        # The cve-scan job passes `--config .grype.yaml`, so a missing file is a
+        # misconfiguration, not "no exceptions". Fail fast with a clear message
+        # rather than letting grype fail later with an opaque one.
+        print(f"::error::{CONFIG} is missing (the cve-scan job requires it).")
+        return 1
 
     today = datetime.datetime.now(datetime.timezone.utc).date()
     errors: list[str] = []
+    # The expiry that applies to the next entry. Only a comment grouped directly
+    # above a `- vulnerability:` entry can set it; a blank or structural line
+    # clears it, so an `expires:` from an unrelated block (e.g. the documentation
+    # example in the header) cannot leak onto a later real entry.
     pending_expiry: str | None = None
 
     for raw in CONFIG.read_text(encoding="utf-8").splitlines():
-        found = EXPIRES_RE.search(raw)
-        if found:
-            pending_expiry = found.group(1)
         entry = ENTRY_RE.match(raw)
         if entry:
             cve = entry.group(1)
@@ -51,6 +54,14 @@ def main() -> int:
                 else:
                     if expiry < today:
                         errors.append(f"{cve}: exception expired {pending_expiry}")
+            pending_expiry = None
+        elif raw.lstrip().startswith("#"):
+            found = EXPIRES_RE.search(raw)
+            if found:
+                pending_expiry = found.group(1)
+        else:
+            # Blank line, the `ignore:` key, or any other structural line breaks
+            # the comment-to-entry grouping.
             pending_expiry = None
 
     if errors:
