@@ -138,6 +138,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Useful defaults for the agentic workloads — bounded runs, temperature, prompt,
+  recursion limit ([ADR-018](docs/architecture/ADR-018-agent-workload-defaults.md)).**
+  Validated against pydantic-ai 1.106 and `langchain-ai/langgraph`:
+  - **Bounded Pydantic AI runs.** Every run/stream is now capped via pydantic-ai
+    `UsageLimits` (forwarded through `DBOSAgent` for durable runs): `AGENT_REQUEST_LIMIT`
+    (default `12`, the tool-loop bound vs pydantic-ai's implicit `50`),
+    `AGENT_TOOL_CALLS_LIMIT` (default `8`), and an opt-in `AGENT_TOTAL_TOKENS_LIMIT`
+    (empty = unbounded, so long answers are not truncated). Previously the agent ran
+    with no token/tool-call ceiling — a runaway-loop footgun on local inference.
+    Hitting a limit returns a clean notice (`finish_reason: length`), not a 5xx.
+  - **Low default temperature.** `AGENT_TEMPERATURE` (default `0.2`) applied as the
+    agent's `model_settings`; empty = the provider default.
+  - **Grounded, tool-aware, AI-transparent default prompt.** `AGENT_SYSTEM_PROMPT`
+    now steers tool use, grounding, admitting uncertainty, and AI disclosure (Art. 50).
+  - **LangGraph recursion bound.** `LANGGRAPH_DEFAULT_RECURSION_LIMIT=25` (LangGraph's
+    own conventional default) replaces the `langgraph-server` image's effectively
+    unbounded `10007`; model/temperature/prompt/usage-limits live in the operator's
+    graph (documented for parity, not invented as server env).
+  All env-overridable; both workloads stay opt-in. New `tests/agent_defaults_test.yaml`
+  + Python unit tests in `files/pydanticai/test_app.py`. No image or chart-version change.
+
 - **Production overlay enables the shared database
   ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
   `values-prod.yaml` now sets `postgres.enabled: true`, restoring the documented

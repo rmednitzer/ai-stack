@@ -42,9 +42,33 @@ Set `pydanticai.exposeToOpenWebUI=true` (with `openwebui.enabled`) to register t
 | `pydanticai.apiKey` | Explicit API key; otherwise auto-generated into `pydanticai-secret` |
 | `pydanticai.env.AGENT_MODEL` | Ollama model the agent uses (pull it first) |
 | `pydanticai.env.OPENAI_MODEL_ID` | Model id shown in Open WebUI's picker |
-| `pydanticai.env.AGENT_SYSTEM_PROMPT` | System prompt / instructions |
+| `pydanticai.env.AGENT_SYSTEM_PROMPT` | System prompt / instructions (grounded, tool-aware, AI-transparent default) |
+| `pydanticai.env.AGENT_REQUEST_LIMIT` | Max model requests per run, the tool-loop bound (empty = unbounded). Default `12` |
+| `pydanticai.env.AGENT_TOOL_CALLS_LIMIT` | Max successful tool calls per run (empty = unbounded). Default `8` |
+| `pydanticai.env.AGENT_TOTAL_TOKENS_LIMIT` | Max prompt+completion tokens per run (empty = unbounded, the default) |
+| `pydanticai.env.AGENT_TEMPERATURE` | Default sampling temperature (empty = provider default). Default `0.2` |
 | `pydanticai.autoscaling.*` | HPA settings |
 | `pydanticai.resources` | CPU / memory |
+
+## Bounded runs and defaults
+
+The agent ships safe, opinionated **defaults**, all env-overridable
+([ADR-018](../architecture/ADR-018-agent-workload-defaults.md)):
+
+- **Bounded runs.** Every run and stream is capped via pydantic-ai `UsageLimits`:
+  `AGENT_REQUEST_LIMIT` (default `12`, the model-request / tool-loop bound, vs
+  pydantic-ai's implicit `50`) and `AGENT_TOOL_CALLS_LIMIT` (default `8`).
+  `AGENT_TOTAL_TOKENS_LIMIT` is opt-in (empty = unbounded) so long answers are not
+  truncated by default. Set any dimension empty to make it unbounded. Hitting a
+  limit returns a clean notice (`finish_reason: length`), not a 5xx. DBOS durable
+  runs are covered too (the limits forward through `DBOSAgent`).
+- **Low default temperature.** `AGENT_TEMPERATURE` (default `0.2`) is applied as the
+  agent's `model_settings`, favouring grounded, tool-using answers; empty uses the
+  model/provider default.
+- **Grounded, tool-aware, transparent prompt.** The default `AGENT_SYSTEM_PROMPT`
+  instructs the agent to use its retrieval/web tools when relevant, ground answers
+  in what they return, admit uncertainty rather than guess, and not claim to be
+  human (AI Act transparency). Override it for your use case.
 
 ## Dependencies (supply chain)
 

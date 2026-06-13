@@ -33,7 +33,13 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import (
+    Agent,
+    ModelSettings,
+    RunContext,
+    UsageLimitExceeded,
+    UsageLimits,
+)
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -58,7 +64,14 @@ AGENT_MODEL = os.environ.get("AGENT_MODEL", "llama3.2")
 OPENAI_MODEL_ID = os.environ.get("OPENAI_MODEL_ID", "pydanticai-agent")
 SYSTEM_PROMPT = os.environ.get(
     "AGENT_SYSTEM_PROMPT",
-    "You are a helpful assistant running on a self-hosted, EU-regulated AI stack.",
+    (
+        "You are a helpful assistant on a self-hosted, EU-regulated AI stack. "
+        "When a question depends on the user's documents or current information, "
+        "use your available knowledge-base and web-search tools and ground your "
+        "answer in what they return. If the tools and your own knowledge do not "
+        "cover it, say so plainly instead of guessing. Be concise and factual, "
+        "and do not claim to be human."
+    ),
 )
 QDRANT_URI = os.environ.get("QDRANT_URI", "").rstrip("/")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
@@ -70,6 +83,46 @@ EMBEDDING_MODEL = os.environ.get("RAG_EMBEDDING_MODEL", "nomic-embed-text")
 # prefix the corpus was embedded with. Empty default keeps this model-agnostic.
 EMBEDDING_QUERY_PREFIX = os.environ.get("RAG_EMBEDDING_QUERY_PREFIX", "")
 RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "5"))
+
+
+def _optional_int_env(name: str, default: int | None) -> int | None:
+    """Parse a bounded-run env limit. Unset -> ``default``; explicitly empty ->
+    None (unbounded); otherwise a non-negative int. Lets an operator widen a
+    dimension to unbounded by setting the var empty, while the code/chart
+    default keeps the loop bounded out of the box (ADR-018)."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    raw = raw.strip()
+    if not raw:
+        return None
+    value = int(raw)
+    if value < 0:
+        raise ValueError(f"{name} must be non-negative, got {value}")
+    return value
+
+
+def _optional_float_env(name: str, default: float | None) -> float | None:
+    """Float counterpart of ``_optional_int_env`` (empty -> None)."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    raw = raw.strip()
+    if not raw:
+        return None
+    return float(raw)
+
+
+# Bounded agent runs (ADR-018). pydantic-ai's implicit request cap is 50 and the
+# token/tool-call caps are unbounded; these tighten the defaults so a tool-using
+# loop cannot run away on local inference. None means unbounded for that
+# dimension.
+AGENT_REQUEST_LIMIT = _optional_int_env("AGENT_REQUEST_LIMIT", 12)
+AGENT_TOOL_CALLS_LIMIT = _optional_int_env("AGENT_TOOL_CALLS_LIMIT", 8)
+AGENT_TOTAL_TOKENS_LIMIT = _optional_int_env("AGENT_TOTAL_TOKENS_LIMIT", None)
+# Default sampling temperature: low favours grounded, tool-using answers. Empty
+# = the provider/model default; unset = the 0.2 code default.
+AGENT_TEMPERATURE = _optional_float_env("AGENT_TEMPERATURE", 0.2)
 POSTGRES_URI = os.environ.get("POSTGRES_URI", "")
 API_KEY = os.environ.get("PYDANTICAI_API_KEY", "")
 REQUEST_TIMEOUT = float(os.environ.get("AGENT_HTTP_TIMEOUT", "60"))
@@ -125,12 +178,33 @@ model = OpenAIChatModel(
     AGENT_MODEL,
     provider=OpenAIProvider(base_url=f"{OLLAMA_BASE_URL}/v1", api_key="ollama"),
 )
+
+# Bounded by default (ADR-018): every run/stream is capped so a tool-calling loop
+# cannot run away. Unset dimensions (None) are unbounded; the defaults above keep
+# the request and tool-call loops bounded out of the box. DBOSAgent forwards
+# usage_limits, so durable runs are covered too.
+USAGE_LIMITS = UsageLimits(
+    request_limit=AGENT_REQUEST_LIMIT,
+    tool_calls_limit=AGENT_TOOL_CALLS_LIMIT,
+    total_tokens_limit=AGENT_TOTAL_TOKENS_LIMIT,
+)
+_MODEL_SETTINGS = (
+    ModelSettings(temperature=AGENT_TEMPERATURE) if AGENT_TEMPERATURE is not None else None
+)
 agent = Agent(
     model,
     name="ai-stack-agent",
     deps_type=AgentDeps,
     instructions=SYSTEM_PROMPT,
+    model_settings=_MODEL_SETTINGS,
     instrument=_OTEL,
+)
+
+# Shown when a run hits a configured ceiling. A bound is expected behaviour, not
+# a server error, so callers return this cleanly rather than a 5xx.
+_RUN_LIMIT_NOTICE = (
+    "[run stopped: the agent reached its configured limit "
+    "(requests, tokens, or tool calls)]"
 )
 
 _http = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
@@ -324,7 +398,10 @@ async def _run_agent(
     prompt: str, history: list[Any] | None = None, deps: AgentDeps | None = None
 ) -> str:
     result = await runner.run(
-        prompt, message_history=history or None, deps=deps or AgentDeps()
+        prompt,
+        message_history=history or None,
+        deps=deps or AgentDeps(),
+        usage_limits=USAGE_LIMITS,
     )
     return str(result.output)
 
@@ -393,11 +470,21 @@ async def chat_completions(
                     yield _chunk({"content": output}, None)
                 else:
                     async with agent.run_stream(
-                        prompt, message_history=history or None, deps=deps
+                        prompt,
+                        message_history=history or None,
+                        deps=deps,
+                        usage_limits=USAGE_LIMITS,
                     ) as result:
                         async for text in result.stream_text(delta=True):
                             if text:
                                 yield _chunk({"content": text}, None)
+            except UsageLimitExceeded:
+                # An expected bound, not a server error: log and append a notice.
+                log.info("agent stream hit a configured usage limit")
+                yield _chunk({"content": f"\n{_RUN_LIMIT_NOTICE}"}, None)
+                yield _chunk({}, "length")
+                yield "data: [DONE]\n\n"
+                return
             except Exception:  # noqa: BLE001 — surface a generic final SSE error
                 # Detail is logged server-side only; never echo exception text to
                 # the client (information exposure).
@@ -411,8 +498,14 @@ async def chat_completions(
 
         return StreamingResponse(_sse(), media_type="text/event-stream")
 
+    finish_reason = "stop"
     try:
         output = await _run_agent(prompt, history, deps)
+    except UsageLimitExceeded:
+        # An expected bound, not a server error: return a clean completion.
+        log.info("agent run hit a configured usage limit")
+        output = _RUN_LIMIT_NOTICE
+        finish_reason = "length"
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
         raise HTTPException(status_code=502, detail="agent run failed") from exc
@@ -426,7 +519,7 @@ async def chat_completions(
             {
                 "index": 0,
                 "message": {"role": "assistant", "content": output},
-                "finish_reason": "stop",
+                "finish_reason": finish_reason,
             }
         ],
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
@@ -439,6 +532,10 @@ async def run(req: RunRequest, authorization: str | None = Header(default=None))
     deps = AgentDeps(user_id=req.user_id, tenant_id=req.tenant_id)
     try:
         return RunResponse(output=await _run_agent(req.prompt, deps=deps), durable=DURABLE)
+    except UsageLimitExceeded:
+        # An expected bound, not a server error: return a clean notice.
+        log.info("agent run hit a configured usage limit")
+        return RunResponse(output=_RUN_LIMIT_NOTICE, durable=DURABLE)
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
         raise HTTPException(status_code=502, detail="agent run failed") from exc
