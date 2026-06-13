@@ -667,8 +667,8 @@ def _build_metadata(filename: str, collection: str, fields: dict[str, str]) -> d
     Always carries `filename`, `collection`, and an ISO 8601 UTC `created_at`. When
     the producer tags the task with user_id / tenant_id, those are validated and
     added so retrieval can be filtered per tenant and a GDPR erasure request can
-    delete exactly one subject's points. Absent tags leave the payload unchanged
-    (backward compatible).
+    delete exactly one subject's points. Absent tags add no tenancy fields (only
+    the always-present `created_at`), so retrieval/erasure stay backward compatible.
     """
     metadata: dict[str, Any] = {"filename": filename, "collection": collection}
     for field in _TENANCY_FIELDS:
@@ -723,31 +723,31 @@ def ensure_qdrant_collection(collection: str, dim: int) -> None:
         urljoin(QDRANT_URL, f"/collections/{collection}"),
         headers=qdrant_headers,
     )
-    if resp.status_code == 200:
-        _ensured_collections.add(collection)
-        return
-    if resp.status_code != 404:
+    if resp.status_code == 404:
+        created = http.put(
+            urljoin(QDRANT_URL, f"/collections/{collection}"),
+            json={"vectors": {"size": dim, "distance": "Cosine"}},
+            headers=qdrant_headers,
+            timeout=60.0,
+        )
+        if created.status_code // 100 == 2:
+            log.info("Created Qdrant collection %r (dim=%d, distance=Cosine)", collection, dim)
+        else:
+            # A peer worker may have created it between our GET and PUT (multi-replica).
+            check = http.get(
+                urljoin(QDRANT_URL, f"/collections/{collection}"),
+                headers=qdrant_headers,
+            )
+            if check.status_code != 200:
+                created.raise_for_status()
+    elif resp.status_code != 200:
         resp.raise_for_status()
-    created = http.put(
-        urljoin(QDRANT_URL, f"/collections/{collection}"),
-        json={"vectors": {"size": dim, "distance": "Cosine"}},
-        headers=qdrant_headers,
-        timeout=60.0,
-    )
-    if created.status_code // 100 == 2:
-        log.info("Created Qdrant collection %r (dim=%d, distance=Cosine)", collection, dim)
-        _create_payload_indexes(collection)
-        _ensured_collections.add(collection)
-        return
-    # A peer worker may have created it between our GET and PUT (multi-replica).
-    check = http.get(
-        urljoin(QDRANT_URL, f"/collections/{collection}"),
-        headers=qdrant_headers,
-    )
-    if check.status_code == 200:
-        _ensured_collections.add(collection)
-        return
-    created.raise_for_status()
+    # The collection now exists (pre-existing, freshly created, or peer-created).
+    # Ensure the tenancy payload indexes on first confirmation -- idempotent and
+    # best-effort -- so an upgrade over an already-existing collection is indexed
+    # too, not only fresh creates. Memoization keeps this to once per process.
+    _create_payload_indexes(collection)
+    _ensured_collections.add(collection)
 
 
 def upsert_vectors(

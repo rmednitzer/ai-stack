@@ -54,17 +54,20 @@ def test_ensure_collection_creates_on_404() -> None:
 
 
 @respx.mock
-def test_ensure_collection_noop_when_present() -> None:
-    """An existing collection is left untouched (no create call)."""
+def test_ensure_collection_existing_is_not_recreated_but_indexed() -> None:
+    """An existing collection is not re-created, but its tenancy indexes are ensured
+    (so a cluster upgraded over a pre-existing collection still gets indexed)."""
     get = respx.get(f"{QURL}/collections/docs").mock(
         return_value=httpx.Response(200, json={"result": {}})
     )
-    put = respx.put(f"{QURL}/collections/docs")
+    create = respx.put(f"{QURL}/collections/docs").mock(return_value=httpx.Response(200))
+    idx = respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(200))
 
     worker.ensure_qdrant_collection("docs", 768)
 
     assert get.called
-    assert not put.called
+    assert not create.called  # already exists -> no re-create
+    assert idx.call_count == 2  # but indexes are ensured (upgrade-safe)
 
 
 @respx.mock
@@ -79,8 +82,9 @@ def test_ensure_collection_tolerates_concurrent_create() -> None:
     respx.put(f"{QURL}/collections/docs").mock(
         return_value=httpx.Response(409, json={"status": {"error": "already exists"}})
     )
+    respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(200))
 
-    # Must not raise.
+    # Must not raise (indexes are ensured after the peer-create recheck).
     worker.ensure_qdrant_collection("docs", 768)
 
 
@@ -103,6 +107,7 @@ def test_upsert_uses_per_task_collection() -> None:
     respx.get(f"{QURL}/collections/team-a").mock(
         return_value=httpx.Response(200, json={"result": {}})
     )
+    respx.put(f"{QURL}/collections/team-a/index").mock(return_value=httpx.Response(200))
     points = respx.put(f"{QURL}/collections/team-a/points").mock(
         return_value=httpx.Response(200, json={"result": {}})
     )
@@ -135,6 +140,7 @@ def test_ensure_collection_memoized() -> None:
     get = respx.get(f"{QURL}/collections/docs").mock(
         return_value=httpx.Response(200, json={"result": {}})
     )
+    respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(200))
 
     worker.ensure_qdrant_collection("docs", 768)
     worker.ensure_qdrant_collection("docs", 768)
@@ -200,6 +206,7 @@ def test_create_payload_indexes_is_best_effort() -> None:
 def test_upsert_payload_carries_tenancy() -> None:
     """user_id / tenant_id in metadata land in the Qdrant point payload (erasure key)."""
     respx.get(f"{QURL}/collections/docs").mock(return_value=httpx.Response(200, json={"result": {}}))
+    respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(200))
     points = respx.put(f"{QURL}/collections/docs/points").mock(
         return_value=httpx.Response(200, json={"result": {}})
     )
