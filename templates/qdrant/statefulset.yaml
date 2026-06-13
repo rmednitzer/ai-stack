@@ -1,0 +1,193 @@
+{{- if and .Values.qdrant.enabled .Values.qdrant.cluster.enabled }}
+{{- $fullname := include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "qdrant") }}
+{{- $headless := printf "%s-headless" $fullname }}
+{{- $p2p := .Values.qdrant.cluster.p2pPort | int }}
+# Distributed Qdrant (B8 / ADR-013). Rendered only when qdrant.cluster.enabled;
+# the default single-node Deployment lives in deployment.yaml. Peers run Raft
+# consensus over the p2p port and discover each other through the headless
+# Service below. Bootstrap follows Qdrant's documented model: pod-0 starts the
+# cluster (--uri only), pods 1+ join it (--bootstrap pod-0 --uri self). The
+# client Service (deployment.yaml) is shared and selects these pods too.
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
+    {{- include "ai-stack.governanceLabels" "qdrant" | nindent 4 }}
+  annotations:
+    {{- include "ai-stack.governanceControlRefs" "qdrant" | nindent 4 }}
+spec:
+  serviceName: {{ $headless }}
+  replicas: {{ .Values.qdrant.cluster.replicas }}
+  # OrderedReady (the default) is load-bearing: pod-0 must be Ready and serving
+  # consensus before pod-1 starts and bootstraps against it.
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 8 }}
+        {{- include "ai-stack.governanceLabels" "qdrant" | nindent 8 }}
+        app.kubernetes.io/part-of: ai-stack
+      annotations:
+        {{- include "ai-stack.governanceControlRefs" "qdrant" | nindent 8 }}
+        {{- include "ai-stack.podAnnotations" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ $fullname }}
+      automountServiceAccountToken: false
+      {{- include "ai-stack.imagePullSecrets" . | nindent 6 }}
+      {{- include "ai-stack.dnsConfig" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
+      # Soft anti-affinity: prefer spreading peers across nodes so a single node
+      # loss drops at most one peer. Soft (not DoNotSchedule) so enabling cluster
+      # mode on a small cluster still schedules; pin nodes or harden this to a
+      # required rule / topologySpreadConstraints for guaranteed HA (ADR-013).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 20 }}
+      containers:
+        - name: qdrant
+          image: "{{ .Values.qdrant.image.repository }}:{{ .Values.qdrant.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            {{- include "ai-stack.restrictedSecurityContext" (dict "readOnlyRootFilesystem" true "runAsUser" 1000) | nindent 12 }}
+          # Qdrant's documented cluster bootstrap (matches the upstream Helm
+          # chart's initialize.sh): derive the StatefulSet ordinal from the pod
+          # hostname; pod-0 forms the cluster, the rest join via pod-0. The pod
+          # FQDN (<name>.<headless>) resolves because the headless Service sets
+          # publishNotReadyAddresses. WORKDIR is /qdrant in the image, so the
+          # relative ./entrypoint.sh is the image's own entrypoint.
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              ORDINAL="${HOSTNAME##*-}"
+              SELF="http://${HOSTNAME}.{{ $headless }}:{{ $p2p }}"
+              if [ "$ORDINAL" = "0" ]; then
+                exec ./entrypoint.sh --uri "$SELF"
+              else
+                exec ./entrypoint.sh --bootstrap "http://{{ $fullname }}-0.{{ $headless }}:{{ $p2p }}" --uri "$SELF"
+              fi
+          ports:
+            - name: http
+              containerPort: 6333
+              protocol: TCP
+            - name: grpc
+              containerPort: 6334
+              protocol: TCP
+            - name: p2p
+              containerPort: {{ $p2p }}
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.qdrant.env }}
+            - name: {{ $key }}
+              value: {{ tpl (toString $value) $ | quote }}
+            {{- end }}
+            # Distributed mode + the consensus listen port (Qdrant's env override
+            # convention: __ nests config keys). The --uri above advertises this
+            # same port to peers.
+            - name: QDRANT__CLUSTER__ENABLED
+              value: "true"
+            - name: QDRANT__CLUSTER__P2P__PORT
+              value: {{ $p2p | quote }}
+            - name: QDRANT__SERVICE__API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secret
+                  key: api-key
+            {{- include "ai-stack.otelEnv" (dict "Values" .Values "Release" .Release "Chart" .Chart "component" "qdrant") | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.qdrant.persistence.mountPath }}
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.qdrant.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.qdrant.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.qdrant.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        {{- if not .Values.qdrant.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
+  {{- if .Values.qdrant.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "ai-stack.labels" . | nindent 10 }}
+          {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.qdrant.persistence.accessMode }}
+        {{- if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.qdrant.persistence.size }}
+  {{- end }}
+---
+# Headless Service — stable per-pod DNS for peer discovery. clusterIP None +
+# publishNotReadyAddresses so pods resolve each other during bootstrap before
+# they pass readiness. The p2p port is reachable only here (intra-Qdrant),
+# never via the client Service; the NetworkPolicy confines it to qdrant pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $headless }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: {{ .Values.qdrant.service.httpPort }}
+      targetPort: http
+      name: http
+    - port: {{ .Values.qdrant.service.grpcPort }}
+      targetPort: grpc
+      name: grpc
+    - port: {{ $p2p }}
+      targetPort: p2p
+      name: p2p
+  selector:
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
+{{- end }}

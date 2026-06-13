@@ -20,6 +20,38 @@ Vector database backing RAG retrieval for Open WebUI, LangGraph, and the ingesti
 | `qdrant.persistence.{enabled,size,storageClass}` | Collection-storage PVC |
 | `qdrant.resources` | CPU / memory sized to collection cardinality |
 | `qdrant.service.type` | `ClusterIP` by default; not exposed publicly |
+| `qdrant.cluster.enabled` | Opt-in distributed high availability (StatefulSet); default `false` |
+| `qdrant.cluster.replicas` | Peer count (odd, >= 3 for a quorum); default `3` |
+| `qdrant.cluster.replicationFactor` | Shard replicas per collection (>= 2 for data HA); default `2` |
+| `qdrant.cluster.shardNumber` | Shards per collection; empty = Qdrant default (1) |
+| `qdrant.cluster.p2pPort` | Raft consensus (p2p) port; default `6335`, intra-Qdrant only |
+
+## High availability (distributed mode)
+
+Off by default: the chart renders a single-node `Deployment` with one
+`ReadWriteOnce` PVC. Set `qdrant.cluster.enabled: true` to switch to a
+`StatefulSet` of `cluster.replicas` peers running Raft consensus over the p2p
+port, behind a headless `Service` (`clusterIP: None`,
+`publishNotReadyAddresses: true`) for peer discovery, with per-pod PVCs
+(`volumeClaimTemplates`). Bootstrap follows Qdrant's documented model: pod-0
+forms the cluster, the rest join via pod-0. See
+[ADR-013](../architecture/ADR-013-distributed-qdrant-ha.md) and
+[runbook A7](../operations/RUNBOOK-remediation.md).
+
+Two conditions are needed to actually survive a node loss:
+
+1. **Spread:** peers on distinct nodes. The default pod anti-affinity is *soft*
+   (so cluster mode still schedules on a small cluster); for guaranteed HA, pin
+   nodes or harden it to a required rule / topology spread.
+2. **Replicated collections:** `replication_factor >= 2`, which is a per-collection
+   property set at *creation* time. The ingestion worker applies
+   `cluster.replicationFactor` / `cluster.shardNumber` automatically when cluster
+   mode is on. Collections created elsewhere (Open WebUI manages its own) must set
+   their own replication at creation.
+
+The client `Service` name (`<release>-qdrant`) is unchanged across the switch, so
+consumers' `QDRANT_URI` needs no edit. The p2p port is confined to qdrant peers by
+the NetworkPolicy and never exposed on the client Service.
 
 ## Security
 

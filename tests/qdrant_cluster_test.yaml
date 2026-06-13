@@ -1,0 +1,208 @@
+suite: distributed Qdrant high availability (B8 / ADR-013)
+# Pins the gated cluster mode: off by default (single-node Deployment unchanged),
+# and when qdrant.cluster.enabled it swaps in a StatefulSet of Raft peers behind a
+# headless Service, confines the p2p port to intra-Qdrant traffic, and wires the
+# ingestion worker to create replicated collections. Bootstrap mechanics follow
+# Qdrant's documented model (validated against the upstream Helm chart).
+# See docs/operations/RUNBOOK-remediation.md B8 and CHANGELOG.
+release:
+  name: ai-stack
+  namespace: ai-stack
+tests:
+  # --- default (single node) ---------------------------------------------------
+  - it: single-node by default renders no StatefulSet
+    templates:
+      - templates/qdrant/statefulset.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: single-node by default renders the Qdrant Deployment (Recreate)
+    templates:
+      - templates/qdrant/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: single-node Qdrant NetworkPolicy stays ingress-only (no p2p egress)
+    templates:
+      - templates/common/networkpolicies.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-qdrant
+    asserts:
+      - notContains:
+          path: spec.policyTypes
+          content: Egress
+
+  # --- cluster mode ------------------------------------------------------------
+  - it: cluster mode renders a StatefulSet plus a headless Service
+    templates:
+      - templates/qdrant/statefulset.yaml
+    set:
+      qdrant.cluster.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: cluster mode does not render the single-node Deployment (only the shared Service)
+    templates:
+      - templates/qdrant/deployment.yaml
+    set:
+      qdrant.cluster.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - documentIndex: 0
+        isKind:
+          of: Service
+
+  - it: the cluster StatefulSet has quorum replicas, ordered bootstrap, and per-pod PVCs
+    templates:
+      - templates/qdrant/statefulset.yaml
+    set:
+      qdrant.cluster.enabled: true
+      qdrant.cluster.replicas: 5
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 5
+      - equal:
+          path: spec.serviceName
+          value: ai-stack-qdrant-headless
+      - equal:
+          path: spec.podManagementPolicy
+          value: OrderedReady
+      - exists:
+          path: spec.volumeClaimTemplates[?(@.metadata.name=="data")]
+
+  - it: the cluster StatefulSet bootstraps Raft (uri/bootstrap args, cluster env, p2p port)
+    templates:
+      - templates/qdrant/statefulset.yaml
+    set:
+      qdrant.cluster.enabled: true
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "--uri"
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "--bootstrap .*-qdrant-0\\.ai-stack-qdrant-headless:6335"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: QDRANT__CLUSTER__ENABLED
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: p2p
+            containerPort: 6335
+            protocol: TCP
+
+  - it: the cluster StatefulSet keeps the restricted security posture
+    templates:
+      - templates/qdrant/statefulset.yaml
+    set:
+      qdrant.cluster.enabled: true
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+      - exists:
+          path: spec.template.spec.affinity.podAntiAffinity
+
+  - it: the headless Service enables peer DNS (clusterIP None, not-ready addresses, p2p)
+    templates:
+      - templates/qdrant/statefulset.yaml
+    set:
+      qdrant.cluster.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-qdrant-headless
+    asserts:
+      - equal:
+          path: spec.clusterIP
+          value: None
+      - equal:
+          path: spec.publishNotReadyAddresses
+          value: true
+      - contains:
+          path: spec.ports
+          content:
+            name: p2p
+            port: 6335
+            targetPort: p2p
+
+  - it: cluster mode opens intra-Qdrant p2p in the NetworkPolicy (ingress + egress)
+    templates:
+      - templates/common/networkpolicies.yaml
+    set:
+      qdrant.cluster.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-qdrant
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - contains:
+          path: spec.egress[0].ports
+          content:
+            protocol: TCP
+            port: 6335
+
+  - it: cluster mode wires the ingestion worker to create replicated collections
+    templates:
+      - templates/ingestion-worker/deployment.yaml
+    set:
+      qdrant.cluster.enabled: true
+      ingestionWorker.enabled: true
+      qdrant.cluster.shardNumber: 6
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: QDRANT_REPLICATION_FACTOR
+            value: "2"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: QDRANT_SHARD_NUMBER
+            value: "6"
+
+  - it: single-node worker gets no replication env (default Qdrant defaults apply)
+    templates:
+      - templates/ingestion-worker/deployment.yaml
+    set:
+      ingestionWorker.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: QDRANT_REPLICATION_FACTOR
+            value: "2"

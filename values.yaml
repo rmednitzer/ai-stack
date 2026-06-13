@@ -580,9 +580,38 @@ ollama:
 # =============================================================================
 qdrant:
   enabled: true
+  # -- Single-node replica count (the default Deployment). Ignored when
+  #    cluster.enabled is true: the StatefulSet uses cluster.replicas instead.
   replicaCount: 1
   # -- Override Qdrant API key (auto-generated if empty; stored in Secret)
   apiKey: ""
+  # -- Distributed high availability (B8 / ADR-013). Off by default: the chart
+  #    renders today's single-node Deployment + one ReadWriteOnce PVC,
+  #    byte-identical to prior releases. Enabling switches Qdrant to a
+  #    StatefulSet of `replicas` peers running Raft consensus over the p2p port,
+  #    behind a headless Service for peer discovery, with per-pod PVCs
+  #    (volumeClaimTemplates). Surviving a node loss needs the peers spread
+  #    across nodes (soft anti-affinity by default; pin nodes or harden it for
+  #    guaranteed HA); data HA additionally needs collections created with
+  #    replicationFactor >= 2. The ingestion worker applies replicationFactor /
+  #    shardNumber automatically when cluster.enabled; collections created
+  #    elsewhere (e.g. by Open WebUI) must set their own replication at creation.
+  cluster:
+    enabled: false
+    # -- Peer count. Use an odd number >= 3 so Raft keeps a consensus quorum
+    #    when a node is lost (3 tolerates 1 failure; 5 tolerates 2).
+    replicas: 3
+    # -- Shard replicas per collection, applied by the ingestion worker at
+    #    creation time. >= 2 so one node loss leaves the collection
+    #    readable/writable. Bounded above by `replicas`.
+    replicationFactor: 2
+    # -- Shards per collection (Qdrant guidance: a multiple of the node count
+    #    for even distribution). Empty leaves the Qdrant default (1 shard).
+    shardNumber: ""
+    # -- Raft consensus (peer-to-peer) port. Isolated to intra-Qdrant traffic by
+    #    the NetworkPolicy; never exposed on the client Service. Qdrant warns
+    #    this port must not be reachable from outside the cluster.
+    p2pPort: 6335
   image:
     repository: qdrant/qdrant
     tag: "v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c"

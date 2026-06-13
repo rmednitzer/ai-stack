@@ -237,10 +237,56 @@ plain match value, so an unknown id simply returns no results (fail-safe).
 
 ---
 
+### A7. Distributed Qdrant high availability (B8) — FIXED
+
+**Severity:** low–medium for the single-node default; the gap is real only where
+retrieval must survive a node loss.
+
+**Finding.** Qdrant shipped as a single `Deployment` with one ReadWriteOnce PVC and
+no replication: a node or pod loss interrupted retrieval, and recovery was from
+backup, not failover (LIMITATIONS L7).
+
+**Fix applied.** A gated cluster mode (`qdrant.cluster.enabled`, off by default,
+[ADR-013](../architecture/ADR-013-distributed-qdrant-ha.md)). Off, the chart renders
+exactly the prior single-node Deployment + PVC. On, it renders a StatefulSet of
+`cluster.replicas` peers (default 3) running Raft consensus over the p2p port (6335)
+behind a headless Service (`clusterIP: None`, `publishNotReadyAddresses: true`) for
+peer discovery, with per-pod PVCs (`volumeClaimTemplates`) and soft anti-affinity to
+spread peers across nodes. Bootstrap follows Qdrant's documented model (validated
+against the upstream Helm chart): pod-0 forms the cluster (`--uri`), the rest join it
+(`--bootstrap` pod-0 `--uri` self). Data HA additionally needs each collection
+created with `replication_factor >= 2`; the ingestion worker does this automatically
+when cluster mode is on (`QDRANT_REPLICATION_FACTOR` / `QDRANT_SHARD_NUMBER`, wired
+from `qdrant.cluster.replicationFactor` / `shardNumber`). The p2p port is confined to
+qdrant peers by the NetworkPolicy (ingress + egress on 6335) and never exposed on the
+client Service; the existing `maxUnavailable: 1` PDB now protects the quorum. Asserted
+in `tests/qdrant_cluster_test.yaml`; worker create-body coverage in
+`files/ingestion-worker/test_worker.py`.
+
+**Verify.**
+
+```
+helm template ai-stack . --set qdrant.cluster.enabled=true \
+  | grep -E 'kind: (StatefulSet|Service)'   # StatefulSet + client + headless Service
+helm unittest . -f 'tests/qdrant_cluster_test.yaml'
+```
+
+In a live cluster, deleting one Qdrant pod (with `replication_factor >= 2`) leaves
+collections readable and writable; the pod rejoins and re-syncs on restart.
+
+**Operator note.** Cluster mode is opt-in. Surviving a node loss needs the peers on
+distinct nodes (the default anti-affinity is soft so small clusters still schedule;
+pin nodes or harden it to a required rule for guaranteed HA) and collections with
+`replication_factor >= 2`. Collections created outside the worker (e.g. Open WebUI
+manages its own) must set their own replication at creation. **Rollback.** Set
+`qdrant.cluster.enabled: false`.
+
+---
+
 ## Part B — Deferred remediations
 
-Ordered by recommended sequence. B2 and B3 are done (see A3, A6); B5–B8 are
-cluster-level controls outside a single Helm chart.
+Ordered by recommended sequence. B2, B3, and B8 are done (see A3, A6, A7);
+B5–B7 are cluster-level controls outside a single Helm chart.
 
 ### B1. Multi-node Open WebUI file durability
 
@@ -376,22 +422,13 @@ a platform capability, not a chart feature.
 dashboard / `linkerd viz`). **Rollback.** Remove the mesh injection annotation.
 **Tracking.** `SECURITY.md`.
 
-### B8. Distributed Qdrant high availability
+### B8. Distributed Qdrant high availability — DONE
 
-**Severity:** low–medium. **Type:** larger chart rework.
-
-**Finding.** Qdrant is a single `Deployment` with one RWO PVC and no replication
-(`templates/qdrant/deployment.yaml`; `values.yaml:566`). A node/pod failure
-interrupts retrieval; recovery is from snapshot.
-
-**Fix design.** Offer a Qdrant cluster mode (StatefulSet, ≥3 nodes, replication
-factor ≥2, headless service for peer discovery), gated behind a values flag and
-defaulting to the current single node. Significant rework; size it as its own
-change with its own ADR.
-
-**Validate.** Killing one Qdrant node leaves collections readable/writable.
-**Rollback.** Flag back to single-node. **Tracking.** [LIMITATIONS.md](../../LIMITATIONS.md)
-L7.
+Implemented as a gated cluster mode; see **A7** and
+[ADR-013](../architecture/ADR-013-distributed-qdrant-ha.md). Off by default (the
+single-node Deployment is unchanged); `qdrant.cluster.enabled` renders a Raft
+StatefulSet behind a headless Service, with the ingestion worker creating
+collections at `replication_factor >= 2` so a node loss leaves retrieval available.
 
 ### B9. Disaster recovery: backups and snapshots
 

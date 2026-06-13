@@ -82,7 +82,10 @@ Tracking: `docs/governance/CONTROLS.md` (POL-001).
 ## L7. Single-replica components are not highly available
 
 State: several components are single-replica by default (e.g. Ollama is
-GPU-bound; standalone PostgreSQL and single-node Qdrant have no replication).
+GPU-bound; standalone PostgreSQL has no replication). Qdrant is single-node by
+default but now ships an opt-in distributed cluster mode (`qdrant.cluster.enabled`:
+a Raft StatefulSet with replicated collections, ADR-013); single node remains the
+default.
 Open WebUI is HA-capable only with a shared PostgreSQL (`DATABASE_URL`) + Valkey
 backend; the chart now enforces this with a render-time guard
 (`ai-stack.openwebuiHaGuard`) that refuses a scaled Open WebUI when
@@ -90,12 +93,13 @@ backend; the chart now enforces this with a render-time guard
 Open WebUI still needs RWX or S3 object storage for uploaded-file durability,
 because the data PVC is `ReadWriteOnce` and uploads are written to local disk.
 Implication: a node or pod failure interrupts these components. For HA, use
-`postgres.mode=cnpg`, scale stateless tiers, configure Open WebUI S3/RWX storage
-for uploads, and review per-component docs; single-node stores remain a
-recovery-from-backup story, not an HA story.
+`postgres.mode=cnpg`, enable `qdrant.cluster` for replicated retrieval, scale
+stateless tiers, configure Open WebUI S3/RWX storage for uploads, and review
+per-component docs; any store left single-node remains a recovery-from-backup
+story, not an HA story.
 Tracking: `README.md`; `docs/components/*`;
 [docs/operations/RUNBOOK-remediation.md](docs/operations/RUNBOOK-remediation.md)
-(A1, B1).
+(A1, A7, B1).
 
 ## L8. AI Gateway is a bring-your-own control / data plane
 

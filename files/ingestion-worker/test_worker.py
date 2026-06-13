@@ -222,3 +222,73 @@ def test_upsert_payload_carries_tenancy() -> None:
     payload = json.loads(points.calls.last.request.content)["points"][0]["payload"]
     assert payload["user_id"] == "u-42"
     assert payload["tenant_id"] == "acme"
+
+
+# --- B8: distributed Qdrant collection topology (replication factor / shards) ---
+
+
+def test_collection_create_body_single_node_default() -> None:
+    """With no cluster env (the default), the create body is just the vector params."""
+    assert worker.QDRANT_REPLICATION_FACTOR is None
+    assert worker.QDRANT_SHARD_NUMBER is None
+    assert worker._collection_create_body(768) == {
+        "vectors": {"size": 768, "distance": "Cosine"}
+    }
+
+
+def test_collection_create_body_carries_cluster_topology(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In cluster mode the worker asks Qdrant to replicate (and shard) each collection."""
+    monkeypatch.setattr(worker, "QDRANT_REPLICATION_FACTOR", 2)
+    monkeypatch.setattr(worker, "QDRANT_SHARD_NUMBER", 6)
+    body = worker._collection_create_body(768)
+    assert body["vectors"] == {"size": 768, "distance": "Cosine"}
+    assert body["replication_factor"] == 2
+    assert body["shard_number"] == 6
+
+
+def test_collection_create_body_replication_without_shards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Replication factor alone is honored; shard_number stays at the Qdrant default."""
+    monkeypatch.setattr(worker, "QDRANT_REPLICATION_FACTOR", 3)
+    monkeypatch.setattr(worker, "QDRANT_SHARD_NUMBER", None)
+    body = worker._collection_create_body(768)
+    assert body["replication_factor"] == 3
+    assert "shard_number" not in body
+
+
+def test_positive_int_env_parses_and_validates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Optional positive-int knobs: blank/absent -> None; <1 or non-numeric -> raise."""
+    monkeypatch.delenv("QDRANT_REPLICATION_FACTOR", raising=False)
+    assert worker._positive_int_env("QDRANT_REPLICATION_FACTOR") is None
+    monkeypatch.setenv("QDRANT_REPLICATION_FACTOR", "  ")
+    assert worker._positive_int_env("QDRANT_REPLICATION_FACTOR") is None
+    monkeypatch.setenv("QDRANT_REPLICATION_FACTOR", "2")
+    assert worker._positive_int_env("QDRANT_REPLICATION_FACTOR") == 2
+    monkeypatch.setenv("QDRANT_REPLICATION_FACTOR", "0")
+    with pytest.raises(ValueError):
+        worker._positive_int_env("QDRANT_REPLICATION_FACTOR")
+    monkeypatch.setenv("QDRANT_REPLICATION_FACTOR", "two")
+    with pytest.raises(ValueError):
+        worker._positive_int_env("QDRANT_REPLICATION_FACTOR")
+
+
+@respx.mock
+def test_ensure_collection_create_sends_replication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A freshly created collection is created with the configured replication factor."""
+    monkeypatch.setattr(worker, "QDRANT_REPLICATION_FACTOR", 2)
+    respx.get(f"{QURL}/collections/docs").mock(return_value=httpx.Response(404))
+    create = respx.put(f"{QURL}/collections/docs").mock(
+        return_value=httpx.Response(200, json={"result": True})
+    )
+    respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(200))
+
+    worker.ensure_qdrant_collection("docs", 768)
+
+    body = json.loads(create.calls.last.request.content)
+    assert body["vectors"] == {"size": 768, "distance": "Cosine"}
+    assert body["replication_factor"] == 2
