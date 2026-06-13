@@ -53,6 +53,9 @@ tests:
   - it: Valkey stays ephemeral (no PVC) by default
     templates:
       - templates/common/valkey.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
       - notContains:
           path: spec.template.spec.volumes
@@ -60,6 +63,3 @@ tests:
             name: data
             persistentVolumeClaim:
               claimName: ai-stack-valkey
-        documentSelector:
-          path: kind
-          value: Deployment
