@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fail-closed Open WebUI HA guard, CTL-003 execution-isolation control, and a
+  remediation runbook ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
+  `ai-stack.openwebuiHaGuard` refuses, at render time, a scaled Open WebUI
+  (`openwebui.replicaCount > 1` or `openwebui.autoscaling.enabled`) when `postgres.enabled`
+  is false — the topology that silently splits state across per-pod SQLite
+  databases — with a message that names the fix. It emits nothing on success and
+  does not trip the single-replica ephemeral lab. New control **CTL-003**
+  (model-driven execution isolation) is added to the registry and the `README.md`
+  governance table; Open Terminal and MCPO reference it
+  (`CTL-002,CTL-003,POL-001`) through `ai-stack.governanceMap`. The new
+  [remediation runbook](docs/operations/RUNBOOK-remediation.md) records these
+  fixes and the deferred items (multi-node file storage, the opt-in Qdrant
+  collection bootstrap, per-tenant retrieval isolation/erasure, a blocking CVE
+  gate, image signing/admission, FQDN egress, distributed Qdrant, DR backups)
+  with operator steps. Asserted in `tests/openwebui_ha_test.yaml` and
+  `tests/governance_labels_test.yaml`. No image or chart-version change.
+
 - **Opt-in hybrid retrieval + cross-encoder reranking for RAG
   ([ADR-011](docs/architecture/ADR-011-rag-retrieval-quality.md)).** New Open
   WebUI knobs in `openwebui.env` — `ENABLE_RAG_HYBRID_SEARCH`,
@@ -22,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Asserted in `tests/rag_retrieval_test.yaml`. No image or chart-version change.
 
 ### Changed
+
+- **Production overlay enables the shared database
+  ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
+  `values-prod.yaml` now sets `postgres.enabled: true`, restoring the documented
+  core dependency the overlay had disabled while running Open WebUI at 2–5
+  replicas. The overlay already configures `postgres.mode: cnpg` (3 instances,
+  pooler, TLS `require`), so this enables the HA PostgreSQL it was built for; the
+  CloudNativePG operator (v1.25+) is now a load-bearing prerequisite of the
+  shipped production profile. Because the prod profile now renders
+  `postgresql.cnpg.io/v1` `Cluster`/`Pooler`, those CR kinds were added to the
+  `kubeconform -skip` lists in `.github/workflows/lint.yaml` (matching the chart's
+  practice for operator-owned CRDs). No image or chart-version change.
 
 - **Embedding task-instruction prefixes now applied by default
   ([ADR-011](docs/architecture/ADR-011-rag-retrieval-quality.md)).**
@@ -58,6 +87,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   change.
 
 ### Fixed
+
+- **Production Open WebUI split-brain
+  ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
+  The production overlay disabled `postgres` while running Open WebUI at multiple
+  replicas, so each replica fell back to a private per-pod SQLite database and
+  users, chats, and settings split across pods. Fixed by enabling the shared
+  database in `values-prod.yaml` and adding the render-time guard above so the
+  misconfiguration can no longer ship from any values file. Open WebUI's own
+  Qdrant-backed RAG is unaffected; multi-node uploaded-file durability remains a
+  documented follow-up ([runbook](docs/operations/RUNBOOK-remediation.md) B1).
 
 - **License matrix corrected: Open WebUI is not MIT
   ([LICENSE_COMPLIANCE.md](docs/compliance/LICENSE_COMPLIANCE.md)).** The deployed
