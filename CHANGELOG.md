@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fail-closed Open WebUI HA guard, CTL-003 execution-isolation control, and a
   remediation runbook ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
   `ai-stack.openwebuiHaGuard` refuses, at render time, a scaled Open WebUI
-  (`openwebui.replicaCount > 1` or `autoscaling.enabled`) when `postgres.enabled`
+  (`openwebui.replicaCount > 1` or `openwebui.autoscaling.enabled`) when `postgres.enabled`
   is false — the topology that silently splits state across per-pod SQLite
   databases — with a message that names the fix. It emits nothing on success and
   does not trip the single-replica ephemeral lab. New control **CTL-003**

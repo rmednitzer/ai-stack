@@ -41,7 +41,8 @@ database and state (users, chats, settings) split across pods.
 
 1. `ai-stack.openwebuiHaGuard` (`templates/_helpers.tpl`), invoked at the top of
    `templates/openwebui/deployment.yaml`: refuses, at render time, a scaled Open
-   WebUI (`replicaCount > 1` or `autoscaling.enabled`) when `postgres.enabled` is
+   WebUI (`openwebui.replicaCount > 1` or `openwebui.autoscaling.enabled`) when
+   `postgres.enabled` is
    false. Emits nothing on success; does not trip the single-replica lab.
 2. `values-prod.yaml`: `postgres.enabled: true` (the overlay already configures
    `mode: cnpg`, 3 instances, pooler, TLS `require`).
@@ -107,7 +108,7 @@ controls outside a single Helm chart.
 per-release `claimName` shared by all replicas (`templates/openwebui/deployment.yaml`
 volume `data`; `values.yaml:483` `accessMode: ReadWriteOnce`). A second replica on
 another node cannot attach it, and Open WebUI writes uploaded files to
-`DATA_DIR/uploads` on local disk. A2 fixes account/chat state (Postgres); uploaded
+`DATA_DIR/uploads` on local disk. A1 fixes account/chat state (Postgres); uploaded
 files are still per-pod.
 
 **Fix design (operator chooses one).**
