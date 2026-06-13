@@ -320,6 +320,13 @@ corrections applied:
 18. **LICENSE_COMPLIANCE.md version drift** — Re-aligned three stale rows to
     values.yaml: Ollama 0.30.6 -> 0.30.8, OTel 0.148.0 -> 0.154.0 (matrix had
     0.153.0), LangGraph 0.9-py3.12 -> 0.10-py3.12.
+19. **Art. 21(2)(b) / Art. 26 OTel monitoring now covers Open WebUI** (ADR-017) —
+    Open WebUI gates OpenTelemetry behind its own `ENABLE_OTEL` /
+    `ENABLE_OTEL_TRACES` / `ENABLE_OTEL_METRICS` flags, which the chart did not set,
+    so the chat surface emitted no telemetry even with the pipeline on. The chart
+    now sets them (gated on `global.otel.enabled`), so the NIS2 detection / AI Act
+    deployer-monitoring control is real for Open WebUI, not only the backend
+    services. Off by default; the redaction qualifier (item 16) still applies.
 
 ### Limitations
 

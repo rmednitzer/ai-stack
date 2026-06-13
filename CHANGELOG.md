@@ -246,6 +246,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `tests/authelia_oidc_test.yaml` plus assertions in `tests/mcpo_test.yaml` and
     `tests/hardening_test.yaml` (122 tests). No image or chart-version change.
 
+- **Open WebUI wiring completeness — OTel activation, signup governance, Open
+  Terminal docs, web-search tuning
+  ([ADR-017](docs/architecture/ADR-017-openwebui-wiring-completeness.md)).** A
+  source-validated review of how Open WebUI is configured and wired to its tools:
+  - **Open WebUI OpenTelemetry now actually exports.** The chart injected the
+    shared `OTEL_EXPORTER_OTLP_*` vars but Open WebUI gates OTel behind its own
+    `ENABLE_OTEL` plus the per-signal `ENABLE_OTEL_TRACES` / `ENABLE_OTEL_METRICS`
+    (all default-off upstream), so it emitted **nothing** even with
+    `global.otel.enabled=true`. The chart now sets all three, gated on
+    `global.otel.enabled` (off by default), so traces + metrics flow through the
+    redaction-applying collector — the NIS2 monitoring control now covers the chat
+    surface. Validated against `open-webui` (OTel since 0.6.0, present in v0.9.6).
+  - **Governed signup defaults pinned.** `DEFAULT_USER_ROLE=pending` is now
+    explicit (new accounts need admin approval; matches upstream's default but can
+    no longer silently regress), with `ENABLE_SIGNUP=true` kept for first-admin
+    bootstrap and documented to disable in production / under OIDC.
+  - **Open Terminal wiring documented.** Like MCPO it is an admin-UI step
+    (`TERMINAL_SERVER_CONNECTIONS` is inline-key JSON, POL-002): the full-deployment
+    guide now covers retrieving the key and adding it under **Admin Settings →
+    Integrations → Open Terminal**, and `values-full.yaml` carries a ready-to-enable
+    block with the runtime-hardening caveat.
+  - **Web-search tuning** added to `values-full.yaml` (`WEB_SEARCH_RESULT_COUNT=5`,
+    `WEB_SEARCH_CONCURRENT_REQUESTS=10`, an empty `WEB_SEARCH_DOMAIN_FILTER_LIST`
+    defense-in-depth hook). Asserted in `tests/openwebui_wiring_test.yaml` (125
+    tests). No image or chart-version change.
+
 ## [2.12.0] - 2026-06-09
 
 Works the deferred recommendation backlog of the 2026-06 deep audit
