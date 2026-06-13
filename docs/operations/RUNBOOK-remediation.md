@@ -3,9 +3,10 @@
 Operator-executable remediation plan for the ai-stack chart, produced from the
 in-depth architecture review. It has two parts:
 
-- **Part A — Executed in-chart** (this change): the fail-closed Open WebUI HA
-  guard, the corrected production database default, and the CTL-003 execution
-  isolation control. Each entry lists the exact verification command.
+- **Part A — Executed in-chart**: the fail-closed Open WebUI HA guard, the
+  corrected production database default, the CTL-003 execution isolation control,
+  and the opt-in-path Qdrant collection bootstrap. Each entry lists the exact
+  verification command.
 - **Part B — Deferred remediations**: real findings that are out of scope for one
   surgical change (opt-in code paths with no test home, cluster-level controls
   outside the chart, or larger reworks). Each entry states the finding, the
@@ -92,13 +93,44 @@ helm template ai-stack . --set openTerminal.enabled=true,mcpo.enabled=true \
 helm unittest -f tests/governance_labels_test.yaml .
 ```
 
+### A3. Qdrant collection never created on the opt-in ingestion path — FIXED
+
+**Severity:** medium (day-one failure of the opt-in ingestion-worker → Pydantic AI RAG path).
+
+**Finding.** Nothing issued the `PUT /collections/<name>` that creates the Qdrant
+collection the ingestion worker upserts into (`files/ingestion-worker/worker.py`)
+and Pydantic AI queries (`files/pydanticai/app.py`), so the first upsert/query
+returned 404. A latent bug compounded it: `process_task` resolved a per-task
+`collection` but `upsert_vectors` ignored it and used the module-global
+`COLLECTION_NAME`. (Open WebUI is unaffected — it manages its own collections.)
+
+**Fix applied.** `ensure_qdrant_collection` creates the collection on first use,
+taking the vector size from the **live embedding** (no hard-coded dimension, no
+drift) with `Cosine` distance (nomic-embed-text, the chart default); it is
+idempotent and tolerates a concurrent create by a peer worker (relevant under the
+worker's autoscaling). `upsert_vectors` now takes the per-task `collection` and
+writes points there. The producer-supplied collection name is validated against a
+strict allowlist before it is interpolated into any Qdrant URL (no path, query, or
+whitespace characters, mirroring the `file_url` hardening of ADR-009), and
+confirmed-existing collections are memoised so repeated upserts skip the existence
+check. First Python test harness for `files/`: `test_worker.py` + `conftest.py`
+(respx-mocked HTTP, no backing services), run by the new `worker-tests` CI job.
+
+**Verify.**
+
+```
+pip install -r files/ingestion-worker/requirements-dev.txt
+python -m pytest files/ingestion-worker -q
+ruff check files/ingestion-worker/
+```
+
 ---
 
 ## Part B — Deferred remediations
 
-Ordered by recommended sequence. Items B2/B3 apply only when the opt-in
-ingestion-worker → Pydantic AI retrieval path is enabled; B5–B8 are cluster-level
-controls outside a single Helm chart.
+Ordered by recommended sequence. B2 is done (see A3); B3 applies only when the
+opt-in ingestion-worker → Pydantic AI retrieval path is enabled; B5–B8 are
+cluster-level controls outside a single Helm chart.
 
 ### B1. Multi-node Open WebUI file durability
 
@@ -134,55 +166,13 @@ replica restart. **Rollback.** Remove the `S3_*`/`STORAGE_PROVIDER` env; Open We
 reverts to PVC/local storage. **Tracking.** [LIMITATIONS.md](../../LIMITATIONS.md)
 L7; `docs/components/openwebui.md`.
 
-### B2. Qdrant `documents` collection is never created (opt-in RAG path)
+### B2. Qdrant collection bootstrap (opt-in RAG path) — DONE
 
-**Severity:** medium (day-one failure of the opt-in path). **Type:** in-app code.
-
-**Finding.** The async ingestion worker upserts points to
-`/collections/<name>/points` (`files/ingestion-worker/worker.py:642`) and Pydantic
-AI queries `/collections/<name>/points/query` (`files/pydanticai/app.py:172`), but
-nothing issues the `PUT /collections/<name>` that creates the collection with its
-vector size and distance. Qdrant returns 404 on the first upsert/query. Open WebUI
-is unaffected: it manages its own Qdrant collections. A latent bug compounds it:
-`process_task` resolves a per-task `collection` (`worker.py:659`) but
-`upsert_vectors` ignores it and uses the module-global `COLLECTION_NAME`
-(`worker.py:643`).
-
-**Fix design.** Create the collection in the worker, where the live embedding
-dimension is already known (no hard-coded dimension, no drift). Before the first
-upsert for a collection, `GET /collections/<name>`; on 404, `PUT /collections/<name>`
-with `vectors: { size: len(embedding), distance: "Cosine" }`. Thread the per-task
-`collection` through `upsert_vectors` instead of the global.
-
-**Ready patch (sketch, `files/ingestion-worker/worker.py`).**
-
-```python
-def ensure_qdrant_collection(collection: str, dim: int) -> None:
-    """Create the Qdrant collection on first use (idempotent)."""
-    r = http.get(urljoin(QDRANT_URL, f"/collections/{collection}"), headers=qdrant_headers)
-    if r.status_code == 200:
-        return
-    if r.status_code not in (404,):
-        r.raise_for_status()
-    http.put(
-        urljoin(QDRANT_URL, f"/collections/{collection}"),
-        json={"vectors": {"size": dim, "distance": "Cosine"}},
-        headers=qdrant_headers, timeout=60.0,
-    ).raise_for_status()
-
-# in upsert_vectors(...): accept `collection`, call ensure_qdrant_collection(
-#   collection, len(embeddings[0])) before the points PUT, and PUT to that
-#   `collection` rather than COLLECTION_NAME.
-```
-
-**Test home.** `files/` has no Python test harness today. Land this with a minimal
-`pytest` for the worker (mock the Qdrant HTTP calls with `respx`/`responses`),
-wired into CI as a new job, so the change carries a test like every other.
-
-**Validate.** With `ingestionWorker.enabled=true`, ingest one document into a fresh
-Qdrant and confirm the collection is auto-created and the query returns the chunk.
-**Rollback.** Revert the worker file (collection creation is additive/idempotent).
-**Tracking.** `docs/components/ingestion-worker-spec.md`.
+Implemented; see **A3**. The worker now creates the collection on first use
+(vector size from the live embedding, `Cosine` distance, idempotent and
+concurrent-create safe) and honours the per-task collection name, with the first
+`files/` Python test harness (`test_worker.py`) wired into the `worker-tests` CI
+job. **Tracking.** `docs/components/ingestion-worker-spec.md`.
 
 ### B3. Per-tenant retrieval isolation and GDPR erasure (opt-in RAG corpus)
 

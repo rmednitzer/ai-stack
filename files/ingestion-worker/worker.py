@@ -19,6 +19,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import signal
 import socket
 import stat
@@ -617,10 +618,84 @@ def embed_chunks(chunks: list[str]) -> list[list[float]]:
     return embeddings
 
 
+# Qdrant collection names are interpolated into the REST URL path. The name can
+# come from a producer-supplied stream field, so it is validated against a strict
+# allowlist (no '/', '?', '#', whitespace, or control characters) before use:
+# encoding alone is insufficient since Qdrant may decode %2F back into a path
+# separator. Mirrors the producer-input hardening applied to file_url (ADR-009).
+_COLLECTION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$")
+
+# Collections this process has confirmed exist, so repeated upserts into the same
+# collection do not re-issue the existence check on every document. Per-process
+# and best-effort; an externally deleted collection simply surfaces on the next
+# upsert (and is retried) rather than being silently masked.
+_ensured_collections: set[str] = set()
+
+
+def _require_valid_collection(collection: str) -> None:
+    if not _COLLECTION_RE.match(collection):
+        raise ValueError(
+            f"invalid Qdrant collection name {collection!r}: must match "
+            r"[A-Za-z0-9][A-Za-z0-9._-]{0,254} (no path, query, or whitespace characters)"
+        )
+
+
+def ensure_qdrant_collection(collection: str, dim: int) -> None:
+    """Create the Qdrant collection on first use (idempotent).
+
+    The worker owns the collection it writes to; readers (Pydantic AI; Open WebUI
+    manages its own collections separately) assume it already exists. The vector
+    size is taken from the live embedding, so it never drifts from the configured
+    embedding model. nomic-embed-text (the chart default) is trained for cosine
+    similarity; pre-create the collection yourself for a model needing another
+    metric. Safe under concurrent workers: a create that loses the race to a peer
+    is treated as success.
+    """
+    _require_valid_collection(collection)
+    if collection in _ensured_collections:
+        return
+    resp = http.get(
+        urljoin(QDRANT_URL, f"/collections/{collection}"),
+        headers=qdrant_headers,
+    )
+    if resp.status_code == 200:
+        _ensured_collections.add(collection)
+        return
+    if resp.status_code != 404:
+        resp.raise_for_status()
+    created = http.put(
+        urljoin(QDRANT_URL, f"/collections/{collection}"),
+        json={"vectors": {"size": dim, "distance": "Cosine"}},
+        headers=qdrant_headers,
+        timeout=60.0,
+    )
+    if created.status_code // 100 == 2:
+        log.info("Created Qdrant collection %r (dim=%d, distance=Cosine)", collection, dim)
+        _ensured_collections.add(collection)
+        return
+    # A peer worker may have created it between our GET and PUT (multi-replica).
+    check = http.get(
+        urljoin(QDRANT_URL, f"/collections/{collection}"),
+        headers=qdrant_headers,
+    )
+    if check.status_code == 200:
+        _ensured_collections.add(collection)
+        return
+    created.raise_for_status()
+
+
 def upsert_vectors(
-    task_id: str, chunks: list[str], embeddings: list[list[float]], metadata: dict[str, Any]
+    collection: str,
+    task_id: str,
+    chunks: list[str],
+    embeddings: list[list[float]],
+    metadata: dict[str, Any],
 ) -> None:
-    """Upsert chunk vectors into Qdrant."""
+    """Upsert chunk vectors into Qdrant, creating the collection on first use."""
+    _require_valid_collection(collection)
+    if not embeddings:
+        return
+    ensure_qdrant_collection(collection, len(embeddings[0]))
     points = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         point_id = hashlib.sha256(f"{task_id}:{i}".encode()).hexdigest()[:32]
@@ -640,7 +715,7 @@ def upsert_vectors(
         )
 
     resp = http.put(
-        urljoin(QDRANT_URL, f"/collections/{COLLECTION_NAME}/points"),
+        urljoin(QDRANT_URL, f"/collections/{collection}/points"),
         json={"points": points},
         headers=qdrant_headers,
         timeout=120.0,
@@ -694,7 +769,7 @@ def process_task(task_id: str, fields: dict[str, str]) -> None:
 
     # Stage 4: Upsert
     set_status(task_id, "upserting", filename=filename, chunk_count=len(chunks))
-    upsert_vectors(task_id, chunks, embeddings, metadata)
+    upsert_vectors(collection, task_id, chunks, embeddings, metadata)
 
     set_status(task_id, "done", filename=filename, chunk_count=len(chunks))
     corpus.complete_document(collection, len(chunks))

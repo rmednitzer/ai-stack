@@ -1,0 +1,9 @@
+# Test-only dependencies for the ingestion worker (test_worker.py / conftest.py).
+# httpx and valkey are runtime deps (pinned with hashes in requirements.txt); they
+# are listed here so worker.py imports under test. respx mocks the httpx layer so
+# no Qdrant/Ollama/Tika/Valkey/Postgres instance is needed. Lower bounds only:
+# this is test tooling, not the shipped runtime closure.
+httpx>=0.28
+valkey>=6.0
+respx>=0.22
+pytest>=8.0

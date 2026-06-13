@@ -88,6 +88,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Ingestion worker now bootstraps its Qdrant collection
+  ([runbook](docs/operations/RUNBOOK-remediation.md) A3).** On the opt-in
+  ingestion-worker → Pydantic AI RAG path nothing created the Qdrant collection,
+  so the first upsert/query returned 404. The worker now creates the collection
+  on first use, taking the vector size from the live embedding (no hard-coded
+  dimension, no drift) with `Cosine` distance; the create is idempotent and
+  tolerates a concurrent create by a peer worker. `upsert_vectors` also now writes
+  to the per-task `collection` instead of a module-global default. The
+  producer-supplied collection name is validated against a strict allowlist before
+  it is interpolated into a Qdrant URL (no path/query/whitespace characters), and
+  confirmed collections are memoised to skip the per-upsert existence check. Adds
+  the first Python test harness for `files/` (`files/ingestion-worker/test_worker.py`,
+  respx-mocked) and a `worker-tests` CI job. Open WebUI's own Qdrant collections
+  are unaffected. No image or chart-version change.
+
 - **Production Open WebUI split-brain
   ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
   The production overlay disabled `postgres` while running Open WebUI at multiple
