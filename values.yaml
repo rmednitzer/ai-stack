@@ -873,7 +873,6 @@ mcpo:
   # -- MCP server configuration (Claude Desktop config format)
   # Each entry under mcpServers defines an upstream MCP server that MCPO
   # will expose as an OpenAPI endpoint. Add your MCP servers here.
-  # -- MCP server configuration (Claude Desktop config format)
   config:
     mcpServers: {}
   resources:
@@ -883,16 +882,21 @@ mcpo:
     limits:
       cpu: "1"
       memory: 1Gi
+  # MCPO is a FastAPI gateway with no `GET /` route (it returns 404), so probe
+  # the auto-generated `/openapi.json`: it returns 200, needs no external Swagger
+  # assets, and is present even with an empty `mcpServers`. Probing `/` would fail
+  # readiness and the pod would never become Ready. Validated against
+  # open-webui/mcpo; see ADR-016.
   probes:
     liveness:
       httpGet:
-        path: /
+        path: /openapi.json
         port: http
       initialDelaySeconds: 15
       periodSeconds: 30
     readiness:
       httpGet:
-        path: /
+        path: /openapi.json
         port: http
       initialDelaySeconds: 5
       periodSeconds: 10
@@ -940,8 +944,10 @@ langgraph:
     SEARXNG_QUERY_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "searxng") }}:8080/search?q=<query>&format=json'
     # -- Tika document extraction URL
     TIKA_SERVER_URL: 'http://{{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "tika") }}:9998'
-    # -- Disable LangSmith telemetry (keep data on-prem)
-    LANGCHAIN_TRACING_V2: "false"
+    # -- Disable LangSmith telemetry (keep data on-prem). LANGSMITH_TRACING is the
+    # current canonical name and takes precedence over the legacy
+    # LANGCHAIN_TRACING_V2; tracing is off by default regardless (ADR-016).
+    LANGSMITH_TRACING: "false"
     LANGSMITH_API_KEY: ""
   ingress:
     enabled: false

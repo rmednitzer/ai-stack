@@ -22,13 +22,13 @@ and `zarf.yaml`.
 | Component | Image | Version | License (SPDX) | Type | Default | Copyleft |
 |-----------|-------|---------|----------------|------|---------|----------|
 | Open WebUI | `ghcr.io/open-webui/open-webui` | v0.9.6 | LicenseRef-OpenWebUI | BSD-3 + branding | Enabled | No |
-| Ollama | `ollama/ollama` | 0.30.6 | MIT | Permissive | Enabled | No |
+| Ollama | `ollama/ollama` | 0.30.8 | MIT | Permissive | Enabled | No |
 | Qdrant | `qdrant/qdrant` | v1.18.2 | Apache-2.0 | Permissive | Enabled | No |
 | Tika | `apache/tika` | 3.3.1.0 | Apache-2.0 | Permissive | Enabled | No |
 | SearXNG | `searxng/searxng` | 2026.5.31-300695de5 | AGPL-3.0-or-later | Copyleft | Enabled | Yes |
 | Valkey | `valkey/valkey` | 9.1.0 | BSD-3-Clause | Permissive | Enabled | No |
-| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.153.0 | Apache-2.0 | Permissive | Conditional | No |
-| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.9-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
+| OTel Collector | `otel/opentelemetry-collector-contrib` | 0.154.0 | Apache-2.0 | Permissive | Conditional | No |
+| LangGraph Server | `docker.io/langchain/langgraph-server` | 0.10-py3.12 | Elastic-2.0 (ELv2) | Source-available | Opt-in | No |
 | Pydantic AI | `ghcr.io/astral-sh/uv` | python3.13-trixie-slim | Apache-2.0 OR MIT | Permissive | Opt-in | No |
 | PostgreSQL | `docker.io/library/postgres` | 18-alpine | PostgreSQL | Permissive | Opt-in | No |
 | PostgreSQL (CNPG operand) | `ghcr.io/cloudnative-pg/postgresql` | 18 | PostgreSQL (engine) + Apache-2.0 (CNPG packaging) | Permissive | Opt-in (`postgres.mode=cnpg`) | No |

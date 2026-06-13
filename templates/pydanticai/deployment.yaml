@@ -165,7 +165,12 @@ spec:
             name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "pydanticai") }}-app
         {{- if .Values.pydanticai.buildDeps }}
         - name: deps
-          emptyDir: {}
+          # Bounded like the `tmp` sibling: caps the uv pip install target so a
+          # runaway or compromised install cannot exhaust node ephemeral storage.
+          # 1Gi is ample for the agent's resolved deps (~300-500Mi); raise it only
+          # if you vendor heavier wheels (ADR-016).
+          emptyDir:
+            sizeLimit: 1Gi
         {{- end }}
         - name: tmp
           emptyDir:

@@ -1,9 +1,12 @@
 {{- if .Values.authelia.enabled }}
 {{/*
 Authelia configuration rendered as a ConfigMap.
-Secrets (JWT, session, storage encryption, OIDC HMAC) are injected via
-environment variables that Authelia reads at startup using _FILE suffix.
-The OIDC client secret uses the $plaintext$ prefix to avoid hashing in templates.
+The JWT, session, and storage-encryption secrets are injected via environment
+variables that Authelia reads at startup using the _FILE suffix. The OIDC client
+secret is read from a mounted file via the `template` config filter's `secret`
+function (X_AUTHELIA_CONFIG_FILTERS=template, set on the Deployment) and carries
+the $plaintext$ prefix to avoid hashing in templates; no secret value lands in the
+pod environment or this rendered manifest. See ADR-016.
 */}}
 {{- $owHost := "ai.example.local" -}}
 {{- if .Values.openwebui.ingress.hosts -}}
@@ -54,7 +57,7 @@ data:
         clients:
           - client_id: {{ .Values.authelia.oidc.clientId | quote }}
             client_name: Open WebUI
-            client_secret: $plaintext$${AUTHELIA_OIDC_CLIENT_SECRET}
+            client_secret: {{ `'$plaintext${{ secret "/secrets/oidc-client-secret" }}'` }}
             public: false
             authorization_policy: {{ .Values.authelia.defaultPolicy }}
             redirect_uris:

@@ -1,6 +1,6 @@
 # EU Legal Framework Compliance Check — ai-stack
 
-**Date:** 2026-06-07 (re-validated)
+**Date:** 2026-06-13 (re-validated)
 **Chart version:** 2.12.0 | **appVersion:** 2026.5
 **Assessor:** Automated (Claude Code)
 **Scope:** EU regulatory framework applicability and gap analysis
@@ -40,7 +40,7 @@ The ai-stack processes the following categories of personal data:
 
 | GDPR Article | Requirement | Status | Evidence |
 |-------------|-------------|--------|----------|
-| **Art. 5(1)(c)** | Data minimisation | Partial | OTel PII redaction (email, SSN, CC patterns); but no data retention limits on conversations or embeddings |
+| **Art. 5(1)(c)** | Data minimisation | Partial | OTel PII redaction (email, SSN, CC patterns) when telemetry is enabled (`global.otel.enabled`, off by default — with it off, no observability data leaves the cluster); but no data retention limits on conversations or embeddings |
 | **Art. 5(1)(e)** | Storage limitation | Addressed | Data retention guidance and purge scripts in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §1 |
 | **Art. 13** | Information to data subjects | Gap | No privacy notice template or consent mechanism in chart |
 | **Art. 15** | Right of access | Addressed | DSAR procedures in [docs/compliance/DSAR_PROCEDURES.md](DSAR_PROCEDURES.md) |
@@ -49,7 +49,7 @@ The ai-stack processes the following categories of personal data:
 | **Art. 25** | Data protection by design/default | Strong | Default-deny networking, PSA restricted, auth required, telemetry opt-out, local-first inference, optional Authelia OIDC/MFA for enterprise SSO |
 | **Art. 28** | Processor agreements | Addressed | DPA guidance, provider checklist, and GPAI documentation requirements in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2 |
 | **Art. 30** | Records of processing | Addressed | ROPA template in [docs/compliance/ROPA_TEMPLATE.md](ROPA_TEMPLATE.md) |
-| **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control (built-in + optional Authelia OIDC/MFA), network isolation, read-only filesystem, PII redaction |
+| **Art. 32** | Security of processing | Strong | Encryption-in-transit (TLS in prod), access control (built-in + optional Authelia OIDC/MFA), network isolation, read-only filesystem, PII redaction in telemetry (when `global.otel.enabled`) |
 | **Art. 33/34** | Breach notification | Addressed | Incident response playbook in [docs/compliance/INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) |
 | **Art. 35** | DPIA | Addressed | DPIA template in [docs/compliance/DPIA_TEMPLATE.md](DPIA_TEMPLATE.md) |
 | **Art. 44-49** | International transfers | Addressed | Transfer assessment checklist and provider DPA status table in [docs/compliance/EU_OPERATIONS_GUIDE.md](EU_OPERATIONS_GUIDE.md) §2 |
@@ -303,6 +303,23 @@ Cross-checked against EUR-Lex full texts (CELEX 32024R1689, 32024R2847, 32022L25
 13. **Incident response Art. 73 authority** — Corrected remaining "National AI supervisory authority" references in INCIDENT_RESPONSE.md to "Market surveillance authority" per Art. 73(1).
 14. **Incident response Art. 73 death timeline** — Clarified that death reporting requires immediate notification upon suspected causal link, with 10-day outer limit (Art. 73(4)), not just the outer limit.
 15. **LICENSE_COMPLIANCE.md version alignment** — Updated 8 component versions to match values.yaml: Ollama 0.18.2, Qdrant v1.17.0, Tika 3.3.0.0, SearXNG 2026.3.23, OTel 0.148.0, PostgreSQL 17-alpine, Open Terminal 0.11.27, Ingestion Worker 3.13-slim.
+
+### Validation (2026-06-13)
+
+In-depth repository audit and adversarial review (ADR-016). Compliance-relevant
+corrections applied:
+
+16. **Art. 5(1)(c) / Art. 32 redaction qualifier** — Made the OTel PII-redaction
+    control precise: it applies when telemetry is enabled (`global.otel.enabled`,
+    off by default); with telemetry off, no observability data leaves the cluster,
+    so there is nothing to redact. No control was weakened, the claim was qualified.
+17. **AI Act Art. 50(1) banner** — Re-confirmed the `WEBUI_BANNERS` JSON disclosure
+    renders on the pinned Open WebUI image (env-var name corrected in ADR-015;
+    regression-pinned by `tests/openwebui_wiring_test.yaml`), so the transparency
+    claim is met, not merely nominal.
+18. **LICENSE_COMPLIANCE.md version drift** — Re-aligned three stale rows to
+    values.yaml: Ollama 0.30.6 -> 0.30.8, OTel 0.148.0 -> 0.154.0 (matrix had
+    0.153.0), LangGraph 0.9-py3.12 -> 0.10-py3.12.
 
 ### Limitations
 

@@ -61,17 +61,20 @@ spec:
               containerPort: 9091
               protocol: TCP
           env:
+            # Enable the `template` config filter so the OIDC client secret is read
+            # from a mounted file via the `secret` function (see configmap +
+            # ADR-016). Authelia's legacy ${VAR} expansion is off by default and
+            # `expand-env` is deprecated (removed in v4.40), so file+template is the
+            # forward-looking path and keeps the secret out of the pod env and the
+            # rendered manifest.
+            - name: X_AUTHELIA_CONFIG_FILTERS
+              value: template
             - name: AUTHELIA_JWT_SECRET_FILE
               value: /secrets/jwt-secret
             - name: AUTHELIA_SESSION_SECRET_FILE
               value: /secrets/session-secret
             - name: AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE
               value: /secrets/storage-encryption-key
-            - name: AUTHELIA_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}-secret
-                  key: oidc-client-secret
             {{- if and (eq .Values.authelia.storage "postgres") .Values.postgres.enabled }}
             - name: AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE
               value: /secrets/pg-password
@@ -135,6 +138,8 @@ spec:
                       path: session-secret
                     - key: storage-encryption-key
                       path: storage-encryption-key
+                    - key: oidc-client-secret
+                      path: oidc-client-secret
               {{- if and (eq .Values.authelia.storage "postgres") .Values.postgres.enabled }}
               - secret:
                   name: {{ include "ai-stack.postgresSecretName" . }}
