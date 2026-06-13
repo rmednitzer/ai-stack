@@ -25,6 +25,7 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -32,9 +33,22 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
+
+
+@dataclass
+class AgentDeps:
+    """Per-request context threaded into tools (durable-safe: travels as step args).
+
+    Carries the optional caller identity used to scope Qdrant retrieval to one
+    tenant/user, so the knowledge-base tool cannot read another tenant's documents.
+    Both default None, which means unfiltered retrieval (backward compatible).
+    """
+
+    user_id: str | None = None
+    tenant_id: str | None = None
 
 # ---------------------------------------------------------------------------
 # Configuration from environment
@@ -111,7 +125,13 @@ model = OpenAIChatModel(
     AGENT_MODEL,
     provider=OpenAIProvider(base_url=f"{OLLAMA_BASE_URL}/v1", api_key="ollama"),
 )
-agent = Agent(model, name="ai-stack-agent", instructions=SYSTEM_PROMPT, instrument=_OTEL)
+agent = Agent(
+    model,
+    name="ai-stack-agent",
+    deps_type=AgentDeps,
+    instructions=SYSTEM_PROMPT,
+    instrument=_OTEL,
+)
 
 _http = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
 
@@ -160,7 +180,9 @@ async def _searxng_search(query: str) -> str:
 
 
 @durable_step
-async def _qdrant_retrieve(query: str) -> str:
+async def _qdrant_retrieve(
+    query: str, user_id: str | None = None, tenant_id: str | None = None
+) -> str:
     emb = await _http.post(
         f"{OLLAMA_BASE_URL}/api/embed",
         json={"model": EMBEDDING_MODEL, "input": f"{EMBEDDING_QUERY_PREFIX}{query}"},
@@ -168,9 +190,20 @@ async def _qdrant_retrieve(query: str) -> str:
     emb.raise_for_status()
     vector = emb.json()["embeddings"][0]
     headers = {"api-key": QDRANT_API_KEY} if QDRANT_API_KEY else {}
+    body: dict[str, Any] = {"query": vector, "limit": RAG_TOP_K, "with_payload": True}
+    # Per-tenant isolation: when the caller identity is known, constrain retrieval
+    # to that subject's points (matched against the payload tags the ingestion
+    # worker writes). Without an identity, retrieval is unfiltered (back-compat).
+    must = [
+        {"key": key, "match": {"value": value}}
+        for key, value in (("user_id", user_id), ("tenant_id", tenant_id))
+        if value
+    ]
+    if must:
+        body["filter"] = {"must": must}
     resp = await _http.post(
         f"{QDRANT_URI}/collections/{QDRANT_COLLECTION}/points/query",
-        json={"query": vector, "limit": RAG_TOP_K, "with_payload": True},
+        json=body,
         headers=headers,
     )
     resp.raise_for_status()
@@ -188,10 +221,10 @@ if SEARXNG_QUERY_URL:
 
 if QDRANT_URI:
 
-    @agent.tool_plain
-    async def search_knowledge_base(query: str) -> str:
+    @agent.tool
+    async def search_knowledge_base(ctx: RunContext[AgentDeps], query: str) -> str:
         """Retrieve relevant document chunks from the Qdrant vector store."""
-        return await _qdrant_retrieve(query)
+        return await _qdrant_retrieve(query, ctx.deps.user_id, ctx.deps.tenant_id)
 
 
 # DBOSAgent must be constructed before DBOS.launch().
@@ -209,6 +242,10 @@ else:
 class RunRequest(BaseModel):
     prompt: str
     thread_id: str | None = None  # reserved for multi-turn/session use
+    # Optional caller identity: scopes knowledge-base retrieval to this
+    # tenant/user (matched against the payload tags the ingestion worker writes).
+    user_id: str | None = None
+    tenant_id: str | None = None
 
 
 class RunResponse(BaseModel):
@@ -225,6 +262,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     model: str | None = None
     stream: bool = False
+    user: str | None = None  # OpenAI-standard end-user id; used to scope retrieval
 
 
 def _check_auth(authorization: str | None) -> None:
@@ -282,8 +320,12 @@ def _to_history(messages: list[ChatMessage]) -> tuple[str, list[Any]]:
     return prompt, history
 
 
-async def _run_agent(prompt: str, history: list[Any] | None = None) -> str:
-    result = await runner.run(prompt, message_history=history or None)
+async def _run_agent(
+    prompt: str, history: list[Any] | None = None, deps: AgentDeps | None = None
+) -> str:
+    result = await runner.run(
+        prompt, message_history=history or None, deps=deps or AgentDeps()
+    )
     return str(result.output)
 
 
@@ -314,11 +356,17 @@ async def list_models(authorization: str | None = Header(default=None)) -> dict[
 
 @app.post("/v1/chat/completions")
 async def chat_completions(
-    req: ChatRequest, authorization: str | None = Header(default=None)
+    req: ChatRequest,
+    authorization: str | None = Header(default=None),
+    x_user_id: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None),
 ):
     """OpenAI-compatible chat completion so Open WebUI can use the agent as a model."""
     _check_auth(authorization)
     prompt, history = _to_history(req.messages)
+    # Retrieval scope: an explicit X-User-Id header wins, else the OpenAI `user`
+    # field; X-Tenant-Id sets the tenant. Absent identity = unfiltered (back-compat).
+    deps = AgentDeps(user_id=x_user_id or req.user, tenant_id=x_tenant_id)
 
     model_id = req.model or OPENAI_MODEL_ID
     created = int(time.time())
@@ -341,11 +389,11 @@ async def chat_completions(
             yield _chunk({"role": "assistant"}, None)
             try:
                 if DURABLE:
-                    output = await _run_agent(prompt, history)
+                    output = await _run_agent(prompt, history, deps)
                     yield _chunk({"content": output}, None)
                 else:
                     async with agent.run_stream(
-                        prompt, message_history=history or None
+                        prompt, message_history=history or None, deps=deps
                     ) as result:
                         async for text in result.stream_text(delta=True):
                             if text:
@@ -364,7 +412,7 @@ async def chat_completions(
         return StreamingResponse(_sse(), media_type="text/event-stream")
 
     try:
-        output = await _run_agent(prompt, history)
+        output = await _run_agent(prompt, history, deps)
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
         raise HTTPException(status_code=502, detail="agent run failed") from exc
@@ -388,8 +436,9 @@ async def chat_completions(
 @app.post("/run", response_model=RunResponse)
 async def run(req: RunRequest, authorization: str | None = Header(default=None)) -> RunResponse:
     _check_auth(authorization)
+    deps = AgentDeps(user_id=req.user_id, tenant_id=req.tenant_id)
     try:
-        return RunResponse(output=await _run_agent(req.prompt), durable=DURABLE)
+        return RunResponse(output=await _run_agent(req.prompt, deps=deps), durable=DURABLE)
     except Exception as exc:  # noqa: BLE001
         log.exception("agent run failed")
         raise HTTPException(status_code=502, detail="agent run failed") from exc

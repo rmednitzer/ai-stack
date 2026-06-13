@@ -24,6 +24,7 @@ import signal
 import socket
 import stat
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin, urlparse
@@ -640,6 +641,70 @@ def _require_valid_collection(collection: str) -> None:
         )
 
 
+# Optional per-document tenancy attribution for retrieval isolation and GDPR
+# erasure (right-to-be-forgotten): a producer may tag a document with user_id /
+# tenant_id, which are stored in the Qdrant payload and used as filter/delete keys.
+_TENANCY_FIELDS = ("user_id", "tenant_id")
+
+
+def _require_valid_identifier(field: str, value: str) -> None:
+    """Bound a producer-supplied tenancy identifier.
+
+    These values travel in JSON (the point payload and Qdrant filter `match`
+    bodies), not in a URL path, so the strict collection allowlist is too narrow
+    (a user_id may be a UUID, email, or username). Reject only what cannot be a
+    sane identifier: over-long values and control characters (incl. newlines).
+    """
+    if len(value) > 256 or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        raise ValueError(
+            f"invalid {field} {value!r}: must be <=256 chars with no control characters"
+        )
+
+
+def _build_metadata(filename: str, collection: str, fields: dict[str, str]) -> dict[str, Any]:
+    """Assemble the Qdrant payload metadata for a task.
+
+    Always carries `filename`, `collection`, and an ISO 8601 UTC `created_at`. When
+    the producer tags the task with user_id / tenant_id, those are validated and
+    added so retrieval can be filtered per tenant and a GDPR erasure request can
+    delete exactly one subject's points. Absent tags add no tenancy fields (only
+    the always-present `created_at`), so retrieval/erasure stay backward compatible.
+    """
+    metadata: dict[str, Any] = {"filename": filename, "collection": collection}
+    for field in _TENANCY_FIELDS:
+        value = fields.get(field, "")
+        if value:
+            _require_valid_identifier(field, value)
+            metadata[field] = value
+    metadata["created_at"] = datetime.now(timezone.utc).isoformat()
+    return metadata
+
+
+def _create_payload_indexes(collection: str) -> None:
+    """Index the tenancy fields so filtered reads/deletes do not scan on-disk payloads.
+
+    With QDRANT__STORAGE__ON_DISK_PAYLOAD enabled (the chart default), filtering on
+    an unindexed payload field reads every candidate point from disk. A keyword
+    index keeps per-user retrieval and erasure efficient. Best-effort: an index
+    failure is logged, not fatal (the filter still works, just slower); re-creating
+    an existing index is a no-op.
+    """
+    for field in _TENANCY_FIELDS:
+        try:
+            resp = http.put(
+                urljoin(QDRANT_URL, f"/collections/{collection}/index"),
+                json={"field_name": field, "field_schema": "keyword"},
+                headers=qdrant_headers,
+                timeout=60.0,
+            )
+            if resp.status_code // 100 != 2:
+                log.warning(
+                    "Qdrant payload index %s on %r: HTTP %d", field, collection, resp.status_code
+                )
+        except Exception as exc:  # noqa: BLE001 — index is an optimization, never fatal
+            log.warning("Qdrant payload index %s on %r failed: %s", field, collection, exc)
+
+
 def ensure_qdrant_collection(collection: str, dim: int) -> None:
     """Create the Qdrant collection on first use (idempotent).
 
@@ -658,30 +723,31 @@ def ensure_qdrant_collection(collection: str, dim: int) -> None:
         urljoin(QDRANT_URL, f"/collections/{collection}"),
         headers=qdrant_headers,
     )
-    if resp.status_code == 200:
-        _ensured_collections.add(collection)
-        return
-    if resp.status_code != 404:
+    if resp.status_code == 404:
+        created = http.put(
+            urljoin(QDRANT_URL, f"/collections/{collection}"),
+            json={"vectors": {"size": dim, "distance": "Cosine"}},
+            headers=qdrant_headers,
+            timeout=60.0,
+        )
+        if created.status_code // 100 == 2:
+            log.info("Created Qdrant collection %r (dim=%d, distance=Cosine)", collection, dim)
+        else:
+            # A peer worker may have created it between our GET and PUT (multi-replica).
+            check = http.get(
+                urljoin(QDRANT_URL, f"/collections/{collection}"),
+                headers=qdrant_headers,
+            )
+            if check.status_code != 200:
+                created.raise_for_status()
+    elif resp.status_code != 200:
         resp.raise_for_status()
-    created = http.put(
-        urljoin(QDRANT_URL, f"/collections/{collection}"),
-        json={"vectors": {"size": dim, "distance": "Cosine"}},
-        headers=qdrant_headers,
-        timeout=60.0,
-    )
-    if created.status_code // 100 == 2:
-        log.info("Created Qdrant collection %r (dim=%d, distance=Cosine)", collection, dim)
-        _ensured_collections.add(collection)
-        return
-    # A peer worker may have created it between our GET and PUT (multi-replica).
-    check = http.get(
-        urljoin(QDRANT_URL, f"/collections/{collection}"),
-        headers=qdrant_headers,
-    )
-    if check.status_code == 200:
-        _ensured_collections.add(collection)
-        return
-    created.raise_for_status()
+    # The collection now exists (pre-existing, freshly created, or peer-created).
+    # Ensure the tenancy payload indexes on first confirmation -- idempotent and
+    # best-effort -- so an upgrade over an already-existing collection is indexed
+    # too, not only fresh creates. Memoization keeps this to once per process.
+    _create_payload_indexes(collection)
+    _ensured_collections.add(collection)
 
 
 def upsert_vectors(
@@ -732,7 +798,7 @@ def process_task(task_id: str, fields: dict[str, str]) -> None:
     file_url = fields.get("file_url", "")
     filename = fields.get("filename", "unknown")
     collection = fields.get("collection", COLLECTION_NAME)
-    metadata = {"filename": filename, "collection": collection}
+    metadata = _build_metadata(filename, collection, fields)
 
     log.info("Processing task %s: %s", task_id, filename)
     set_status(task_id, "processing", filename=filename)

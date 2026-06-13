@@ -6,8 +6,8 @@ in-depth architecture review. It has two parts:
 - **Part A — Executed in-chart**: the fail-closed Open WebUI HA guard, the
   corrected production database default, the CTL-003 execution isolation control,
   the opt-in-path Qdrant collection bootstrap, the POL-002 credential-management
-  control, and the upstream-validated application configuration tuning. Each entry
-  lists the exact verification command.
+  control, the upstream-validated application configuration tuning, and per-tenant
+  RAG isolation with GDPR erasure. Each entry lists the exact verification command.
 - **Part B — Deferred remediations**: real findings that are out of scope for one
   surgical change (opt-in code paths with no test home, cluster-level controls
   outside the chart, or larger reworks). Each entry states the finding, the
@@ -185,12 +185,61 @@ helm template ai-stack . -s templates/qdrant/deployment.yaml | grep ON_DISK_PAYL
 helm template ai-stack . -f values.yaml -f values-prod.yaml | grep -A3 "kind: PersistentVolumeClaim" | grep valkey
 ```
 
+### A6. Per-tenant RAG isolation and GDPR erasure (B3) — FIXED
+
+**Severity:** high for multi-tenant use of the opt-in ingestion → Pydantic AI path.
+
+**Finding.** On that path retrieval queried the whole collection with no per-user
+filter, and the payload carried no `user_id`/`tenant_id` — so there was nothing to
+isolate on and **nothing to erase by**, making a GDPR Art. 17 erasure request a
+no-op. (Open WebUI's own knowledge bases have their own per-user access controls;
+this concerns only the custom path.)
+
+**Fix applied.**
+
+- **Attribution (ingestion worker).** When a producer tags a task with `user_id` /
+  `tenant_id`, the worker validates them (lenient bound: ≤256 chars, no control
+  characters — they travel in JSON, not a URL) and writes them, plus an ISO 8601
+  `created_at`, into the Qdrant payload. Absent tags leave the payload unchanged.
+  On collection creation it also builds **keyword payload indexes** on `user_id`
+  and `tenant_id` so filtered reads/deletes do not scan on-disk payloads (the
+  `on_disk_payload` default from A5).
+- **Isolation (Pydantic AI).** `_qdrant_retrieve` takes the caller identity and
+  adds a Qdrant `filter: {must: [...]}` matching `user_id` / `tenant_id` when set.
+  Identity is threaded durable-safely via agent `deps` (`AgentDeps`,
+  `RunContext`): `/run` reads `user_id`/`tenant_id` from the body; the
+  OpenAI-compatible `/v1/chat/completions` reads the `X-User-Id` / `X-Tenant-Id`
+  headers or the OpenAI `user` field. No identity = unfiltered (backward
+  compatible). Covered by `files/pydanticai/test_app.py` (incl. an end-to-end
+  `TestModel` run asserting deps reach the query filter), run by the new
+  `pydanticai-tests` CI job.
+
+**GDPR erasure (right to be forgotten).** With `user_id` in the payload and
+indexed, erase one subject's points with a delete-by-filter (record it in the
+data-subject-request log):
+
+```bash
+curl -sS -X POST "$QDRANT_URI/collections/$COLLECTION/points/delete" \
+  -H "api-key: $QDRANT_API_KEY" -H 'content-type: application/json' \
+  -d '{"filter":{"must":[{"key":"user_id","match":{"value":"<subject-id>"}}]}}'
+```
+
+**Verify.**
+
+```
+pip install -r files/ingestion-worker/requirements-dev.txt -r files/pydanticai/requirements-dev.txt
+python -m pytest files/ingestion-worker files/pydanticai -q
+```
+
+**Operator note.** This delivers the mechanism; wiring Open WebUI (or your client)
+to send the user/tenant on each call is deployment-specific. The identity is a
+plain match value, so an unknown id simply returns no results (fail-safe).
+
 ---
 
 ## Part B — Deferred remediations
 
-Ordered by recommended sequence. B2 is done (see A3); B3 applies only when the
-opt-in ingestion-worker → Pydantic AI retrieval path is enabled; B5–B8 are
+Ordered by recommended sequence. B2 and B3 are done (see A3, A6); B5–B8 are
 cluster-level controls outside a single Helm chart.
 
 ### B1. Multi-node Open WebUI file durability
@@ -235,33 +284,13 @@ concurrent-create safe) and honours the per-task collection name, with the first
 `files/` Python test harness (`test_worker.py`) wired into the `worker-tests` CI
 job. **Tracking.** `docs/components/ingestion-worker-spec.md`.
 
-### B3. Per-tenant retrieval isolation and GDPR erasure (opt-in RAG corpus)
+### B3. Per-tenant retrieval isolation and GDPR erasure — DONE
 
-**Severity:** high (only for multi-tenant use of the opt-in path). **Type:**
-in-app code + procedure.
-
-**Finding.** On the custom ingestion → Pydantic AI path, `_qdrant_retrieve`
-queries the whole collection with no per-user filter
-(`files/pydanticai/app.py:163-178`), and the worker payload carries no
-`user_id`/`tenant_id` (`files/ingestion-worker/worker.py:632-638`). There is no
-identity to filter on and no key to erase by, so a GDPR Art. 17 erasure request
-against this corpus is a no-op. (Open WebUI's own knowledge bases have their own
-per-user access controls; this concerns only the custom path.)
-
-**Fix design.**
-
-1. Ingestion API includes `user_id`/`tenant_id` (and `created_at`) in the stream
-   fields; the worker propagates them into the Qdrant payload (the payload already
-   merges arbitrary metadata, so this is additive).
-2. `_qdrant_retrieve` adds a Qdrant `filter` on the caller's `user_id`/`tenant_id`.
-3. Erasure procedure: `POST /collections/<name>/points/delete` with a
-   `filter: { must: [{ key: "user_id", match: { value: <id> }}]}`, recorded in the
-   data-subject-request log.
-
-**Validate.** Two users' documents are retrievable only by their owner; a
-delete-by-filter removes exactly one user's points. **Rollback.** The filter is
-additive; removing it restores unfiltered behaviour. **Tracking.**
-[SECURITY.md](../../SECURITY.md); `docs/components/pydanticai.md`.
+Implemented; see **A6**. The ingestion worker now tags points with validated
+`user_id` / `tenant_id` (+ `created_at`) and indexes them; Pydantic AI filters
+retrieval by the caller identity (threaded via agent `deps`); and erasure is a
+documented delete-by-filter. Covered by `files/pydanticai/test_app.py` and the
+worker tests. **Tracking.** [SECURITY.md](../../SECURITY.md); `docs/components/pydanticai.md`.
 
 ### B4. Make the container CVE gate blocking
 

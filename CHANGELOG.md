@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-tenant RAG isolation and GDPR erasure on the opt-in ingestion path
+  ([runbook](docs/operations/RUNBOOK-remediation.md) A6).** The ingestion worker
+  now tags Qdrant points with validated `user_id` / `tenant_id` (+ ISO 8601
+  `created_at`) and builds keyword payload indexes on them; Pydantic AI scopes
+  retrieval to the caller identity via a Qdrant `filter`, threaded durable-safely
+  through agent `deps` (`/run` body fields; `X-User-Id` / `X-Tenant-Id` headers or
+  the OpenAI `user` field on `/v1/chat/completions`). Absent identity = unfiltered
+  (backward compatible). Right-to-erasure becomes a documented delete-by-filter
+  keyed on `user_id`. Adds a Pydantic AI test harness (`files/pydanticai/test_app.py`,
+  incl. an end-to-end `TestModel` check that deps reach the query filter) and a
+  `pydanticai-tests` CI job; the worker tests cover the payload tags + indexes.
+  No image or chart-version change.
+
 - **Application configuration tuning, validated against upstream docs
   ([runbook](docs/operations/RUNBOOK-remediation.md) A5).** Qdrant now stores point
   payloads on disk by default (`QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"`) — lower
