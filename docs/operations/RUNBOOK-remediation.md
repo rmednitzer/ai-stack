@@ -5,8 +5,8 @@ in-depth architecture review. It has two parts:
 
 - **Part A — Executed in-chart**: the fail-closed Open WebUI HA guard, the
   corrected production database default, the CTL-003 execution isolation control,
-  and the opt-in-path Qdrant collection bootstrap. Each entry lists the exact
-  verification command.
+  the opt-in-path Qdrant collection bootstrap, and the POL-002 credential-management
+  control. Each entry lists the exact verification command.
 - **Part B — Deferred remediations**: real findings that are out of scope for one
   surgical change (opt-in code paths with no test home, cluster-level controls
   outside the chart, or larger reworks). Each entry states the finding, the
@@ -122,6 +122,33 @@ check. First Python test harness for `files/`: `test_worker.py` + `conftest.py`
 pip install -r files/ingestion-worker/requirements-dev.txt
 python -m pytest files/ingestion-worker -q
 ruff check files/ingestion-worker/
+```
+
+### A4. Credential management not a traceable policy (POL-002) — FIXED
+
+**Severity:** medium (governance traceability).
+
+**Finding.** The chart already manages every component credential through a
+Kubernetes `Secret` — generated and kept stable across upgrades via
+`ai-stack.persistentSecret`, overridable by an explicit value or an
+`existingSecret`, never plaintext in `values.yaml` (`templates/common/secrets.yaml`)
+— but this discipline traced to no policy identifier, so it could not be
+referenced from an annotation, a test, or an audit.
+
+**Fix applied.** `POL-002` (credential management) added to the registry
+(`docs/governance/CONTROLS.md`) and the `README.md` governance table. It is
+referenced via `ai-stack.governanceMap` by exactly the components the chart
+provisions credentials for — Open WebUI, Authelia, MCPO, Open Terminal, Qdrant,
+SearXNG, Valkey, PostgreSQL, LangGraph, Pydantic AI — and **not** the credential-less
+components (Ollama, Tika, ingestion worker, OTel Collector), keeping the control
+discriminating. `tests/governance_labels_test.yaml` pins the new value on each.
+
+**Verify.**
+
+```
+helm unittest -f tests/governance_labels_test.yaml .
+helm template ai-stack . -s templates/ollama/deployment.yaml | grep control-refs   # POL-002 absent
+helm template ai-stack . -s templates/qdrant/deployment.yaml | grep control-refs   # POL-002 present
 ```
 
 ---
@@ -324,25 +351,15 @@ automation. A volume loss is unrecoverable.
 a scratch namespace reproduces the data. **Rollback.** Disable the backup flag /
 remove the CronJob. **Tracking.** `docs/components/postgres.md`; this runbook.
 
-### B10. Secret management hardening and POL-002
+### B10. Credential management as a named policy (POL-002) — DONE
 
-**Severity:** low–medium. **Type:** operator config + governance.
-
-**Finding.** Secrets are auto-generated via `ai-stack.persistentSecret` (a `lookup`
-that regenerates under `helm template`/GitOps dry-run). Good for a self-contained
-deploy; for regulated production, externalise to a managed store. There is no named
-policy for credential management.
-
-**Fix design.** Document and prefer the `existingSecret` patterns backed by External
-Secrets Operator or Vault for every credential (model-provider keys, MCPO/Open
-Terminal API keys, Qdrant API key, Valkey AUTH, Postgres). Formalise **POL-002
-(credential management)** in [CONTROLS.md](../governance/CONTROLS.md) and reference
-it from the secret-bearing components in `ai-stack.governanceMap` (update
-`tests/governance_labels_test.yaml` in the same change).
-
-**Validate.** No generated Secret is required when `existingSecret` is set; the
-governance test pins the new `control-refs`. **Rollback.** Governance metadata is
-additive. **Tracking.** [CONTROLS.md](../governance/CONTROLS.md); ADR-008 (Valkey AUTH).
+The governance half is implemented; see **A4**. POL-002 is in the registry and
+annotated on every credential-bearing component. The remaining operator-side
+recommendation stands: for regulated production, prefer the `existingSecret`
+patterns backed by External Secrets Operator or Vault over the chart's generated
+secrets (model-provider keys, MCPO / Open Terminal API keys, Qdrant API key, Valkey
+AUTH, PostgreSQL). **Tracking.** [CONTROLS.md](../governance/CONTROLS.md); ADR-008
+(Valkey AUTH).
 
 ### B11. Performance and operational tuning (recommendations)
 
