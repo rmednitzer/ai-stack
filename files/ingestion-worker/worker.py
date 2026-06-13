@@ -66,7 +66,12 @@ def _positive_int_env(name: str) -> int | None:
     raw = os.environ.get(name, "").strip()
     if not raw:
         return None
-    value = int(raw)
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        # Name the variable: a bare int() error ("invalid literal for int()")
+        # does not say which deploy-time knob is misconfigured.
+        raise ValueError(f"{name} must be a positive integer, got {raw!r}") from exc
     if value < 1:
         raise ValueError(f"{name} must be a positive integer, got {value!r}")
     return value

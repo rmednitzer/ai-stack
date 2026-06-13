@@ -151,6 +151,7 @@ spec:
     - metadata:
         name: data
         labels:
+          {{- include "ai-stack.labels" . | nindent 10 }}
           {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 10 }}
       spec:
         accessModes:
