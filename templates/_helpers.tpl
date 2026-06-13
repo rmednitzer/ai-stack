@@ -168,20 +168,20 @@ metadata onto pods). `control-refs` is an annotation, not a label: its value is 
 comma-separated list, which is not a valid label value.
 */}}
 {{- define "ai-stack.governanceMap" -}}
-authelia: {tier: "T0", boundary: "authentication", controlRefs: "CTL-002,POL-001"}
-openwebui: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+authelia: {tier: "T0", boundary: "authentication", controlRefs: "CTL-002,POL-001,POL-002"}
+openwebui: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001,POL-002"}
 ollama: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
 ai-gateway: {tier: "T1", boundary: "model-serving", controlRefs: "CTL-002,POL-001"}
-qdrant: {tier: "T1", boundary: "retrieval", controlRefs: "CTL-002,POL-001"}
+qdrant: {tier: "T1", boundary: "retrieval", controlRefs: "CTL-002,POL-001,POL-002"}
 tika: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
-searxng: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
-valkey: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001"}
-mcpo: {tier: "T2", boundary: "decision", controlRefs: "CTL-002,CTL-003,POL-001"}
-open-terminal: {tier: "T2", boundary: "execution", controlRefs: "CTL-002,CTL-003,POL-001"}
-langgraph: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
-pydanticai: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
+searxng: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001,POL-002"}
+valkey: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001,POL-002"}
+mcpo: {tier: "T2", boundary: "decision", controlRefs: "CTL-002,CTL-003,POL-001,POL-002"}
+open-terminal: {tier: "T2", boundary: "execution", controlRefs: "CTL-002,CTL-003,POL-001,POL-002"}
+langgraph: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001,POL-002"}
+pydanticai: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001,POL-002"}
 ingestion-worker: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
-postgres: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001"}
+postgres: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001,POL-002"}
 otel-collector: {tier: "T0", boundary: "observability", controlRefs: "CTL-001,CTL-002,POL-001"}
 {{- end }}
 

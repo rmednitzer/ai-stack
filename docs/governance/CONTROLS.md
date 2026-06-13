@@ -42,6 +42,7 @@ technical enforcement.
 | ID | Title | Description | Enforced By | Regulatory Basis |
 |----|-------|-------------|-------------|-----------------|
 | **POL-001** | Least-privilege access control | Every component runs under a dedicated Kubernetes ServiceAccount with `automountServiceAccountToken: false`. No component shares a ServiceAccount with another. RBAC is scoped to the minimum required. Pods run as non-root with all Linux capabilities dropped. | Per-component ServiceAccounts (`templates/common/serviceaccounts.yaml`), `securityContext` on all Deployments, reverse-referenced by the `assurance.platform/control-refs` annotation on every workload | NIS2 Art. 21(2)(i) access control; GDPR Art. 25 data protection by design; CRA Annex I §1(b) least-privilege |
+| **POL-002** | Credential management | Every credential a deployed component consumes is delivered through a Kubernetes `Secret` (never rendered inline in a workload manifest); the chart ships **no hardcoded plaintext credential defaults** (each override field defaults empty) and bakes no credential into an image. The chart generates strong random secrets and keeps them **stable across upgrades** (the `ai-stack.persistentSecret` lookup), accepts an explicit plaintext override **or** an `existingSecret` reference (External Secrets Operator / Vault) for managed-secret backends, and enforces the encoding constraints each credential needs (e.g. the URL-safe Valkey AUTH password). Applies to every component the chart provisions credentials for: Open WebUI, Authelia, MCPO, Open Terminal, Qdrant, SearXNG, Valkey (opt-in AUTH), PostgreSQL, LangGraph, and Pydantic AI. | `templates/common/secrets.yaml`, the `ai-stack.persistentSecret` helper, and per-component `existingSecret`/override values, reverse-referenced by the `assurance.platform/control-refs` annotation | NIS2 Art. 21(2)(h) cryptography and secrets; GDPR Art. 32 security of processing; CRA Annex I §1(j) no default or hardcoded credentials |
 
 ---
 
@@ -83,9 +84,11 @@ the CTL/POL identifiers above that the workload implements. This is an
 multi-value list must be carried as an annotation. Every workload references at
 least `CTL-002` (network-boundary governance) and `POL-001` (least-privilege
 identity); the OTel Collector additionally references `CTL-001` (observability),
-and Open Terminal and MCPO additionally reference `CTL-003` (model-driven
-execution isolation). The old coarse `internal`/`decision`-only boundary
-vocabulary is retired in favour of the table above (ADR-005).
+Open Terminal and MCPO additionally reference `CTL-003` (model-driven execution
+isolation), and the components the chart manages credentials for additionally
+reference `POL-002` (credential management). The old coarse
+`internal`/`decision`-only boundary vocabulary is retired in favour of the table
+above (ADR-005).
 
 ---
 

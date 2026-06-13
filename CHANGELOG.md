@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **POL-002 — credential management as a traceable governance policy
+  ([runbook](docs/operations/RUNBOOK-remediation.md) A4).** The chart already
+  delivers every component credential through a generated-and-persisted Kubernetes
+  `Secret` (`ai-stack.persistentSecret`) with no hardcoded plaintext defaults and
+  never baked into an image, overridable by an explicit value or `existingSecret` —
+  but this traced to no policy identifier. `POL-002`
+  is added to `docs/governance/CONTROLS.md` and the `README.md` governance table,
+  and referenced via `ai-stack.governanceMap` by exactly the credential-bearing
+  components (Open WebUI, Authelia, MCPO, Open Terminal, Qdrant, SearXNG, Valkey,
+  PostgreSQL, LangGraph, Pydantic AI) and not the credential-less ones (Ollama,
+  Tika, ingestion worker, OTel Collector), so the control stays discriminating.
+  Asserted in `tests/governance_labels_test.yaml`. No image or chart-version change.
+
 - **Fail-closed Open WebUI HA guard, CTL-003 execution-isolation control, and a
   remediation runbook ([ADR-012](docs/architecture/ADR-012-ha-guard-execution-isolation-remediation-runbook.md)).**
   `ai-stack.openwebuiHaGuard` refuses, at render time, a scaled Open WebUI

@@ -19,7 +19,7 @@ release:
   name: ai-stack
   namespace: ai-stack
 tests:
-  - it: authelia carries T0 / authentication / CTL-002,POL-001 on controller and pod
+  - it: authelia carries T0 / authentication / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/authelia/deployment.yaml
     set:
@@ -30,12 +30,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T0"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "authentication"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T0"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "authentication"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
-  - it: openwebui carries T1 / decision / CTL-002,POL-001 on controller and pod
+  - it: openwebui carries T1 / decision / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/openwebui/deployment.yaml
     documentSelector:
@@ -44,10 +44,10 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
   - it: ollama carries T1 / model-serving / CTL-002,POL-001 on controller and pod
     templates:
@@ -63,7 +63,7 @@ tests:
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "model-serving"}
       - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
 
-  - it: qdrant carries T1 / retrieval / CTL-002,POL-001 on controller and pod
+  - it: qdrant carries T1 / retrieval / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/qdrant/deployment.yaml
     documentSelector:
@@ -72,10 +72,10 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "retrieval"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "retrieval"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
   - it: tika carries T2 / ingestion / CTL-002,POL-001 on controller and pod
     templates:
@@ -91,7 +91,7 @@ tests:
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "ingestion"}
       - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
 
-  - it: searxng carries T2 / ingestion / CTL-002,POL-001 on controller and pod
+  - it: searxng carries T2 / ingestion / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/searxng/deployment.yaml
     documentSelector:
@@ -100,12 +100,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "ingestion"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "ingestion"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
-  - it: valkey carries T2 / storage / CTL-002,POL-001 on controller and pod
+  - it: valkey carries T2 / storage / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/common/valkey.yaml
     documentSelector:
@@ -114,10 +114,10 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
   - it: ingestion-worker carries T2 / ingestion / CTL-002,POL-001 on controller and pod
     templates:
@@ -135,7 +135,7 @@ tests:
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "ingestion"}
       - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
 
-  - it: mcpo carries T2 / decision / CTL-002,CTL-003,POL-001 on controller and pod
+  - it: mcpo carries T2 / decision / CTL-002,CTL-003,POL-001,POL-002 on controller and pod
     templates:
       - templates/mcpo/deployment.yaml
     set:
@@ -146,12 +146,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001,POL-002"}
 
-  - it: open-terminal carries T2 / execution / CTL-002,CTL-003,POL-001 on controller and pod
+  - it: open-terminal carries T2 / execution / CTL-002,CTL-003,POL-001,POL-002 on controller and pod
     templates:
       - templates/open-terminal/deployment.yaml
     set:
@@ -162,12 +162,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "execution"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "execution"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001,POL-002"}
 
-  - it: langgraph carries T1 / decision / CTL-002,POL-001 on controller and pod
+  - it: langgraph carries T1 / decision / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/langgraph/deployment.yaml
     set:
@@ -178,12 +178,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
-  - it: pydanticai carries T1 / decision / CTL-002,POL-001 on controller and pod
+  - it: pydanticai carries T1 / decision / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/pydanticai/deployment.yaml
     set:
@@ -194,12 +194,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T1"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
-  - it: standalone postgres carries T2 / storage / CTL-002,POL-001 on controller and pod
+  - it: standalone postgres carries T2 / storage / CTL-002,POL-001,POL-002 on controller and pod
     templates:
       - templates/postgres/deployment.yaml
     set:
@@ -211,10 +211,10 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
   - it: OTel Collector carries T0 / observability / CTL-001,CTL-002,POL-001 on controller and pod
     templates:
@@ -234,7 +234,7 @@ tests:
 
   # CNPG Cluster/Pooler are CRs without a pod template (the operator creates the
   # pods), so governance metadata lives on the CR object only.
-  - it: CNPG postgres Cluster carries T2 / storage / CTL-002,POL-001
+  - it: CNPG postgres Cluster carries T2 / storage / CTL-002,POL-001,POL-002
     templates:
       - templates/postgres/cnpg-cluster.yaml
     set:
@@ -246,9 +246,9 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
-  - it: CNPG postgres Pooler carries T2 / storage / CTL-002,POL-001
+  - it: CNPG postgres Pooler carries T2 / storage / CTL-002,POL-001,POL-002
     templates:
       - templates/postgres/cnpg-pooler.yaml
     set:
@@ -261,7 +261,7 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "storage"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001,POL-002"}
 
   # Envoy AI Gateway emits AI Gateway CRs with no pod template (like CNPG above),
   # so governance metadata lives on the CR object only (ADR-006).
