@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Distributed Qdrant high availability — gated cluster mode
+  ([ADR-013](docs/architecture/ADR-013-distributed-qdrant-ha.md);
+  [runbook](docs/operations/RUNBOOK-remediation.md) A7).** New `qdrant.cluster`
+  block, **off by default** (the single-node Deployment + PVC render unchanged).
+  When `qdrant.cluster.enabled`, Qdrant becomes a StatefulSet of `replicas` peers
+  (default 3) running Raft consensus over the p2p port (6335) behind a headless
+  Service (`clusterIP: None`, `publishNotReadyAddresses: true`) for peer
+  discovery, with per-pod PVCs (`volumeClaimTemplates`) and soft anti-affinity;
+  bootstrap follows Qdrant's documented model (pod-0 forms the cluster, the rest
+  join via pod-0), validated against the upstream Helm chart. Data HA is wired
+  end to end: the ingestion worker creates collections with
+  `replication_factor >= 2` (`QDRANT_REPLICATION_FACTOR` / `QDRANT_SHARD_NUMBER`,
+  set automatically from `qdrant.cluster.replicationFactor` / `shardNumber`). The
+  p2p port is confined to qdrant peers by the NetworkPolicy and never exposed on
+  the shared client Service; the existing `maxUnavailable: 1` PDB protects the
+  quorum. Asserted in `tests/qdrant_cluster_test.yaml`, with worker create-body
+  coverage in `files/ingestion-worker/test_worker.py`. No image or chart-version
+  change.
+
 - **Per-tenant RAG isolation and GDPR erasure on the opt-in ingestion path
   ([runbook](docs/operations/RUNBOOK-remediation.md) A6).** The ingestion worker
   now tags Qdrant points with validated `user_id` / `tenant_id` (+ ISO 8601

@@ -1,4 +1,8 @@
 {{- if .Values.qdrant.enabled }}
+{{- if not .Values.qdrant.cluster.enabled }}
+# Single-node Qdrant (default). Distributed high availability (cluster.enabled)
+# renders templates/qdrant/statefulset.yaml instead; the client Service below is
+# shared by both modes. See B8 / ADR-013.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -98,6 +102,10 @@ spec:
           emptyDir:
             sizeLimit: 100Mi
       {{- include "ai-stack.nodeScheduling" . | nindent 6 }}
+{{- end }}
+# Client Service — shared by the single-node Deployment and the cluster
+# StatefulSet (selects on the same component labels). Cluster peer discovery
+# uses the separate headless Service in statefulset.yaml, not this one.
 ---
 apiVersion: v1
 kind: Service
@@ -117,7 +125,9 @@ spec:
       name: grpc
   selector:
     {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 4 }}
-{{- if .Values.qdrant.persistence.enabled }}
+{{- if and (not .Values.qdrant.cluster.enabled) .Values.qdrant.persistence.enabled }}
+# Single-node storage. Cluster mode provisions per-pod PVCs via the
+# StatefulSet volumeClaimTemplates instead of this shared claim.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

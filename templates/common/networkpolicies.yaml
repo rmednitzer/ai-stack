@@ -323,6 +323,11 @@ spec:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 6 }}
   policyTypes:
     - Ingress
+    {{- if .Values.qdrant.cluster.enabled }}
+    # Cluster mode: peers dial each other on the p2p port, so egress must be
+    # allowed too (the default-deny policy denies all egress otherwise).
+    - Egress
+    {{- end }}
   ingress:
     - from:
         - podSelector:
@@ -352,6 +357,28 @@ spec:
           port: 6333
         - protocol: TCP
           port: 6334
+    {{- if .Values.qdrant.cluster.enabled }}
+    # Raft consensus / shard sync between Qdrant peers only. This p2p port is
+    # never accepted from clients or exposed via the client Service (Qdrant
+    # warns it grants write access and must stay isolated from outside).
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.qdrant.cluster.p2pPort }}
+    {{- end }}
+  {{- if .Values.qdrant.cluster.enabled }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "qdrant") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.qdrant.cluster.p2pPort }}
+  {{- end }}
 {{- end }}
 
 # =============================================================================

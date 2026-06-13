@@ -55,6 +55,31 @@ EMBEDDING_MODEL = os.environ.get("RAG_EMBEDDING_MODEL", "nomic-embed-text")
 EMBEDDING_CONTENT_PREFIX = os.environ.get("RAG_EMBEDDING_CONTENT_PREFIX", "")
 COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "documents")
 
+
+def _positive_int_env(name: str) -> int | None:
+    """Read an optional positive-integer tuning knob; None when unset/blank.
+
+    These are operator-set (chart env), not producer-set, so a malformed value
+    is a deploy-time misconfiguration: fail loud at import rather than silently
+    ignore it. Used for the distributed-Qdrant collection topology (B8).
+    """
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    value = int(raw)
+    if value < 1:
+        raise ValueError(f"{name} must be a positive integer, got {value!r}")
+    return value
+
+
+# Distributed-Qdrant collection topology (B8). Both default to None (single
+# node): the create-collection body omits them, so Qdrant uses
+# replication_factor=1 / shard_number=1 and behaviour is identical to before.
+# The chart sets QDRANT_REPLICATION_FACTOR (>=2) when qdrant.cluster.enabled so
+# each shard is mirrored across peers; QDRANT_SHARD_NUMBER tunes shard count.
+QDRANT_REPLICATION_FACTOR = _positive_int_env("QDRANT_REPLICATION_FACTOR")
+QDRANT_SHARD_NUMBER = _positive_int_env("QDRANT_SHARD_NUMBER")
+
 CHUNK_SIZE = int(os.environ.get("RAG_CHUNK_SIZE", "1500"))
 # Default aligned with the chart's values.yaml (RAG_CHUNK_OVERLAP=150) and Open
 # WebUI so a chartless run matches the deployed splitter.
@@ -705,6 +730,23 @@ def _create_payload_indexes(collection: str) -> None:
             log.warning("Qdrant payload index %s on %r failed: %s", field, collection, exc)
 
 
+def _collection_create_body(dim: int) -> dict[str, Any]:
+    """Build the Qdrant create-collection body for the live embedding dimension.
+
+    Single-node (the default): just the vector params, byte-identical to prior
+    releases. In a distributed deployment (B8), QDRANT_REPLICATION_FACTOR mirrors
+    each shard across peers so a node loss leaves the collection readable and
+    writable, and QDRANT_SHARD_NUMBER (optional) sets shard parallelism. Both are
+    omitted when unset, so Qdrant applies its single-node defaults.
+    """
+    body: dict[str, Any] = {"vectors": {"size": dim, "distance": "Cosine"}}
+    if QDRANT_REPLICATION_FACTOR is not None:
+        body["replication_factor"] = QDRANT_REPLICATION_FACTOR
+    if QDRANT_SHARD_NUMBER is not None:
+        body["shard_number"] = QDRANT_SHARD_NUMBER
+    return body
+
+
 def ensure_qdrant_collection(collection: str, dim: int) -> None:
     """Create the Qdrant collection on first use (idempotent).
 
@@ -726,7 +768,7 @@ def ensure_qdrant_collection(collection: str, dim: int) -> None:
     if resp.status_code == 404:
         created = http.put(
             urljoin(QDRANT_URL, f"/collections/{collection}"),
-            json={"vectors": {"size": dim, "distance": "Cosine"}},
+            json=_collection_create_body(dim),
             headers=qdrant_headers,
             timeout=60.0,
         )

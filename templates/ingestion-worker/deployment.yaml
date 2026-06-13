@@ -181,6 +181,18 @@ spec:
               value: {{ tpl (toString $value) $ | quote }}
             {{- end }}
             {{- include "ai-stack.qdrantApiKeyEnv" . | nindent 12 }}
+            {{- if .Values.qdrant.cluster.enabled }}
+            # Distributed Qdrant (B8): collections this worker creates are
+            # replicated across peers so a node loss leaves them readable and
+            # writable. Single-node mode omits these, so Qdrant applies its
+            # defaults (replication_factor=1, shard_number=1).
+            - name: QDRANT_REPLICATION_FACTOR
+              value: {{ .Values.qdrant.cluster.replicationFactor | quote }}
+            {{- if .Values.qdrant.cluster.shardNumber }}
+            - name: QDRANT_SHARD_NUMBER
+              value: {{ .Values.qdrant.cluster.shardNumber | quote }}
+            {{- end }}
+            {{- end }}
             {{- if .Values.postgres.enabled }}
             - name: _PG_PASSWORD
               valueFrom:
