@@ -176,8 +176,8 @@ qdrant: {tier: "T1", boundary: "retrieval", controlRefs: "CTL-002,POL-001"}
 tika: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
 searxng: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
 valkey: {tier: "T2", boundary: "storage", controlRefs: "CTL-002,POL-001"}
-mcpo: {tier: "T2", boundary: "decision", controlRefs: "CTL-002,POL-001"}
-open-terminal: {tier: "T2", boundary: "execution", controlRefs: "CTL-002,POL-001"}
+mcpo: {tier: "T2", boundary: "decision", controlRefs: "CTL-002,CTL-003,POL-001"}
+open-terminal: {tier: "T2", boundary: "execution", controlRefs: "CTL-002,CTL-003,POL-001"}
 langgraph: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
 pydanticai: {tier: "T1", boundary: "decision", controlRefs: "CTL-002,POL-001"}
 ingestion-worker: {tier: "T2", boundary: "ingestion", controlRefs: "CTL-002,POL-001"}
@@ -563,6 +563,24 @@ signing key coupled two security domains to one credential. */}}
 {{- /* ENABLE_WEBSOCKET_SUPPORT is set unconditionally in openwebui.env */}}
 {{- end }}
 {{- end }}
+
+{{/*
+Fail-closed guard: multi-replica Open WebUI requires a shared PostgreSQL.
+Open WebUI persists users, chats, and settings in its database; ai-stack.webuiHaEnv
+only emits DATABASE_URL when postgres.enabled, so with postgres disabled every
+replica falls back to its own per-pod SQLite file under DATA_DIR. Running more than
+one replica (replicaCount > 1 or autoscaling) without that shared database silently
+splits state across pods — users created on one replica are invisible on another.
+Catch the misconfiguration at render time instead of shipping a broken HA topology.
+Emits nothing on success. Usage (templates/openwebui/deployment.yaml):
+{{ include "ai-stack.openwebuiHaGuard" . }}
+*/}}
+{{- define "ai-stack.openwebuiHaGuard" -}}
+{{- $scaled := or (gt (int .Values.openwebui.replicaCount) 1) (eq (include "ai-stack.autoscalingEnabled" .Values.openwebui) "true") -}}
+{{- if and $scaled (not .Values.postgres.enabled) -}}
+{{- fail "ai-stack: Open WebUI is scaled for high availability (openwebui.replicaCount > 1 or openwebui.autoscaling.enabled=true) but postgres.enabled is false. Multiple Open WebUI replicas without a shared PostgreSQL (DATABASE_URL) each fall back to a private per-pod SQLite database, splitting users, chats, and settings across pods. Set postgres.enabled=true (its documented default) for a shared database, or run a single replica. See docs/operations/RUNBOOK-remediation.md." -}}
+{{- end -}}
+{{- end -}}
 
 {{/*
 Authelia OIDC environment variables for Open WebUI.

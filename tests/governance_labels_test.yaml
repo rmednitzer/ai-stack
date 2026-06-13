@@ -135,7 +135,7 @@ tests:
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "ingestion"}
       - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
 
-  - it: mcpo carries T2 / decision / CTL-002,POL-001 on controller and pod
+  - it: mcpo carries T2 / decision / CTL-002,CTL-003,POL-001 on controller and pod
     templates:
       - templates/mcpo/deployment.yaml
     set:
@@ -146,12 +146,12 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "decision"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
 
-  - it: open-terminal carries T2 / execution / CTL-002,POL-001 on controller and pod
+  - it: open-terminal carries T2 / execution / CTL-002,CTL-003,POL-001 on controller and pod
     templates:
       - templates/open-terminal/deployment.yaml
     set:
@@ -162,10 +162,10 @@ tests:
     asserts:
       - equal: {path: 'metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'metadata.labels["assurance.platform/boundary"]', value: "execution"}
-      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/tier"]', value: "T2"}
       - equal: {path: 'spec.template.metadata.labels["assurance.platform/boundary"]', value: "execution"}
-      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,POL-001"}
+      - equal: {path: 'spec.template.metadata.annotations["assurance.platform/control-refs"]', value: "CTL-002,CTL-003,POL-001"}
 
   - it: langgraph carries T1 / decision / CTL-002,POL-001 on controller and pod
     templates:

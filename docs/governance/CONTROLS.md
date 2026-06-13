@@ -28,6 +28,7 @@ security or compliance requirement at the platform level.
 |----|-------|-------------|----------------|-----------------|
 | **CTL-001** | Observability — logging legality, minimisation, and forensic correlation | All platform components export logs, metrics, and traces via the OTel Collector. PII and credential material are redacted at the pipeline layer — email, SSN/VSNR, and credit-card patterns, plus bearer tokens, JWTs, PEM private keys, and OpenAI/AWS/GitHub/GitLab/Google/Slack/Stripe API-key shapes — before forwarding to the observability backend. Forensic correlation is maintained via trace IDs across services. | OTel Collector (`templates/otel/otel-collector.yaml`), ServiceMonitors (`templates/otel/servicemonitors.yaml`) | GDPR Art. 5(1)(c) data minimisation; NIS2 Art. 21(2)(b) incident handling; CRA Annex I vulnerability monitoring |
 | **CTL-002** | AI gateway policy — OTel GenAI instrumentation and network boundary enforcement | All AI inference traffic is governed by NetworkPolicies (default-deny with explicit allowlists), tier labels (`T0`–`T2`), and boundary annotations (one of the canonical values defined in [Governance label vocabulary](#governance-label-vocabulary)). The OTel Collector enriches AI-related telemetry with GenAI semantic conventions for audit traceability. | NetworkPolicies (`templates/common/networkpolicies.yaml`), OTel Collector, the Envoy AI Gateway model-egress CRs (`templates/ai-gateway/`), and `tier`/`boundary` labels plus a `control-refs` annotation on every workload | NIS2 Art. 21(2)(a) risk policies; AI Act Art. 26 deployer monitoring obligations; GDPR Art. 25 data protection by design |
+| **CTL-003** | Model-driven execution isolation — containment of the tool-brokering and code-execution attack surface | The components that act on model-influenced input (Open Terminal executes model-generated commands; MCPO brokers model tool calls) are contained so a prompt-injection or compromised tool cannot pivot. Containment is layered: an opt-in hardened `runtimeClassName` (gVisor/Kata) for kernel isolation, a chart-owned CORS allowlist that never resolves to `*` on the code-executing surface, a read-only-by-default or bounded-`emptyDir` root filesystem so model writes cannot exhaust the node, `automountServiceAccountToken: false` to deny the in-cluster API, and the default-deny egress of CTL-002. | Open Terminal and MCPO Deployments (`templates/open-terminal/`, `templates/mcpo/`), the `ai-stack.restrictedSecurityContext` and `ai-stack.openTerminalCorsOrigins` helpers, and per-component `runtimeClassName` values | AI Act Art. 15 accuracy, robustness, and cybersecurity; NIS2 Art. 21(2)(e) security in development and maintenance; CRA Annex I §1 secure-by-default and attack-surface minimisation |
 
 ---
 
@@ -81,9 +82,10 @@ the CTL/POL identifiers above that the workload implements. This is an
 **annotation, not a label**: a Kubernetes label value cannot contain commas, so a
 multi-value list must be carried as an annotation. Every workload references at
 least `CTL-002` (network-boundary governance) and `POL-001` (least-privilege
-identity); the OTel Collector additionally references `CTL-001` (observability).
-The old coarse `internal`/`decision`-only boundary vocabulary is retired in
-favour of the table above (ADR-005).
+identity); the OTel Collector additionally references `CTL-001` (observability),
+and Open Terminal and MCPO additionally reference `CTL-003` (model-driven
+execution isolation). The old coarse `internal`/`decision`-only boundary
+vocabulary is retired in favour of the table above (ADR-005).
 
 ---
 

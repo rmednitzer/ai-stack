@@ -628,7 +628,7 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway,AIGatewayRoute,AIServiceBackend,BackendSecurityPolicy,Backend,BackendTrafficPolicy,SecurityPolicy
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway,AIGatewayRoute,AIServiceBackend,BackendSecurityPolicy,Backend,BackendTrafficPolicy,SecurityPolicy,Cluster,Pooler,ScheduledBackup
 
       - name: Validate manifests (prod profile)
         env:
@@ -638,7 +638,7 @@ jobs:
             -strict \
             -summary \
             -kubernetes-version "$KUBERNETES_VERSION" \
-            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway,AIGatewayRoute,AIServiceBackend,BackendSecurityPolicy,Backend,BackendTrafficPolicy,SecurityPolicy
+            -skip CustomResourceDefinition,ServiceMonitor,PrometheusRule,HTTPRoute,Gateway,AIGatewayRoute,AIServiceBackend,BackendSecurityPolicy,Backend,BackendTrafficPolicy,SecurityPolicy,Cluster,Pooler,ScheduledBackup
 
       # GitOps manifests live outside the chart (helmignored), so validate the
       # ArgoCD Application/AppProject CRs against the Argo schemas separately —

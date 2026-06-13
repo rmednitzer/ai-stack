@@ -83,12 +83,19 @@ Tracking: `docs/governance/CONTROLS.md` (POL-001).
 
 State: several components are single-replica by default (e.g. Ollama is
 GPU-bound; standalone PostgreSQL and single-node Qdrant have no replication).
-Open WebUI is HA-capable only when its shared PostgreSQL + Valkey backends are
-healthy.
+Open WebUI is HA-capable only with a shared PostgreSQL (`DATABASE_URL`) + Valkey
+backend; the chart now enforces this with a render-time guard
+(`ai-stack.openwebuiHaGuard`) that refuses a scaled Open WebUI when
+`postgres.enabled` is false (ADR-012). Even with the shared database, multi-node
+Open WebUI still needs RWX or S3 object storage for uploaded-file durability,
+because the data PVC is `ReadWriteOnce` and uploads are written to local disk.
 Implication: a node or pod failure interrupts these components. For HA, use
-`postgres.mode=cnpg`, scale stateless tiers, and review per-component docs;
-single-node stores remain a recovery-from-backup story, not an HA story.
-Tracking: `README.md`; `docs/components/*`.
+`postgres.mode=cnpg`, scale stateless tiers, configure Open WebUI S3/RWX storage
+for uploads, and review per-component docs; single-node stores remain a
+recovery-from-backup story, not an HA story.
+Tracking: `README.md`; `docs/components/*`;
+[docs/operations/RUNBOOK-remediation.md](docs/operations/RUNBOOK-remediation.md)
+(A1, B1).
 
 ## L8. AI Gateway is a bring-your-own control / data plane
 

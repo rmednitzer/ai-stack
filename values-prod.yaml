@@ -166,7 +166,12 @@ langgraph:
       memory: 8Gi
 
 postgres:
-  enabled: false  # Enable together with langgraph
+  # Core dependency, not optional in prod: Open WebUI runs multiple replicas here
+  # (openwebui.replicaCount/autoscaling above), and multi-replica Open WebUI needs
+  # a shared database (DATABASE_URL) or each pod falls back to a private SQLite and
+  # state splits across pods. The chart enforces this with a render-time guard
+  # (ai-stack.openwebuiHaGuard). Also backs LangGraph/DBOS checkpoints when enabled.
+  enabled: true
   # -- Production: use CloudNativePG for HA, automated failover, and backups.
   #    Requires: CloudNativePG operator v1.25+ installed in the cluster.
   #    Install: helm install cnpg cloudnative-pg/cloudnative-pg

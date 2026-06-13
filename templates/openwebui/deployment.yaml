@@ -1,4 +1,6 @@
 {{- if .Values.openwebui.enabled }}
+{{- /* Fail-closed: refuse a multi-replica topology with no shared database (split-brain). */}}
+{{- include "ai-stack.openwebuiHaGuard" . }}
 ---
 apiVersion: apps/v1
 kind: Deployment

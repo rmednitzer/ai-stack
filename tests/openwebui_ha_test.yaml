@@ -1,0 +1,78 @@
+suite: Open WebUI high-availability state integrity (shared-database guard)
+# Open WebUI persists users, chats, and settings in its database. ai-stack.webuiHaEnv
+# only emits DATABASE_URL when postgres.enabled, so a multi-replica topology with
+# postgres disabled leaves every pod on a private per-pod SQLite file and state
+# splits across replicas. ai-stack.openwebuiHaGuard (templates/_helpers.tpl) refuses
+# that topology at render time; this suite pins both the fail-closed behaviour and
+# the positive path where the shared database is wired in. See ADR-012 and
+# docs/operations/RUNBOOK-remediation.md.
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/openwebui/deployment.yaml
+tests:
+  - it: refuses a fixed multi-replica count with no shared database
+    set:
+      openwebui.replicaCount: 2
+      postgres.enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: "without a shared PostgreSQL"
+
+  - it: refuses autoscaling (HPA) with no shared database
+    set:
+      openwebui.replicaCount: 1
+      openwebui.autoscaling.enabled: true
+      postgres.enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: "without a shared PostgreSQL"
+
+  - it: allows a single-replica ephemeral lab with no database (guard does not false-positive)
+    set:
+      openwebui.replicaCount: 1
+      openwebui.autoscaling.enabled: false
+      postgres.enabled: false
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notFailedTemplate: {}
+      # No shared DB wired in when postgres is disabled.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+          any: true
+
+  - it: allows a multi-replica topology when a shared database is enabled, and wires DATABASE_URL
+    set:
+      openwebui.replicaCount: 2
+      postgres.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notFailedTemplate: {}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+          any: true
+
+  - it: allows autoscaling when a shared database is enabled
+    set:
+      openwebui.replicaCount: 1
+      openwebui.autoscaling.enabled: true
+      postgres.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notFailedTemplate: {}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+          any: true
