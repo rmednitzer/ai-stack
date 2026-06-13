@@ -98,6 +98,29 @@ jobs:
       - name: Run worker unit tests
         run: python -m pytest files/ingestion-worker -q
 
+  pydanticai-tests:
+    # Unit tests for the Pydantic AI runtime's per-tenant retrieval filter (B3):
+    # identity threaded from the agent run into the Qdrant query filter. The HTTP
+    # layer is mocked with respx (TestModel stands in for the LLM), so no backing
+    # services are needed. See files/pydanticai/test_app.py.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install --quiet -r files/pydanticai/requirements-dev.txt
+
+      - name: Run Pydantic AI unit tests
+        run: python -m pytest files/pydanticai -q
+
   chart-testing:
     runs-on: ubuntu-latest
     permissions:

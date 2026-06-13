@@ -1,0 +1,10 @@
+# Test-only dependencies for the Pydantic AI runtime (test_app.py / conftest.py).
+# pydantic-ai-slim[openai] + fastapi are needed to import app.py under test (DBOS is
+# only imported when POSTGRES_URI is set, which the tests do not set). respx mocks
+# the Ollama embed + Qdrant query calls so no backing services are needed. Lower
+# bounds only: this is test tooling, not the shipped runtime closure.
+pydantic-ai-slim[openai]>=1.106,<2
+fastapi>=0.115,<1
+httpx>=0.27,<1
+respx>=0.22
+pytest>=8.0

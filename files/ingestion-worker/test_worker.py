@@ -1,10 +1,12 @@
 """Unit tests for the ingestion worker's Qdrant interaction.
 
-Focus: the collection-bootstrap fix (the worker now creates the Qdrant collection
-on first use, deriving the vector size from the live embedding) and the per-task
-collection routing (upsert writes to the task's collection, not a module global).
-The HTTP layer is mocked with respx; no Qdrant, Valkey, Tika, Ollama, or Postgres
-instance is required. See docs/operations/RUNBOOK-remediation.md B2.
+Focus: the collection-bootstrap fix (the worker creates the Qdrant collection on
+first use, deriving the vector size from the live embedding), per-task collection
+routing (upsert writes to the task's collection, not a module global), and per-
+tenant attribution (user_id / tenant_id payload tags + keyword indexes for
+retrieval isolation and GDPR erasure). The HTTP layer is mocked with respx; no
+Qdrant, Valkey, Tika, Ollama, or Postgres instance is required. See
+docs/operations/RUNBOOK-remediation.md B2 and B3.
 """
 
 import json
@@ -28,9 +30,13 @@ def _clear_ensured_cache() -> None:
 
 @respx.mock
 def test_ensure_collection_creates_on_404() -> None:
-    """A missing collection is created with the live embedding dimension + Cosine."""
+    """A missing collection is created with the live embedding dimension + Cosine,
+    and the tenancy payload fields are indexed (keyword) for filtered reads/deletes."""
     get = respx.get(f"{QURL}/collections/docs").mock(return_value=httpx.Response(404))
     put = respx.put(f"{QURL}/collections/docs").mock(
+        return_value=httpx.Response(200, json={"result": True})
+    )
+    idx = respx.put(f"{QURL}/collections/docs/index").mock(
         return_value=httpx.Response(200, json={"result": True})
     )
 
@@ -40,6 +46,11 @@ def test_ensure_collection_creates_on_404() -> None:
     assert put.called
     body = json.loads(put.calls.last.request.content)
     assert body == {"vectors": {"size": 768, "distance": "Cosine"}}
+    # Keyword index created for each tenancy field (user_id, tenant_id).
+    assert idx.call_count == 2
+    indexed = {json.loads(c.request.content)["field_name"] for c in idx.calls}
+    assert indexed == {"user_id", "tenant_id"}
+    assert all(json.loads(c.request.content)["field_schema"] == "keyword" for c in idx.calls)
 
 
 @respx.mock
@@ -145,3 +156,62 @@ def test_invalid_collection_rejected_without_http() -> None:
             worker.upsert_vectors(bad, "t", ["c"], [[0.1, 0.2]], {"filename": "f"})
 
     assert respx.calls.call_count == 0
+
+
+# --- B3: per-tenant attribution (payload tags + indexes + erasure foundation) ---
+
+
+def test_build_metadata_includes_validated_tenancy() -> None:
+    """Producer-supplied user_id / tenant_id are carried into the payload + created_at."""
+    md = worker._build_metadata(
+        "doc.pdf", "docs", {"user_id": "u-42", "tenant_id": "acme", "ignored": "x"}
+    )
+    assert md["filename"] == "doc.pdf"
+    assert md["collection"] == "docs"
+    assert md["user_id"] == "u-42"
+    assert md["tenant_id"] == "acme"
+    assert isinstance(md["created_at"], str) and md["created_at"]
+    assert "ignored" not in md  # only known tenancy fields are promoted
+
+
+def test_build_metadata_omits_absent_tenancy() -> None:
+    """With no tenancy tags the payload is unchanged except for created_at (back-compat)."""
+    md = worker._build_metadata("doc.pdf", "docs", {})
+    assert set(md) == {"filename", "collection", "created_at"}
+
+
+def test_build_metadata_rejects_bad_identifier() -> None:
+    """A tenancy id with control characters or over length is refused."""
+    with pytest.raises(ValueError):
+        worker._build_metadata("doc.pdf", "docs", {"user_id": "bad\nid"})
+    with pytest.raises(ValueError):
+        worker._build_metadata("doc.pdf", "docs", {"tenant_id": "x" * 257})
+
+
+@respx.mock
+def test_create_payload_indexes_is_best_effort() -> None:
+    """An index failure is logged, not raised (the filter still works, just slower)."""
+    idx = respx.put(f"{QURL}/collections/docs/index").mock(return_value=httpx.Response(400))
+    worker._create_payload_indexes("docs")  # must not raise
+    assert idx.call_count == 2
+
+
+@respx.mock
+def test_upsert_payload_carries_tenancy() -> None:
+    """user_id / tenant_id in metadata land in the Qdrant point payload (erasure key)."""
+    respx.get(f"{QURL}/collections/docs").mock(return_value=httpx.Response(200, json={"result": {}}))
+    points = respx.put(f"{QURL}/collections/docs/points").mock(
+        return_value=httpx.Response(200, json={"result": {}})
+    )
+
+    worker.upsert_vectors(
+        "docs",
+        "task1",
+        ["chunk"],
+        [[0.1, 0.2]],
+        {"filename": "f.txt", "collection": "docs", "user_id": "u-42", "tenant_id": "acme"},
+    )
+
+    payload = json.loads(points.calls.last.request.content)["points"][0]["payload"]
+    assert payload["user_id"] == "u-42"
+    assert payload["tenant_id"] == "acme"
