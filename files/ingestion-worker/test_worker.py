@@ -10,11 +10,20 @@ instance is required. See docs/operations/RUNBOOK-remediation.md B2.
 import json
 
 import httpx
+import pytest
 import respx
 
 import worker
 
 QURL = worker.QDRANT_URL  # set from QDRANT_URI in conftest.py
+
+
+@pytest.fixture(autouse=True)
+def _clear_ensured_cache() -> None:
+    """Isolate the per-process collection-existence cache between tests."""
+    worker._ensured_collections.clear()
+    yield
+    worker._ensured_collections.clear()
 
 
 @respx.mock
@@ -106,4 +115,33 @@ def test_upsert_uses_per_task_collection() -> None:
 def test_upsert_empty_is_noop() -> None:
     """No embeddings means no Qdrant traffic at all (not even a create)."""
     worker.upsert_vectors("docs", "task1", [], [], {"filename": "f.txt"})
+    assert respx.calls.call_count == 0
+
+
+@respx.mock
+def test_ensure_collection_memoized() -> None:
+    """A confirmed collection is cached: a second ensure issues no further GET."""
+    get = respx.get(f"{QURL}/collections/docs").mock(
+        return_value=httpx.Response(200, json={"result": {}})
+    )
+
+    worker.ensure_qdrant_collection("docs", 768)
+    worker.ensure_qdrant_collection("docs", 768)
+
+    assert get.call_count == 1
+
+
+@respx.mock
+def test_invalid_collection_rejected_without_http() -> None:
+    """A producer-supplied name with path/query/whitespace chars is refused early.
+
+    Validation happens before any URL is built, so neither ensure nor upsert can
+    interpolate it into a Qdrant request (no GET/PUT is issued at all).
+    """
+    for bad in ("a/b", "docs?x=1", "../aliases", "has space", "a#frag", ""):
+        with pytest.raises(ValueError):
+            worker.ensure_qdrant_collection(bad, 768)
+        with pytest.raises(ValueError):
+            worker.upsert_vectors(bad, "t", ["c"], [[0.1, 0.2]], {"filename": "f"})
+
     assert respx.calls.call_count == 0

@@ -109,9 +109,12 @@ taking the vector size from the **live embedding** (no hard-coded dimension, no
 drift) with `Cosine` distance (nomic-embed-text, the chart default); it is
 idempotent and tolerates a concurrent create by a peer worker (relevant under the
 worker's autoscaling). `upsert_vectors` now takes the per-task `collection` and
-writes points there. First Python test harness for `files/`: `test_worker.py` +
-`conftest.py` (respx-mocked HTTP, no backing services), run by the new
-`worker-tests` CI job.
+writes points there. The producer-supplied collection name is validated against a
+strict allowlist before it is interpolated into any Qdrant URL (no path, query, or
+whitespace characters, mirroring the `file_url` hardening of ADR-009), and
+confirmed-existing collections are memoised so repeated upserts skip the existence
+check. First Python test harness for `files/`: `test_worker.py` + `conftest.py`
+(respx-mocked HTTP, no backing services), run by the new `worker-tests` CI job.
 
 **Verify.**
 
