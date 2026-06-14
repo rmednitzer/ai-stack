@@ -62,7 +62,7 @@ mapping so the three can no longer drift apart.
 | Value | Meaning |
 |-------|---------|
 | `T0` | Safety / integrity plane — identity and observability (Authelia, OTel Collector) |
-| `T1` | Operational plane — model serving, retrieval, and the decision/agent front door (Open WebUI, Ollama, Qdrant, LangGraph, Pydantic AI) |
+| `T1` | Operational plane — model serving, retrieval, and the decision/agent front door (Open WebUI, Ollama, Qdrant, LangGraph, Pydantic AI, Envoy AI Gateway) |
 | `T2` | Productivity plane — supporting services and datastores (Tika, SearXNG, MCPO, Open Terminal, PostgreSQL, Valkey, ingestion worker) |
 
 **Boundary** (`assurance.platform/boundary`) — the trust boundary the workload sits on:

@@ -1,6 +1,6 @@
 # Multi-User Operations — isolation, cost, and audit retention
 
-**Chart version:** 2.12.0 · **Last reviewed:** 2026-06-09
+**Chart version:** 2.12.0 · **Last reviewed:** 2026-06-14
 
 ai-stack is designed to serve **many users from one deployment**. This guide
 covers the three concerns that a single-user lab does not exercise: **tenant
@@ -27,8 +27,9 @@ Authelia (OIDC + groups) → Open WebUI (role/group mapping) → model & tool ac
 
 - **MUST**: keep `openwebui.env.WEBUI_AUTH: "true"` (the default). Never run a
   multi-user deployment with auth disabled.
-- **SHOULD**: set `DEFAULT_USER_ROLE` to `pending` so new SSO users require admin
-  approval before they can use models.
+- **DEFAULT** (ADR-017): `DEFAULT_USER_ROLE` now ships as `pending`, so new SSO
+  users require admin approval before they can use models. Keep it unless you
+  deliberately auto-activate new accounts.
 
 ---
 

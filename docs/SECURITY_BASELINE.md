@@ -1,6 +1,6 @@
 # ai-stack — Security & Operations Baseline
 
-**Chart version:** 2.12.0 · **Last reviewed:** 2026-06-09
+**Chart version:** 2.12.0 · **Last reviewed:** 2026-06-14
 
 This is the **operator-facing baseline**: the secure-by-default posture the chart
 ships, the validated external standards each default maps to, and the commands to
@@ -44,7 +44,7 @@ verification command (run against a deployed release in namespace `ai-stack`).
 | # | Baseline requirement | ai-stack default | Validated source | Verify |
 |---|----------------------|------------------|------------------|--------|
 | B1 | Pods run unprivileged, non-root, no privilege escalation | `allowPrivilegeEscalation: false`, `runAsNonRoot: true` (documented exceptions in §3), `capabilities.drop: [ALL]`, `seccompProfile: RuntimeDefault` | PSS *Restricted*; CIS K8s Benchmark §5.2; NIST SP 800-190 §4.4 | `kubectl get pods -n ai-stack -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].securityContext.allowPrivilegeEscalation}{"\n"}{end}'` |
-| B2 | Read-only root filesystem where the image supports it | `readOnlyRootFilesystem: true` on Qdrant, Valkey, OTel Collector, ingestion-worker; others mount an `emptyDir` at `/tmp` and drop all caps | CIS K8s §5.2.x; NSA/CISA *Immutable container filesystems* | `kubectl get deploy -n ai-stack -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[*].securityContext.readOnlyRootFilesystem}{"\n"}{end}'` |
+| B2 | Read-only root filesystem where the image supports it | `readOnlyRootFilesystem: true` on Qdrant, Valkey, OTel Collector, ingestion-worker, Pydantic AI; others mount an `emptyDir` at `/tmp` and drop all caps | CIS K8s §5.2.x; NSA/CISA *Immutable container filesystems* | `kubectl get deploy -n ai-stack -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[*].securityContext.readOnlyRootFilesystem}{"\n"}{end}'` |
 | B3 | Per-component identity, no token automount | One `ServiceAccount` per component; `automountServiceAccountToken: false`; no Roles/RoleBindings shipped (no API access by default) | NSA/CISA *RBAC/least privilege*; CIS K8s §5.1; POL-001 | `kubectl get sa -n ai-stack` · `kubectl get rolebindings,clusterrolebindings -A -o wide \| grep ai-stack \|\| echo "none (expected)"` |
 | B4 | Default-deny network, least-privilege allowlists | A namespace-wide `default-deny` (ingress **and** egress) + `allow-dns`, then per-component allowlists | NSA/CISA *Network separation*; CIS K8s §5.3; NIS2 Art. 21(2)(a); CTL-002 | `kubectl get networkpolicy -n ai-stack` · confirm a `…-default-deny` exists |
 | B5 | No hardcoded secrets; stable across upgrades | Auto-generated keys via `ai-stack.persistentSecret` (lookup-stable), `helm.sh/resource-policy: keep`; `existingSecret`/external-store support | OWASP ASVS V6; CIS K8s §5.4; NIST SP 800-190 §4.2 | `helm template ai-stack . \| grep -iE "password\|secret-key\|api-key" \| grep -v secretKeyRef \|\| echo "no inline secrets"` |

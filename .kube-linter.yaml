@@ -7,11 +7,11 @@
 checks:
   exclude:
     # The chart sets readOnlyRootFilesystem=true wherever the upstream image
-    # supports it (qdrant, valkey, otel-collector, ingestion-worker). The
-    # remaining images (Open WebUI, Ollama, Tika, SearXNG, Jupyter, Postgres,
+    # supports it (qdrant, valkey, otel-collector, ingestion-worker, pydanticai).
+    # The remaining images (Open WebUI, Ollama, Tika, SearXNG, Postgres,
     # Authelia, …) require a writable rootfs at runtime; each instead mounts an
     # emptyDir at /tmp and drops all capabilities. Tracking this per-container
-    # is documented in README "Security" rather than via 12 ignore annotations.
+    # is documented in README "Security" rather than via ignore annotations.
     - "no-read-only-root-fs"
     # Ollama (GPU/model management), Tika and SearXNG (upstream entrypoints)
     # run as root by upstream requirement. These are the only such containers
