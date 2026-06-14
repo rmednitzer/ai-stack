@@ -50,6 +50,14 @@ LangGraph splits configuration between the **server** (env) and your **graph cod
   per-run usage limits in the graph you build (`langgraph build` or the
   `graphsVolume`). Validated against `langchain-ai/langgraph`.
 
+## Metrics
+
+The LangGraph server exposes a Prometheus `/metrics` endpoint on its API port
+(part of the default "meta" routes; validated against the upstream docs). When
+`global.serviceMonitor.enabled`, the chart emits a `ServiceMonitor` for it. As
+with the other ServiceMonitors, a Prometheus Operator scrape needs network access
+to the namespace (the chart's in-band metrics path is the OTel Collector).
+
 ## Reference architecture
 
 LangGraph is the **agentic runtime** described in

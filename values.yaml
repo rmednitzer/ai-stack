@@ -253,6 +253,12 @@ authelia:
   service:
     type: ClusterIP
     port: 9091
+  # -- Expose Authelia's built-in Prometheus metrics exporter (port 9959,
+  # path /metrics) and a ServiceMonitor for it. Off by default — Authelia ships
+  # the exporter disabled. The ServiceMonitor additionally requires
+  # global.serviceMonitor.enabled.
+  metrics:
+    enabled: false
   # -- OIDC configuration for Open WebUI
   oidc:
     # -- Client ID for the Open WebUI OIDC client (not secret)

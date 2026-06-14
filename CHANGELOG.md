@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/components/ollama.md` and the hardening guide. No image or chart-version
   change.
 
+- **ServiceMonitor coverage completed for every metrics-exposing component
+  (audit backlog D-3 / R9).** Added a LangGraph `ServiceMonitor` (the server
+  exposes Prometheus `/metrics` on its API port by default) and an **opt-in**
+  Authelia exporter + `ServiceMonitor` (`authelia.metrics.enabled`, default
+  `false` — Authelia ships its `:9959` `/metrics` exporter disabled). The
+  `servicemonitors.yaml` header now records the full coverage matrix: Tika,
+  SearXNG, Valkey, MCPO, Open Terminal, and non-CNPG Postgres expose no native
+  Prometheus endpoint (intentionally uncovered); CNPG self-monitors via its
+  operator PodMonitor. New `tests/servicemonitor_test.yaml`. No image or
+  chart-version change.
+
 - **Full deployment wired into Open WebUI — corrected env wiring, `values-full.yaml`,
   and a full-deployment guide
   ([ADR-015](docs/architecture/ADR-015-openwebui-wiring-full-deployment.md);
