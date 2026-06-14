@@ -65,7 +65,8 @@
       "licenses": [
         {
           "license": {
-            "id": "MIT"
+            "name": "Open WebUI License",
+            "url": "https://github.com/open-webui/open-webui/blob/main/LICENSE"
           }
         }
       ],

@@ -37,6 +37,24 @@ only in `global.otel.exportNamespace` and `global.monitoringNamespace` — set
 your own additive NetworkPolicy with an `ipBlock` egress for the collector
 pods.
 
+### ServiceMonitors and the default-deny policy
+
+The Collector is the **in-band metrics path**: it scrapes each component's
+`/metrics` (the per-component NetworkPolicies admit the Collector's pod selector)
+and re-exports, and is itself the one workload whose NetworkPolicy admits a
+Prometheus scrape from `global.monitoringNamespace` (ports 8888/8889). The
+per-component `ServiceMonitor` resources emitted by `global.serviceMonitor.enabled`
+(Qdrant, Ollama, Open WebUI, LangGraph, opt-in Authelia) are **scrape declarations
+for an external Prometheus Operator** — but the chart's default-deny
+NetworkPolicy does **not** open those component ports to `global.monitoringNamespace`.
+That is deliberate: for Qdrant/Ollama/Open WebUI/LangGraph the `/metrics` endpoint
+shares the component's main API/data port, so admitting the monitoring namespace
+there would broaden access to the data plane, not just metrics. So with
+`networkPolicy.enabled` (the default) those ServiceMonitor scrapes are blocked
+unless **you** add an additive ingress allowance for your Prometheus — prefer
+consuming metrics through the Collector instead. Only Authelia exposes a dedicated
+metrics port (`:9959`); if you scrape it directly, add the ingress allowance for it.
+
 ## Related HOWTO sections
 
 - [§14 Observability](../../HOWTO.md#14-observability)

@@ -197,3 +197,10 @@ The chart deliberately stops at the contracts below; extend at these seams.
 - [Component Reference](../components/README.md)
 - [Governance Controls](../governance/CONTROLS.md)
 - [License Compliance](../compliance/LICENSE_COMPLIANCE.md)
+- **Architecture Decision Records** — the `ADR-*.md` files in this directory record
+  the rationale behind every cross-cutting choice referenced above (image digest
+  pinning, governance-label integrity, the model-egress gateway, Valkey AUTH,
+  ingestion SSRF hardening, supply-chain enforcement, the Ollama model-pull egress
+  gate, …). Consult them before changing a design principle in §1.
+- [Deep-audit snapshots](../audit/AUDIT-2026-06.md) — point-in-time `AUDIT-*.md`
+  reviews (fixes, deferred backlog, dismissed findings)

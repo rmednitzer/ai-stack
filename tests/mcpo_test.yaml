@@ -93,3 +93,8 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].readinessProbe.httpGet.path
           value: /openapi.json
+      # The startupProbe gates liveness/readiness — it must hit /openapi.json too,
+      # or the pod 404s for all failureThreshold attempts and never starts.
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: /openapi.json

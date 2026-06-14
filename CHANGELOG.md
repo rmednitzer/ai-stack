@@ -230,6 +230,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Open WebUI per-file upload cap is now actually enforced (fourth audit, Q-1 —
+  High).** `openwebui.env.FILE_MAX_SIZE: "50"` was inert: open-webui v0.9.6 reads
+  the cap from **`RAG_FILE_MAX_SIZE`** (`os.getenv` in `config.py`) and only stores
+  it on the internal `app.state.config.FILE_MAX_SIZE` attribute, so the 50 MB limit
+  silently never applied (defaulting to unlimited) — an unbounded-upload surface on
+  the attacker-influenced RAG path. Renamed the env key to `RAG_FILE_MAX_SIZE` (the
+  value and MB semantics are unchanged) and added a `notContains FILE_MAX_SIZE`
+  regression assertion; corrected [ADR-015](docs/architecture/ADR-015-openwebui-wiring-full-deployment.md)
+  (with a dated correction note) and the values comment. Verified against the
+  v0.9.6 source. No image or chart-version change.
+
+- **MCPO becomes Ready again (fourth audit, Q-2 — High, opt-in).** The earlier F-1
+  fix moved MCPO's liveness/readiness probes to `/openapi.json` but left the
+  `startupProbe` hardcoded to `GET /`. MCPO's FastAPI returns 404 on `/`, so the
+  startupProbe failed all 20 attempts (~100 s) → CrashLoopBackOff and the
+  liveness/readiness probes never activated. Pointed the startupProbe at
+  `/openapi.json` and added a startupProbe-path assertion to `tests/mcpo_test.yaml`.
+  Affects only `mcpo.enabled=true`. No image or chart-version change.
+
+- **SBOM open-webui license corrected (fourth audit, Q-3).** `sbom.cdx.json`
+  recorded open-webui as `MIT`, contradicting `LICENSE_COMPLIANCE.md` (the custom
+  *Open WebUI License* — BSD-3 + branding, "not MIT") and the 2.12.0 CHANGELOG. The
+  image-parity CI checks tag/digest only, so it could not catch the license slip.
+  Switched to the CycloneDX custom-license form (`name` + `url`). No image or
+  chart-version change.
+
+- **Documentation accuracy sweep (fourth audit, Q-4/Q-5).** Finished the T-1
+  read-only-rootfs correction across the four files it missed (`SECURITY.md`,
+  `ENTERPRISE_EVALUATION.md`, `docs/components/tika.md`, `docs/components/searxng.md`,
+  plus the `DPIA_TEMPLATE.md` "Most components" cell) — Tika and SearXNG render a
+  *writable* rootfs; the read-only set is Qdrant, Valkey, OTel Collector, ingestion
+  worker, Pydantic AI. Fixed `HOWTO.md` §4.4, which wrongly stated web search is
+  "enabled by default" (it ships off — web content is attacker-influenced).
+  Documented the ServiceMonitor/default-deny interaction in `docs/components/otel.md`
+  and on the `serviceMonitor` toggle (audit posture A-9), and linked the ADRs +
+  audit snapshots from `REFERENCE.md`. No image or chart-version change.
+
 - **Pydantic AI reference app uses the current instrumentation API (audit
   backlog D-2).** `files/pydanticai/app.py` built the agent with
   `Agent(instrument=…)`, deprecated since pydantic-ai 1.106 (the pinned version)

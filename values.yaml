@@ -72,7 +72,12 @@ global:
   networkPolicy:
     enabled: true
 
-  # -- Prometheus ServiceMonitor (requires Prometheus Operator CRDs)
+  # -- Prometheus ServiceMonitor (requires Prometheus Operator CRDs). NOTE: with
+  #    networkPolicy.enabled (the default), the default-deny policy does NOT open
+  #    component ports to global.monitoringNamespace, so a direct Prometheus scrape
+  #    of these ServiceMonitor targets is blocked — the OTel Collector is the
+  #    supported in-band metrics path. See docs/components/otel.md (ServiceMonitors
+  #    and the default-deny policy) before relying on direct scraping.
   serviceMonitor:
     enabled: false
     # -- Additional labels for ServiceMonitor resources (match your Prometheus selector)
@@ -471,11 +476,14 @@ openwebui:
     # --- Agentic / tool configuration ---
     # -- Enable function/tool calling
     ENABLE_TOOLS: "true"
-    # -- Maximum upload size per file, in MEGABYTES (50 MB). Open WebUI renamed
-    #    MAX_UPLOAD_SIZE (which was bytes) to FILE_MAX_SIZE (MB) and multiplies by
-    #    1024*1024 internally (validated against open-webui config.py + frontend),
-    #    so this is "50", not the old byte count.
-    FILE_MAX_SIZE: "50"
+    # -- Maximum upload size per file, in MEGABYTES (50 MB). The env var open-webui
+    #    reads is RAG_FILE_MAX_SIZE; it is parsed with os.getenv and stored as the
+    #    internal app.state.config.FILE_MAX_SIZE, enforced as value*1024*1024 bytes
+    #    (validated against open-webui v0.9.6 config.py). The bare FILE_MAX_SIZE name
+    #    (the internal attribute) is NOT read from the environment, and the older
+    #    MAX_UPLOAD_SIZE (bytes) is gone — so the cap must be set as "50" (MB) under
+    #    the RAG_FILE_MAX_SIZE key, otherwise the upload limit is silently unenforced.
+    RAG_FILE_MAX_SIZE: "50"
 
     # --- EU Compliance: AI Act Art. 50(1) transparency disclosure ---
     # -- Persistent banner informing users they are interacting with an AI system

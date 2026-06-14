@@ -23,8 +23,12 @@ Privacy-respecting metasearch engine used by Open WebUI and LangGraph for web se
 
 ## Security
 
-- Read-only root filesystem enforced
-- Egress NetworkPolicy allows only HTTPS (443) to search engines
+- Writable root filesystem (`readOnlyRootFilesystem: false`) — SearXNG's container
+  drops privileges from root at startup (it re-adds only `SETUID`/`SETGID` for that
+  drop; all other capabilities are dropped). Tracked as an upstream-driven exception
+  via `assurance.platform/security-exception: searxng-requires-root`
+- Egress NetworkPolicy allows only `:443`/`:80` to search engines (plus Valkey when
+  session state is enabled); all other egress is denied by the namespace default-deny
 - No query logging; session state held in Valkey when enabled
 
 ## Licensing note

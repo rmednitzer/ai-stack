@@ -27,8 +27,10 @@ were therefore silently ignored on the pinned image (`v0.9.6`):
 - `WEBUI_BANNER_TEXT` / `WEBUI_BANNER_DISMISSIBLE` → `WEBUI_BANNERS` (a JSON list).
   **The AI Act Art. 50(1) transparency banner never rendered** — a compliance
   claim that was not actually met.
-- `MAX_UPLOAD_SIZE` (bytes) → `FILE_MAX_SIZE` (**megabytes**). The upload cap was
-  ignored, and a naive rename carrying the byte value would have set a ~50 TB cap.
+- `MAX_UPLOAD_SIZE` (bytes) → `RAG_FILE_MAX_SIZE` (**megabytes**). The upload cap
+  was ignored, and a naive rename carrying the byte value would have set a ~50 TB
+  cap. (See the 2026-06-14 correction below: the env var is `RAG_FILE_MAX_SIZE`,
+  not the bare `FILE_MAX_SIZE`, which is only open-webui's *internal* config name.)
 
 The embedding, top-k, hybrid/rerank, content-extraction, and Qdrant vars were
 verified **current** and left unchanged.
@@ -51,7 +53,7 @@ in workload manifests).
 
 1. **Correct the stale Open WebUI env vars** in `values.yaml`, each annotated as
    validated against `open-webui` `config.py`: add `ENABLE_WEB_SEARCH`, rename to
-   `WEB_SEARCH_ENGINE`, `CHUNK_SIZE` / `CHUNK_OVERLAP`, `FILE_MAX_SIZE` (in MB,
+   `WEB_SEARCH_ENGINE`, `CHUNK_SIZE` / `CHUNK_OVERLAP`, `RAG_FILE_MAX_SIZE` (in MB,
    value `50`), and convert the AI Act banner to `WEBUI_BANNERS` (a JSON array
    carrying the same disclosure). Fix every doc reference to the old names. The
    worker's own `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP` (a separate contract it
@@ -136,3 +138,18 @@ in workload manifests).
 - A shipped overlay enables the agent path in production — revisit whether the
   worker → agent collection contract should be asserted by a test beyond the
   shared default.
+
+## Correction (2026-06-14, fourth audit pass)
+
+This ADR originally named the upload-cap env var `FILE_MAX_SIZE`. That is wrong:
+open-webui v0.9.6 reads the upload cap from **`RAG_FILE_MAX_SIZE`** (`os.getenv`
+in `config.py`) and merely *stores* it on the internal attribute
+`app.state.config.FILE_MAX_SIZE`. The bare `FILE_MAX_SIZE` name is never read from
+the environment, so the chart's `FILE_MAX_SIZE: "50"` was inert and the 50 MB cap
+was silently unenforced (defaulting to unlimited). The decision (cap at 50 MB,
+expressed in megabytes) is unchanged; only the key is corrected to
+`RAG_FILE_MAX_SIZE`. Re-verified against the v0.9.6 source; pinned by a
+`notContains FILE_MAX_SIZE` regression assertion in `tests/openwebui_wiring_test.yaml`.
+This is exactly the failure class — a wired-but-wrong env name — this ADR was
+written to eliminate; the lesson is that an env-var rename must be checked against
+the upstream `os.getenv` call, not the internal config attribute it populates.

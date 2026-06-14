@@ -21,8 +21,10 @@ Document text-extraction service. Called by Open WebUI, LangGraph, and the inges
 
 ## Security
 
-- Stateless, read-only root filesystem enforced
-- No persistent storage; documents stream through
+- Stateless; no persistent storage, documents stream through
+- Writable root filesystem (`readOnlyRootFilesystem: false`) — the Tika server
+  writes temp/extraction state at runtime; it still drops all capabilities and
+  runs with `allowPrivilegeEscalation: false` and `seccompProfile: RuntimeDefault`
 - Dedicated ServiceAccount, `automountServiceAccountToken: false`
 
 ## Related HOWTO sections
