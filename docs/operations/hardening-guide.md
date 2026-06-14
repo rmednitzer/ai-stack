@@ -87,6 +87,12 @@ adjusting the `endpointSelector` and FQDNs, for langgraph, searxng, and the
 ingestion worker. An Istio egress gateway with `ServiceEntry` + `Sidecar`
 allowlists is the mesh-native equivalent.
 
+**Ollama — close instead of narrow.** Ollama's only egress is `:443` for runtime
+model pulls. Rather than narrowing it with an FQDN policy, you can close it
+outright: set `ollama.allowModelPullEgress: false` (default `true`) to drop the
+egress rule, pre-pull models into the PVC, and let the default-deny isolate
+Ollama to DNS only ([ADR-019](../architecture/ADR-019-ollama-model-pull-egress.md)).
+
 **Rollback.** Remove the FQDN policy; the chart's L3/L4 default-deny remains.
 
 ## B7 — In-cluster mTLS

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ollama runtime model-pull egress is now gateable
+  ([ADR-019](docs/architecture/ADR-019-ollama-model-pull-egress.md); audit backlog
+  D-1 / posture A-8).** New opt-out `ollama.allowModelPullEgress` (**default
+  `true`**, behaviour-preserving) gates the Ollama `:443` egress rule — the one
+  outbound connection Ollama needs, for `ollama pull` from `registry.ollama.ai`.
+  Set `false` in regulated / air-gapped clusters with pre-pulled models: the
+  egress rule is dropped and the namespace default-deny isolates Ollama to DNS
+  only. This is the L3/L4 *close* alternative to the B6 FQDN *narrow* layer.
+  Asserted both ways in `tests/networkpolicy_test.yaml`; documented in
+  `docs/components/ollama.md` and the hardening guide. No image or chart-version
+  change.
+
 - **Full deployment wired into Open WebUI — corrected env wiring, `values-full.yaml`,
   and a full-deployment guide
   ([ADR-015](docs/architecture/ADR-015-openwebui-wiring-full-deployment.md);
