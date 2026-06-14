@@ -128,3 +128,41 @@ def test_default_system_prompt_is_grounded_and_transparent() -> None:
     assert "tool" in prompt  # instructs tool use
     assert "ai" in prompt  # AI-transparency (AI Act)
     assert "human" in prompt  # "do not claim to be human"
+
+
+def test_agent_built_with_capabilities_not_deprecated_instrument() -> None:
+    """app.py must build the Agent with the current `capabilities=[Instrumentation()]`
+    API, not the deprecated `instrument=` kwarg (which warns since pydantic-ai 1.106
+    and is removed in 2.0). The other tests import `app` once and would not catch a
+    regression — `instrument=` only *warns* — so import it in a subprocess with
+    PydanticAIDeprecationWarning promoted to an error."""
+    import os
+    import subprocess
+    import sys
+
+    env = {
+        **os.environ,
+        "TIKA_SERVER_URL": "http://tika.test:9998",
+        "OLLAMA_BASE_URL": "http://ollama.test:11434",
+        "QDRANT_URI": "http://qdrant.test:6333",
+    }
+    code = (
+        "import warnings\n"
+        "try:\n"
+        "    from pydantic_ai import PydanticAIDeprecationWarning\n"
+        "except ImportError:\n"
+        "    from pydantic_ai.capabilities import PydanticAIDeprecationWarning\n"
+        "warnings.filterwarnings('error', category=PydanticAIDeprecationWarning)\n"
+        "import app\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=os.path.dirname(__file__),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, (
+        "importing app.py raised a PydanticAIDeprecationWarning — likely a revert "
+        f"to the deprecated instrument= kwarg:\n{result.stderr}"
+    )
