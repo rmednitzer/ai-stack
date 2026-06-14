@@ -71,8 +71,14 @@ spec:
             - "--config"
             - "/config/config.json"
           startupProbe:
+            # MCPO is a FastAPI gateway with no GET / route (returns 404); probe
+            # the framework-generated /openapi.json (200, present even with an
+            # empty mcpServers set) so the startupProbe can succeed and let the
+            # liveness/readiness probes activate. Probing / here would 404 for all
+            # failureThreshold attempts → CrashLoopBackOff, pod never Ready. This
+            # mirrors the liveness/readiness path fixed in the F-1 audit change.
             httpGet:
-              path: /
+              path: /openapi.json
               port: http
             failureThreshold: 20
             periodSeconds: 5

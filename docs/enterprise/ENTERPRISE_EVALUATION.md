@@ -25,7 +25,7 @@ alignment with governance, security, observability, and operational requirements
 | NetworkPolicy default-deny | Per-component ingress + egress allowlists |
 | Secret auto-generation | Keys for Open WebUI, Qdrant, SearXNG, Open Terminal, MCPO, LangGraph, Pydantic AI, PostgreSQL, and Authelia (stable across upgrades; external secret stores supported) |
 | Service account isolation | Per-component, `automountServiceAccountToken: false` |
-| Read-only root filesystem | Qdrant, Valkey, Tika, SearXNG, OTel Collector |
+| Read-only root filesystem | Qdrant, Valkey, OTel Collector, ingestion worker, Pydantic AI (others need a writable rootfs at runtime; all drop `ALL` caps) |
 | Telemetry opt-out | `DO_NOT_TRACK`, `SCARF_NO_ANALYTICS`, `ANONYMIZED_TELEMETRY: false` |
 | Ingress rate limiting | Envoy Gateway rate-limit annotations in prod |
 | Ollama root exception | Documented via `assurance.platform/security-exception` annotation |

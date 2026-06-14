@@ -188,7 +188,7 @@ Does the system produce decisions with legal or similarly significant effects?
 | Per-component service accounts | Art. 32(1)(b) | Implemented |
 | PII redaction in telemetry | Art. 5(1)(c) | OTel Collector |
 | Authentication required | Art. 32(1)(b) | `WEBUI_AUTH=true` |
-| Read-only root filesystem | Art. 32(1)(b) | Most components |
+| Read-only root filesystem | Art. 32(1)(b) | Stateless components (Qdrant, Valkey, OTel, workers) |
 | Secret auto-generation | Art. 32(1)(a) | 64-byte keys |
 | Backup and disaster recovery | Art. 32(1)(c) | PVC snapshots via Velero |
 | Health monitoring | Art. 32(1)(d) | OTel + Prometheus |

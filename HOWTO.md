@@ -470,9 +470,17 @@ openwebui:
 
 ### 4.4 Enable Web Search
 
-Web search via SearXNG is enabled by default. It allows the AI to search the internet for answers when document retrieval is insufficient.
+Web search via SearXNG is **disabled by default** (opt-in). The SearXNG backend is
+deployed, but Open WebUI's web-search feature ships off (`ENABLE_WEB_SEARCH: "false"`)
+because web content is attacker-influenced — fetched pages can carry indirect prompt
+injection (see [SECURITY.md](SECURITY.md) and [LIMITATIONS.md](LIMITATIONS.md)). When
+enabled, it lets the AI search the internet for answers when document retrieval is
+insufficient.
 
-To use web search in a conversation, type a question and enable the "Web Search" toggle in the chat interface, or configure it as the default behavior in Admin Panel settings.
+To turn it on, set `openwebui.env.ENABLE_WEB_SEARCH: "true"` (the `values-full.yaml`
+overlay does this, along with result-count/concurrency tuning). Then, in a
+conversation, enable the "Web Search" toggle in the chat interface, or configure it
+as the default behavior in Admin Panel settings.
 
 ---
 

@@ -117,7 +117,11 @@ The ai-stack implements the following security controls by default:
   and `boundary` labels plus a `control-refs` annotation (on both the controller
   and its pods) that resolve to the CTL/POL registry in
   [CONTROLS.md](docs/governance/CONTROLS.md)
-- **Read-only filesystem:** Enforced where possible (Qdrant, Valkey, Tika, SearXNG, OTel)
+- **Read-only filesystem:** Enforced where the image permits (Qdrant, Valkey, OTel
+  Collector, the ingestion worker, Pydantic AI). Open WebUI, Ollama, Tika, SearXNG,
+  PostgreSQL, and Authelia need a writable rootfs at runtime; each still drops all
+  capabilities and mounts an `emptyDir` at `/tmp` (annotated
+  `assurance.platform/security-exception` where it also runs as root)
 - **CORS:** Open Terminal origins are scoped to the Open WebUI origin (never `*`)
 - **Supply chain security:** CycloneDX SBOM, Syft deep SBOMs, a **blocking** CVE
   gate (Grype, fails on critical with a time-boxed `.grype.yaml` exception path),
