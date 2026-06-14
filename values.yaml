@@ -253,6 +253,12 @@ authelia:
   service:
     type: ClusterIP
     port: 9091
+  # -- Expose Authelia's built-in Prometheus metrics exporter (port 9959,
+  # path /metrics) and a ServiceMonitor for it. Off by default — Authelia ships
+  # the exporter disabled. The ServiceMonitor additionally requires
+  # global.serviceMonitor.enabled.
+  metrics:
+    enabled: false
   # -- OIDC configuration for Open WebUI
   oidc:
     # -- Client ID for the Open WebUI OIDC client (not secret)
@@ -555,6 +561,15 @@ ollama:
   service:
     type: ClusterIP
     port: 11434
+  # -- Allow Ollama egress to the internet on :443 so it can pull models at
+  # runtime (`ollama pull` from registry.ollama.ai). This is the only outbound
+  # connection Ollama needs (DNS is allowed separately by the shared allow-dns
+  # policy). Leave `true` for the default out-of-box experience. Set `false` in
+  # regulated / air-gapped clusters where models are pre-pulled into the
+  # persistent volume (or pulled via a mirror) and no runtime egress is
+  # permitted — the namespace default-deny then isolates Ollama to DNS only.
+  # See ADR-019.
+  allowModelPullEgress: true
   # -- GPU resources (NVIDIA)
   gpu:
     enabled: false

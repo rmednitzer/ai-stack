@@ -24,6 +24,12 @@ data:
     theme: light
     server:
       address: tcp://0.0.0.0:9091
+    {{- if .Values.authelia.metrics.enabled }}
+    telemetry:
+      metrics:
+        enabled: true
+        address: 'tcp://0.0.0.0:9959/metrics'
+    {{- end }}
     log:
       level: info
     authentication_backend:

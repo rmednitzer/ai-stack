@@ -21,6 +21,17 @@ OpenID Connect identity provider for Open WebUI SSO and optional MFA. Uses Valke
 | `authelia.oidc.{clientId,issuerUrl}` | OIDC integration with Open WebUI |
 | `authelia.ingress.*` | Ingress / Gateway API configuration |
 | `authelia.users` | Optional inline file-based user list |
+| `authelia.metrics.enabled` | Expose Authelia's built-in Prometheus exporter on `:9959` `/metrics` + a ServiceMonitor (opt-in, default `false`; ServiceMonitor also needs `global.serviceMonitor.enabled`) |
+
+## Metrics
+
+Authelia ships a built-in Prometheus exporter, **disabled by default**. Set
+`authelia.metrics.enabled: true` to enable it (`telemetry.metrics` in the rendered
+config), expose port `9959` (`/metrics`) on the Service, and emit a
+`ServiceMonitor` (the last also needs `global.serviceMonitor.enabled`). The
+chart's default-deny NetworkPolicy is unchanged, so a Prometheus Operator scrape
+needs network access to the namespace — operator-owned, like the other
+ServiceMonitors (the in-band metrics path is the OTel Collector).
 
 ## Secrets
 

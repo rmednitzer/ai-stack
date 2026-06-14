@@ -1,0 +1,87 @@
+suite: ServiceMonitor coverage (audit 2026-06-14, D-3 / R9)
+# Locks in the ServiceMonitor completeness work:
+#   - LangGraph exposes /metrics on its API port (on by default upstream), so a
+#     ServiceMonitor is emitted whenever langgraph + global.serviceMonitor are on.
+#   - Authelia's built-in Prometheus exporter is opt-in (authelia.metrics.enabled,
+#     default false). When on, the telemetry block, the :9959 Service port, and a
+#     ServiceMonitor appear; when off (the default) none of them render.
+release:
+  name: ai-stack
+  namespace: ai-stack
+templates:
+  - templates/otel/servicemonitors.yaml
+  - templates/authelia/configmap.yaml
+  - templates/authelia/deployment.yaml
+tests:
+  - it: emits a LangGraph ServiceMonitor scraping /metrics on the API port
+    set:
+      langgraph.enabled: true
+      global.serviceMonitor.enabled: true
+    template: templates/otel/servicemonitors.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-langgraph
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: spec.endpoints[0].port
+          value: http
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+
+  - it: emits an Authelia ServiceMonitor on the metrics port when metrics are enabled
+    set:
+      authelia.enabled: true
+      authelia.metrics.enabled: true
+      global.serviceMonitor.enabled: true
+    template: templates/otel/servicemonitors.yaml
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-authelia
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: spec.endpoints[0].port
+          value: metrics
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+
+  - it: enables Authelia's built-in metrics exporter only when authelia.metrics.enabled
+    set:
+      authelia.enabled: true
+      authelia.metrics.enabled: true
+    template: templates/authelia/configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["configuration.yml"]
+          pattern: "tcp://0.0.0.0:9959/metrics"
+
+  - it: ships Authelia with the metrics exporter disabled by default (no telemetry block)
+    set:
+      authelia.enabled: true
+    template: templates/authelia/configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["configuration.yml"]
+          pattern: "telemetry:"
+
+  - it: exposes the Authelia metrics Service port only when metrics are enabled
+    set:
+      authelia.enabled: true
+      authelia.metrics.enabled: true
+    template: templates/authelia/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: metrics
+            port: 9959
+            targetPort: metrics
+            protocol: TCP

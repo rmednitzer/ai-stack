@@ -300,10 +300,15 @@ spec:
       ports:
         - protocol: TCP
           port: 11434
+  {{- if .Values.ollama.allowModelPullEgress }}
   egress:
+    # Runtime model pull from registry.ollama.ai over :443 (ADR-019). DNS is
+    # permitted by the shared allow-dns policy; with this gate off the namespace
+    # default-deny isolates Ollama to DNS only (pre-pull models into the PVC).
     - ports:
         - protocol: TCP
           port: 443
+  {{- end }}
 {{- end }}
 
 # =============================================================================

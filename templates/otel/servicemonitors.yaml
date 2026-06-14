@@ -7,6 +7,15 @@ Aligns with:
   - stack-bom.md §5: Prometheus + Alertmanager (T0)
   - observability-iam.md §3.4: metrics architecture
   - CTL-001: Logging legality, minimisation, and forensic correlation
+
+Coverage (audit 2026-06-14, D-3 / R9): otel-collector, Qdrant, Ollama, Open WebUI,
+and LangGraph expose Prometheus /metrics on their service port; Authelia exposes
+its built-in exporter on :9959 when authelia.metrics.enabled. CNPG Postgres
+self-monitors via the operator PodMonitor (postgres.cnpg.monitoring). Tika,
+SearXNG, Valkey, MCPO, Open Terminal, and non-CNPG Postgres expose no native
+Prometheus endpoint and are intentionally uncovered. These are scrape
+declarations for a Prometheus Operator — its Prometheus needs network access to
+the target namespace; the chart's in-band metrics path is the OTel Collector.
 */}}
 
 {{- if .Values.global.serviceMonitor.enabled }}
@@ -104,6 +113,52 @@ spec:
       {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "openwebui") | nindent 6 }}
   endpoints:
     - port: http
+      interval: 30s
+      path: /metrics
+{{- end }}
+
+{{/* LangGraph metrics — built-in /metrics on the API port, on by default (audit D-3) */}}
+{{- if .Values.langgraph.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "langgraph") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "langgraph") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "langgraph") | nindent 6 }}
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+{{- end }}
+
+{{/* Authelia metrics — opt-in built-in Prometheus exporter on :9959 (audit D-3) */}}
+{{- if and .Values.authelia.enabled .Values.authelia.metrics.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ai-stack.componentName" (dict "Release" .Release "Chart" .Chart "component" "authelia") }}
+  labels:
+    {{- include "ai-stack.labels" . | nindent 4 }}
+    {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 4 }}
+    {{- with .Values.global.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-stack.selectorLabels" (dict "Release" .Release "component" "authelia") | nindent 6 }}
+  endpoints:
+    - port: metrics
       interval: 30s
       path: /metrics
 {{- end }}

@@ -94,3 +94,26 @@ tests:
       - equal:
           path: spec.egress[0].to[1].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
           value: monitoring
+
+  - it: permits Ollama runtime model-pull egress on :443 by default (ADR-019)
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-ollama
+    asserts:
+      - equal:
+          path: spec.egress[0].ports[0].port
+          value: 443
+  - it: closes Ollama model-pull egress when allowModelPullEgress is false (air-gapped)
+    set:
+      ollama.allowModelPullEgress: false
+    documentSelector:
+      path: metadata.name
+      value: ai-stack-ollama
+    asserts:
+      # policyTypes still lists Egress; with no egress rules the namespace
+      # default-deny isolates Ollama to DNS only (the shared allow-dns policy).
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - notExists:
+          path: spec.egress
