@@ -109,6 +109,11 @@ tests:
           content:
             name: WEB_SEARCH_DOMAIN_FILTER_LIST
             value: "[]"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WEB_SEARCH_CONCURRENT_REQUESTS
+            value: "10"
 
   # --- ADR-017: governed signup defaults + Open WebUI OTel activation ---
   - it: pins the governed signup defaults (pending role; signup toggle present)

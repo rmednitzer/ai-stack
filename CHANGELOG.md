@@ -207,6 +207,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Audit 2026-06-14 — corrected a false read-only-rootfs claim and closed two
+  test-coverage gaps
+  ([AUDIT-2026-06.md](docs/audit/AUDIT-2026-06.md) third pass).** The README,
+  `SECURITY_BASELINE.md` (B2), and `.kube-linter.yaml` "read-only root filesystem"
+  lists claimed Tika and SearXNG (both render `readOnlyRootFilesystem: false`) and
+  omitted the ingestion worker and Pydantic AI (both `true`) — corrected to the
+  rendered reality. Added a `runAsNonRoot: true` regression guard for the
+  non-excepted workloads (kube-linter excludes the `run-as-non-root` check
+  globally, so nothing else caught a silent drop to root) and the missing
+  `WEB_SEARCH_CONCURRENT_REQUESTS` assertion (ADR-017). Added Envoy AI Gateway to
+  the CONTROLS.md T1 tier description (already `T1/model-serving` in `_helpers.tpl`
+  and the governance tests). All supply-chain/version/governance invariants
+  re-verified green (17-image values↔SBOM↔Zarf parity, Grype exceptions, the
+  `files/` payload test suites). No image or chart-version change.
+
 - **Ingestion worker now bootstraps its Qdrant collection
   ([runbook](docs/operations/RUNBOOK-remediation.md) A3).** On the opt-in
   ingestion-worker → Pydantic AI RAG path nothing created the Qdrant collection,

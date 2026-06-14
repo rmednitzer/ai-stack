@@ -10,6 +10,10 @@ suite: availability + telemetry redaction hardening
 #   4. The helm-test hook image is digest-pinned (ADR-002) — and the hook
 #      template renders at all (a bare `tests/` .helmignore pattern silently
 #      dropped templates/tests/ from the chart before 2.12.0).
+#   5. runAsNonRoot stays true on the non-excepted workloads — kube-linter
+#      excludes the run-as-non-root check globally (for the Ollama/Tika/SearXNG
+#      root exceptions), so this is the only regression guard against a workload
+#      silently dropping to root.
 release:
   name: ai-stack
   namespace: ai-stack
@@ -144,3 +148,50 @@ tests:
       - equal:
           path: spec.template.spec.volumes[?(@.name=="deps")].emptyDir.sizeLimit
           value: 1Gi
+  # runAsNonRoot regression guard (audit 2026-06-14): kube-linter excludes the
+  # run-as-non-root check globally (Ollama/Tika/SearXNG are the documented root
+  # exceptions), so a new or changed workload silently regressing to root would
+  # not be caught in CI. Lock runAsNonRoot=true here for the non-excepted
+  # workloads this suite already renders.
+  - it: enforces runAsNonRoot on the Open WebUI workload (root excluded globally in kube-linter)
+    template: templates/openwebui/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+  - it: enforces runAsNonRoot on the OTel Collector workload
+    set:
+      global.otel.enabled: true
+    template: templates/otel/otel-collector.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+  - it: enforces runAsNonRoot on the Pydantic AI workload
+    set:
+      pydanticai.enabled: true
+    template: templates/pydanticai/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+  - it: enforces runAsNonRoot on the ingestion worker workload
+    set:
+      ingestionWorker.enabled: true
+    template: templates/ingestion-worker/deployment.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true

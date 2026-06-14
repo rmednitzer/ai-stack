@@ -545,7 +545,7 @@ This chart is designed for regulated environments:
 
 - **Network isolation**: Default-deny ingress and egress with per-component allowlists
 - **Pod Security**: PSA restricted baseline — `runAsNonRoot`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, capabilities `drop: [ALL]`
-- **Read-only root filesystem**: Enforced for Qdrant, Valkey, Tika, SearXNG, OTel Collector
+- **Read-only root filesystem**: Enforced for Qdrant, Valkey, OTel Collector, the ingestion worker, and Pydantic AI (main containers); Open WebUI, Ollama, Tika, SearXNG, PostgreSQL, and Authelia require a writable rootfs at runtime and instead mount an `emptyDir` at `/tmp` and drop all capabilities (SearXNG alone re-adds `SETUID`/`SETGID` for its upstream startup privilege-drop)
 - **Identity isolation**: Per-component ServiceAccounts with `automountServiceAccountToken: false`
 - **Secret management**: Auto-generated 64-byte credentials with support for external secret stores
 - **PII redaction**: OTel Collector strips email addresses, SSNs, and credit card numbers from telemetry (GDPR Art 5(1)(c))
