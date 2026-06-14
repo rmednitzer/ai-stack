@@ -40,6 +40,7 @@ from pydantic_ai import (
     UsageLimitExceeded,
     UsageLimits,
 )
+from pydantic_ai.capabilities import Instrumentation
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -197,7 +198,10 @@ agent = Agent(
     deps_type=AgentDeps,
     instructions=SYSTEM_PROMPT,
     model_settings=_MODEL_SETTINGS,
-    instrument=_OTEL,
+    # Instrumentation is a capability since pydantic-ai 1.106; the deprecated
+    # `instrument=` kwarg warns now and is removed in 2.0. _OTEL is the bool
+    # from _setup_otel() — on => the Instrumentation capability, off => none.
+    capabilities=[Instrumentation()] if _OTEL else [],
 )
 
 # Shown when a run hits a configured ceiling. A bound is expected behaviour, not

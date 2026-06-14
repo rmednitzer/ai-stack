@@ -230,6 +230,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pydantic AI reference app uses the current instrumentation API (audit
+  backlog D-2).** `files/pydanticai/app.py` built the agent with
+  `Agent(instrument=…)`, deprecated since pydantic-ai 1.106 (the pinned version)
+  and removed in 2.0 — it emitted a `PydanticAIDeprecationWarning` on every
+  startup. Switched to `capabilities=[Instrumentation()] if _OTEL else []`
+  (verified warning-free on the shipped `pydantic-ai-slim==1.106.0`; no
+  dependency bump needed). A new subprocess test promotes the warning to an error
+  so a revert is caught (the prior suite only *warned*). No image or
+  chart-version change.
+
 - **Audit 2026-06-14 — corrected a false read-only-rootfs claim and closed two
   test-coverage gaps
   ([AUDIT-2026-06.md](docs/audit/AUDIT-2026-06.md) third pass).** The README,
