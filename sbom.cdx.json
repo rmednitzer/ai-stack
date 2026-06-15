@@ -438,9 +438,9 @@
       "type": "container",
       "bom-ref": "cnpg-postgresql",
       "name": "postgresql",
-      "version": "18@sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3",
+      "version": "18@sha256:c4d03ff9119154edbdae8879313cdf0aa5143a26e7ae400ca3ebe22dfc680a73",
       "description": "CloudNativePG PostgreSQL operand image (postgres.mode=cnpg HA cluster; the CNPG operator itself is BYO)",
-      "purl": "pkg:docker/cloudnative-pg/postgresql@18?checksum=sha256:afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3&repository_url=ghcr.io",
+      "purl": "pkg:docker/cloudnative-pg/postgresql@18?checksum=sha256:c4d03ff9119154edbdae8879313cdf0aa5143a26e7ae400ca3ebe22dfc680a73&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -477,7 +477,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "afbcd2ca3827991317113ba8a90348f321b13a9698c39aaac8c089837a4e07f3"
+          "content": "c4d03ff9119154edbdae8879313cdf0aa5143a26e7ae400ca3ebe22dfc680a73"
         }
       ]
     },
