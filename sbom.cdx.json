@@ -101,9 +101,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.30.8@sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c",
+      "version": "0.30.9@sha256:1a72f129b5f18e4552a15fb9356c23c16513aa54400b9538897990fb597b5df2",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.30.8?checksum=sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c",
+      "purl": "pkg:docker/ollama/ollama@0.30.9?checksum=sha256:1a72f129b5f18e4552a15fb9356c23c16513aa54400b9538897990fb597b5df2",
       "licenses": [
         {
           "license": {
@@ -134,7 +134,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c"
+          "content": "1a72f129b5f18e4552a15fb9356c23c16513aa54400b9538897990fb597b5df2"
         }
       ]
     },
@@ -397,9 +397,9 @@
       "type": "container",
       "bom-ref": "postgres",
       "name": "postgres",
-      "version": "18-alpine@sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88",
+      "version": "18-alpine@sha256:d3e64d36360a9f40c30fbbc5dd2dde799fe35f8537500c8b067551a6497f50f4",
       "description": "PostgreSQL for LangGraph checkpoint persistence",
-      "purl": "pkg:docker/library/postgres@18-alpine?checksum=sha256:96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88&repository_url=docker.io",
+      "purl": "pkg:docker/library/postgres@18-alpine?checksum=sha256:d3e64d36360a9f40c30fbbc5dd2dde799fe35f8537500c8b067551a6497f50f4&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -430,7 +430,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "96d56f7f57c6aacd1fcb908bc83b345ec5f83231ee486dd66a1baadce274db88"
+          "content": "d3e64d36360a9f40c30fbbc5dd2dde799fe35f8537500c8b067551a6497f50f4"
         }
       ]
     },
