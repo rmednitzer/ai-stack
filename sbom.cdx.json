@@ -649,9 +649,9 @@
       "type": "container",
       "bom-ref": "pydanticai",
       "name": "uv",
-      "version": "python3.13-trixie-slim@sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78",
+      "version": "python3.13-trixie-slim@sha256:7820aa74c8a3147ab13553c127432656969548971fbe350ba46a975b59dd42b2",
       "description": "Pydantic AI agentic runtime base image (Astral uv + Python) — MIT-licensed alternative to the LangGraph runtime",
-      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78&repository_url=ghcr.io",
+      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:7820aa74c8a3147ab13553c127432656969548971fbe350ba46a975b59dd42b2&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -691,7 +691,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78"
+          "content": "7820aa74c8a3147ab13553c127432656969548971fbe350ba46a975b59dd42b2"
         }
       ]
     },
