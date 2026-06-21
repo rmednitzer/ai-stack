@@ -127,7 +127,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:29b42d1b8d1b38d2240abd2e636bb90b42c72d729e6f9c10983e503184027f78
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:7820aa74c8a3147ab13553c127432656969548971fbe350ba46a975b59dd42b2
       - docker.io/library/postgres:18-alpine@sha256:1b1689b20d16a014a3d195653381cf2caa75a41a92d93b255a9d6ea29fd353aa
 
   # ---------------------------------------------------------------------------
