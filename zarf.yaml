@@ -236,5 +236,5 @@ components:
             description: "Maps the AI_GATEWAY_ENABLED variable to aiGateway.enabled"
             path: aiGateway.enabled
     images:
-      - docker.io/envoyproxy/ai-gateway-controller:v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3
+      - docker.io/envoyproxy/ai-gateway-controller:v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0
       - docker.io/envoyproxy/ai-gateway-extproc:v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29
