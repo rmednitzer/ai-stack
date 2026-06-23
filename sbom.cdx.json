@@ -699,9 +699,9 @@
       "type": "container",
       "bom-ref": "ai-gateway-controller",
       "name": "ai-gateway-controller",
-      "version": "v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3",
+      "version": "v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0",
       "description": "Envoy AI Gateway controller for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart, installed by the platform from the upstream controller chart.",
-      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v0.7.0?checksum=sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3&repository_url=docker.io",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v1.0.0?checksum=sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -732,7 +732,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3"
+          "content": "8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0"
         }
       ]
     },
