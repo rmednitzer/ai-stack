@@ -180,7 +180,7 @@ aiGateway:
   controller:
     image:
       repository: docker.io/envoyproxy/ai-gateway-controller
-      tag: "v0.7.0@sha256:9a85d1916132424ff1b356fd43be4e193ca321aa712c56914f277b74af9553f3"
+      tag: "v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0"
   extproc:
     image:
       repository: docker.io/envoyproxy/ai-gateway-extproc
