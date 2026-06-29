@@ -184,7 +184,7 @@ aiGateway:
   extproc:
     image:
       repository: docker.io/envoyproxy/ai-gateway-extproc
-      tag: "v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29"
+      tag: "v1.0.0@sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e"
 
   # -- Pre-existing Gateway(s) the AIGatewayRoute attaches to (BYO; not
   # provisioned by this chart). At least one entry is required when enabled.
