@@ -237,4 +237,4 @@ components:
             path: aiGateway.enabled
     images:
       - docker.io/envoyproxy/ai-gateway-controller:v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0
-      - docker.io/envoyproxy/ai-gateway-extproc:v0.7.0@sha256:7d18fdcbec0bc98f161827ff1b3a6523a86c5871c73891e42650b2b976113b29
+      - docker.io/envoyproxy/ai-gateway-extproc:v1.0.0@sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e
