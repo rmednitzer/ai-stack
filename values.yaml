@@ -565,7 +565,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.30.10@sha256:bfc9c6d53cc6989aa5131a6fde6b162b2802d4d337657f3253b5f69579bddeee"
+    tag: "0.30.11@sha256:c484b703176aa19dfc0a54cbfb60ab8094b38faa04283fb77eba1d33319e5eca"
   service:
     type: ClusterIP
     port: 11434
@@ -1077,7 +1077,7 @@ pydanticai:
     # uv-based Python image (fast, deterministic installs). Override with a
     # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
     repository: ghcr.io/astral-sh/uv
-    tag: "python3.13-trixie-slim@sha256:7820aa74c8a3147ab13553c127432656969548971fbe350ba46a975b59dd42b2"
+    tag: "python3.13-trixie-slim@sha256:dc6831ca75771711b69e2fcaf47f2b4938bcfd7721daf254c1131791249d000d"
   # -- Install Python deps at startup via an initContainer (default). Set false
   # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
   buildDeps: true
@@ -1264,7 +1264,7 @@ postgres:
     # with a migration hint if the legacy key is still set.)
     image:
       repository: ghcr.io/cloudnative-pg/postgresql
-      tag: "18@sha256:21497884139dc18c9015e11f02a28a28962d9f670a42d9bf4481b7fd37b5213c"
+      tag: "18@sha256:9f8d4500ed53901dba42907b05fc7520988b347a79b85c8cf2fa1cb460f2e177"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
@@ -1411,7 +1411,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:44dd04494ee8f3b538294360e7c4b3acb87c8268e4d0a4828a6500b1eff50061"
+    tag: "3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
@@ -1542,7 +1542,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.154.0@sha256:b3079f45e19bdb7326bf49cdddce6cf60dfd865138db39f2733ea48ab17bc4cb"
+    tag: "0.155.0@sha256:4935caa35e9a4cb387e35732e8fb22b2b5759af8d12e7043357f03837f6e8df5"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
