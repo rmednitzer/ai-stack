@@ -1264,7 +1264,7 @@ postgres:
     # with a migration hint if the legacy key is still set.)
     image:
       repository: ghcr.io/cloudnative-pg/postgresql
-      tag: "18@sha256:c4d03ff9119154edbdae8879313cdf0aa5143a26e7ae400ca3ebe22dfc680a73"
+      tag: "18@sha256:21497884139dc18c9015e11f02a28a28962d9f670a42d9bf4481b7fd37b5213c"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
