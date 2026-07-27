@@ -359,7 +359,7 @@ openwebui:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: ghcr.io/open-webui/open-webui
-    tag: "v0.9.6@sha256:90eae5b419e40b4c3dd684582b2c83440b36f9ae2f6532c09639b2ba4ee65158"
+    tag: "v0.10.2@sha256:9fcea9c6e32ab60b0498f3986c6cdf651ddbe61db48d2213a3d28048ddd673d4"
   service:
     type: ClusterIP
     port: 8080
@@ -565,7 +565,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.30.11@sha256:c484b703176aa19dfc0a54cbfb60ab8094b38faa04283fb77eba1d33319e5eca"
+    tag: "0.32.4@sha256:10c13eb515db310990527d36ca14a136da4bcc0fbf2bf3b15e9c1f111e9d3cd4"
   service:
     type: ClusterIP
     port: 11434
@@ -673,7 +673,7 @@ qdrant:
     p2pPort: 6335
   image:
     repository: qdrant/qdrant
-    tag: "v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c"
+    tag: "v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286"
   service:
     type: ClusterIP
     httpPort: 6333
@@ -973,7 +973,7 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.10-py3.12@sha256:812e919f12ad9605c9a2b443c95fcdc7d4f8cfecaf11de02181f04943864f27c"
+    tag: "0.11-py3.12@sha256:aa615b78bcda261db69568e806e255fb75a758a6afa4ffc28b2360d58fe833ba"
   service:
     type: ClusterIP
     port: 8000
@@ -1077,7 +1077,7 @@ pydanticai:
     # uv-based Python image (fast, deterministic installs). Override with a
     # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
     repository: ghcr.io/astral-sh/uv
-    tag: "python3.13-trixie-slim@sha256:dc6831ca75771711b69e2fcaf47f2b4938bcfd7721daf254c1131791249d000d"
+    tag: "python3.13-trixie-slim@sha256:fb576a1ff0c6b967e8b466695af934e34161c4a99c2fbfb859261d4a24d4a8d3"
   # -- Install Python deps at startup via an initContainer (default). Set false
   # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
   buildDeps: true
@@ -1218,7 +1218,7 @@ postgres:
     replicaCount: 1
     image:
       repository: docker.io/library/postgres
-      tag: "18-alpine@sha256:1b1689b20d16a014a3d195653381cf2caa75a41a92d93b255a9d6ea29fd353aa"
+      tag: "18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
     env: {}
     persistence:
       enabled: true
@@ -1264,7 +1264,7 @@ postgres:
     # with a migration hint if the legacy key is still set.)
     image:
       repository: ghcr.io/cloudnative-pg/postgresql
-      tag: "18@sha256:9f8d4500ed53901dba42907b05fc7520988b347a79b85c8cf2fa1cb460f2e177"
+      tag: "18@sha256:b38bee8f92acd6d7276d5be32e9af36a0ea72c9d339945f1ae205a2acc3cbb89"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
@@ -1332,7 +1332,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "9.1.0@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9"
+    tag: "9.1.1@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd"
   # -- Optional Valkey AUTH (`requirepass`, ADR-008). Defense-in-depth on top of
   # the default-deny NetworkPolicy: with AUTH on, a compromised pod that is on
   # the Valkey ingress allowlist still needs the password to read sessions or
@@ -1411,7 +1411,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"
+    tag: "3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
@@ -1542,7 +1542,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.155.0@sha256:4935caa35e9a4cb387e35732e8fb22b2b5759af8d12e7043357f03837f6e8df5"
+    tag: "0.157.0@sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
