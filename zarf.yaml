@@ -66,9 +66,9 @@ components:
           - values.yaml
     images:
       # Open WebUI
-      - ghcr.io/open-webui/open-webui:v0.10.2@sha256:9fcea9c6e32ab60b0498f3986c6cdf651ddbe61db48d2213a3d28048ddd673d4
+      - ghcr.io/open-webui/open-webui:v0.11.0@sha256:72c0ba641ba75e7aa52655cb242570906ececd09b1140fb736483038a22b3228
       # Ollama
-      - ollama/ollama:0.32.4@sha256:10c13eb515db310990527d36ca14a136da4bcc0fbf2bf3b15e9c1f111e9d3cd4
+      - ollama/ollama:0.32.5@sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131
       # Qdrant
       - qdrant/qdrant:v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286
       # Apache Tika
@@ -103,7 +103,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - docker.io/langchain/langgraph-server:0.11-py3.12@sha256:aa615b78bcda261db69568e806e255fb75a758a6afa4ffc28b2360d58fe833ba
+      - docker.io/langchain/langgraph-server:0.11-py3.12@sha256:0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9
       - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
 
   # ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:fb576a1ff0c6b967e8b466695af934e34161c4a99c2fbfb859261d4a24d4a8d3
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10
       - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
 
   # ---------------------------------------------------------------------------
@@ -154,7 +154,7 @@ components:
             description: "Maps the POSTGRES_MODE variable to postgres.mode"
             path: postgres.mode
     images:
-      - ghcr.io/cloudnative-pg/postgresql:18@sha256:b38bee8f92acd6d7276d5be32e9af36a0ea72c9d339945f1ae205a2acc3cbb89
+      - ghcr.io/cloudnative-pg/postgresql:18@sha256:2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
