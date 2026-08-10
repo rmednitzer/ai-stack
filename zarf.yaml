@@ -68,9 +68,9 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.11.0@sha256:72c0ba641ba75e7aa52655cb242570906ececd09b1140fb736483038a22b3228
       # Ollama
-      - ollama/ollama:0.32.5@sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131
+      - ollama/ollama:0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42
       # Qdrant
-      - qdrant/qdrant:v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286
+      - qdrant/qdrant:v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
       # Apache Tika
       - apache/tika:3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
       # SearXNG
@@ -80,7 +80,7 @@ components:
       # Valkey
       - valkey/valkey:9.1.1@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd
       # Ingestion worker
-      - python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6
+      - python:3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows
@@ -103,7 +103,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - docker.io/langchain/langgraph-server:0.11-py3.12@sha256:0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9
+      - docker.io/langchain/langgraph-server:0.12-py3.12@sha256:a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077
       - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
 
   # ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ components:
             description: "Maps the POSTGRES_ENABLED variable to postgres.enabled"
             path: postgres.enabled
     images:
-      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10
+      - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42
       - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
 
   # ---------------------------------------------------------------------------
@@ -154,7 +154,7 @@ components:
             description: "Maps the POSTGRES_MODE variable to postgres.mode"
             path: postgres.mode
     images:
-      - ghcr.io/cloudnative-pg/postgresql:18@sha256:2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1
+      - ghcr.io/cloudnative-pg/postgresql:18@sha256:7af186660aead1b948d827ef1c52c20a8d2cb7b2a4089424b8f612e0a61dc2f9
 
   # ---------------------------------------------------------------------------
   # Optional: MCPO (MCP-to-OpenAPI proxy)
@@ -194,7 +194,7 @@ components:
             description: "Maps the OTEL_ENABLED variable to global.otel.enabled"
             path: global.otel.enabled
     images:
-      - otel/opentelemetry-collector-contrib:0.157.0@sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6
+      - otel/opentelemetry-collector-contrib:0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
