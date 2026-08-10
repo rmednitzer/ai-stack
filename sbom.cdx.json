@@ -101,9 +101,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.32.5@sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131",
+      "version": "0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.32.5?checksum=sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131",
+      "purl": "pkg:docker/ollama/ollama@0.32.6?checksum=sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42",
       "licenses": [
         {
           "license": {
@@ -134,7 +134,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131"
+          "content": "b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42"
         }
       ]
     },
@@ -142,9 +142,9 @@
       "type": "container",
       "bom-ref": "qdrant",
       "name": "qdrant",
-      "version": "v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286",
+      "version": "v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc",
       "description": "Vector database for RAG retrieval",
-      "purl": "pkg:docker/qdrant/qdrant@v1.18.3?checksum=sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286",
+      "purl": "pkg:docker/qdrant/qdrant@v1.19.0?checksum=sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc",
       "licenses": [
         {
           "license": {
@@ -175,7 +175,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286"
+          "content": "057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc"
         }
       ]
     },
@@ -310,9 +310,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.157.0@sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6",
+      "version": "0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.157.0?checksum=sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.158.0?checksum=sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5",
       "licenses": [
         {
           "license": {
@@ -343,7 +343,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6"
+          "content": "c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5"
         }
       ]
     },
@@ -351,9 +351,9 @@
       "type": "container",
       "bom-ref": "langgraph-api",
       "name": "langgraph-server",
-      "version": "0.11-py3.12@sha256:0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9",
+      "version": "0.12-py3.12@sha256:a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077",
       "description": "LangGraph Platform API server for stateful agentic workflows",
-      "purl": "pkg:docker/langchain/langgraph-server@0.11-py3.12?checksum=sha256:0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9&repository_url=docker.io",
+      "purl": "pkg:docker/langchain/langgraph-server@0.12-py3.12?checksum=sha256:a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -389,7 +389,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9"
+          "content": "a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077"
         }
       ]
     },
@@ -438,9 +438,9 @@
       "type": "container",
       "bom-ref": "cnpg-postgresql",
       "name": "postgresql",
-      "version": "18@sha256:2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1",
+      "version": "18@sha256:7af186660aead1b948d827ef1c52c20a8d2cb7b2a4089424b8f612e0a61dc2f9",
       "description": "CloudNativePG PostgreSQL operand image (postgres.mode=cnpg HA cluster; the CNPG operator itself is BYO)",
-      "purl": "pkg:docker/cloudnative-pg/postgresql@18?checksum=sha256:2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1&repository_url=ghcr.io",
+      "purl": "pkg:docker/cloudnative-pg/postgresql@18?checksum=sha256:7af186660aead1b948d827ef1c52c20a8d2cb7b2a4089424b8f612e0a61dc2f9&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -477,7 +477,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1"
+          "content": "7af186660aead1b948d827ef1c52c20a8d2cb7b2a4089424b8f612e0a61dc2f9"
         }
       ]
     },
@@ -608,9 +608,9 @@
       "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
-      "version": "3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6",
+      "version": "3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6&repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -641,7 +641,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6"
+          "content": "a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc"
         }
       ]
     },
@@ -649,9 +649,9 @@
       "type": "container",
       "bom-ref": "pydanticai",
       "name": "uv",
-      "version": "python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10",
+      "version": "python3.13-trixie-slim@sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42",
       "description": "Pydantic AI agentic runtime base image (Astral uv + Python) — MIT-licensed alternative to the LangGraph runtime",
-      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10&repository_url=ghcr.io",
+      "purl": "pkg:docker/astral-sh/uv@python3.13-trixie-slim?checksum=sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42&repository_url=ghcr.io",
       "licenses": [
         {
           "license": {
@@ -691,7 +691,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10"
+          "content": "5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42"
         }
       ]
     },
