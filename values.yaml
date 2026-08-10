@@ -565,7 +565,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.32.5@sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131"
+    tag: "0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42"
   service:
     type: ClusterIP
     port: 11434
@@ -673,7 +673,7 @@ qdrant:
     p2pPort: 6335
   image:
     repository: qdrant/qdrant
-    tag: "v1.18.3@sha256:0bd98fa7977f1e75694779359ca4e212822e5a71334e28421182f72f209d5286"
+    tag: "v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc"
   service:
     type: ClusterIP
     httpPort: 6333
@@ -973,7 +973,7 @@ langgraph:
   image:
     # -- Override with a custom image built via `langgraph build`
     repository: docker.io/langchain/langgraph-server
-    tag: "0.11-py3.12@sha256:0913279d0d6d4ad0adb285dfa2210046b689b902414305d2385d9f46c2840db9"
+    tag: "0.12-py3.12@sha256:a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077"
   service:
     type: ClusterIP
     port: 8000
@@ -1077,7 +1077,7 @@ pydanticai:
     # uv-based Python image (fast, deterministic installs). Override with a
     # prebuilt image (files/pydanticai/Dockerfile) + buildDeps=false for air-gap.
     repository: ghcr.io/astral-sh/uv
-    tag: "python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10"
+    tag: "python3.13-trixie-slim@sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42"
   # -- Install Python deps at startup via an initContainer (default). Set false
   # to use a prebuilt image with deps baked in (files/pydanticai/Dockerfile).
   buildDeps: true
@@ -1264,7 +1264,7 @@ postgres:
     # with a migration hint if the legacy key is still set.)
     image:
       repository: ghcr.io/cloudnative-pg/postgresql
-      tag: "18@sha256:2b124b4c9e9710a449b868fc72ae59bcb2907386d48ddb3e7a7f82491ac0d1e1"
+      tag: "18@sha256:7af186660aead1b948d827ef1c52c20a8d2cb7b2a4089424b8f612e0a61dc2f9"
     storage:
       size: 20Gi
       # -- Storage class override (uses global.storageClass if empty)
@@ -1411,7 +1411,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6"
+    tag: "3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
@@ -1542,7 +1542,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.157.0@sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6"
+    tag: "0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
