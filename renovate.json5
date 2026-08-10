@@ -49,6 +49,17 @@
   prHourlyLimit: 2,
   packageRules: [
     {
+      // This repo has no requireable status check: every PR-triggered workflow
+      // (docs.yaml, lint.yaml, sync-image-artifacts.yml) carries a paths filter,
+      // so a required check would permanently block PRs that miss those paths.
+      // GitHub native auto-merge would therefore have nothing to wait on and
+      // would land helm-values image bumps unattended. Fall back to Renovate
+      // own branch-status evaluation, which inspects all reported checks.
+      "description": "No platform automerge: no requireable status check exists on this repo.",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "platformAutomerge": false
+    },
+    {
       matchManagers: [
         'helm-values',
       ],
