@@ -18,7 +18,7 @@
 #
 # app.py is still mounted from the ConfigMap at runtime (single source of truth);
 # the baked copy below is for running the service outside the chart.
-FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42
 
 WORKDIR /app
 COPY requirements.txt ./
