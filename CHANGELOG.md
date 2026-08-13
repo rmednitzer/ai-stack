@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`NOTICE` file, closing the Apache-2.0 paperwork gap.** The repository shipped
+  `LICENSE` without the companion `NOTICE` that the rest of the fleet carries. It
+  states what the Apache grant actually covers (chart templates, values, helpers,
+  tests, Zarf definition, ArgoCD manifests, docs, CI tooling; no vendored
+  third-party source), and draws the distinction that matters for a deployment
+  chart: images are **referenced by immutable digest, not redistributed**, so each
+  remains under its own license and the Apache grant does not extend to them.
+  It points at `sbom.cdx.json` and `docs/compliance/LICENSE_COMPLIANCE.md` as the
+  source of truth rather than restating the per-image list, since a hand-copied
+  second inventory is precisely what drifts. The two non-permissive components
+  (SearXNG AGPL-3.0-or-later, enabled by default; LangGraph Server ELv2, opt-in)
+  are named inline so a reader of `NOTICE` alone is not misled. No template, no
+  image, no chart-version change.
+
 - **Ollama runtime model-pull egress is now gateable
   ([ADR-019](docs/architecture/ADR-019-ollama-model-pull-egress.md); audit backlog
   D-1 / posture A-8).** New opt-out `ollama.allowModelPullEgress` (**default

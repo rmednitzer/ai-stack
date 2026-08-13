@@ -1,0 +1,81 @@
+ai-stack
+Copyright 2026 Roman Mednitzer
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+What the Apache grant covers
+-------------------------------------------------------------------------------
+
+The grant above covers this repository's own work: the Helm chart templates,
+`values.yaml` and its overlays, the named templates in `_helpers.tpl`, the
+`tests/` suite, the Zarf package definition, the ArgoCD manifests, the
+governance material under `docs/`, and the CI tooling.
+
+No third-party source code is vendored into this tree.
+
+-------------------------------------------------------------------------------
+Container images: referenced, not redistributed
+-------------------------------------------------------------------------------
+
+This is a deployment chart. It *references* upstream container images by
+immutable digest; it does not contain or redistribute them. At install time
+your cluster pulls each image from its upstream registry, and each image
+remains under its own license, held by its own authors. Nothing in this chart
+relicenses any of them, and the Apache-2.0 grant above does not extend to them.
+
+The authoritative, version-pinned inventory of every referenced image, with its
+digest and its license, is:
+
+    sbom.cdx.json                          CycloneDX SBOM, kept in sync with
+                                           values.yaml (ADR-001/002)
+
+The license analysis, including obligation-level reasoning rather than just an
+identifier, is:
+
+    docs/compliance/LICENSE_COMPLIANCE.md
+
+Those two are the source of truth. This file deliberately does not restate the
+per-image list, because a hand-copied second list is exactly the thing that
+drifts out of date.
+
+-------------------------------------------------------------------------------
+Two components that are not permissively licensed
+-------------------------------------------------------------------------------
+
+Most referenced images are Apache-2.0, MIT, BSD, PSF, or the PostgreSQL
+License. Two are not, and are called out here so that a reader of this file
+alone is not misled. Both are analysed in full in LICENSE_COMPLIANCE.md.
+
+  * SearXNG -- AGPL-3.0-or-later. Enabled by default. Running the upstream
+    container unmodified as a network service does not place the chart itself
+    under the AGPL. Modifying SearXNG and exposing it over a network does
+    trigger source-disclosure obligations for those modifications.
+
+  * LangGraph Server -- Elastic License 2.0. Opt-in and disabled by default.
+    ELv2 prohibits offering it as a managed service to third parties and
+    forbids circumventing its license-key functionality; LangChain separately
+    gates production self-hosting behind LangGraph Platform tiers. Note that
+    the `langgraph` library is MIT while the server image is ELv2. Verify the
+    current terms for your version and tier. This chart ships Pydantic AI as a
+    fully permissive alternative agentic runtime.
+
+Open WebUI carries its own license rather than a standard SPDX identifier; see
+the SBOM entry and its upstream LICENSE for the branding terms.
+
+-------------------------------------------------------------------------------
+Not an endorsement
+-------------------------------------------------------------------------------
+
+Naming a project here or in the SBOM records a dependency relationship. It does
+not imply that project has endorsed, reviewed, or supports this chart.
