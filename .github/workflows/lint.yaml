@@ -1,21 +1,21 @@
 name: Lint and Validate
 
 on:
+  # Deliberately NO `paths:` filter on pull_request (infra BACKLOG F13).
+  #
+  # A workflow that does not run reports no check, and a check that is never
+  # reported cannot be a required status check. This repository was the only
+  # one in the fleet with no requireable check for exactly that reason: every
+  # PR-triggered workflow was paths-filtered, so `allow_auto_merge` had nothing
+  # to wait on and could land a pull request with no validation at all.
+  #
+  # The path filter has therefore moved from this trigger into the `changes`
+  # job below. The workflow now always runs; the individual validation jobs
+  # still skip when no chart-relevant path changed, so the runner cost of a
+  # docs-only pull request is one cheap job rather than eleven. What this buys
+  # is that `ci-success` reports on every pull request and can be required.
   pull_request:
     branches: [main]
-    paths:
-      - "Chart.yaml"
-      - "values*.yaml"
-      - "values.schema.json"
-      - "templates/**"
-      - "files/**"
-      - "tests/**"
-      - "argocd/**"
-      - "sbom.cdx.json"
-      - "zarf.yaml"
-      - "ct.yaml"
-      - ".kube-linter.yaml"
-      - ".github/workflows/lint.yaml"
   push:
     branches: [main]
 
@@ -28,7 +28,67 @@ permissions:
   contents: read
 
 jobs:
+  # Carries the path filter that used to sit on the `on:` trigger. Cheap
+  # (checkout + one git diff) so that a docs-only pull request pays almost
+  # nothing while still producing a reported `ci-success`.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      chart: ${{ steps.filter.outputs.chart }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Needed so the base commit is present for the diff below.
+          fetch-depth: 0
+
+      # Plain git rather than a third-party paths-filter action, deliberately:
+      # every action in this repository is digest-pinned and reviewed, and one
+      # more third-party supply-chain dependency is not worth saving a few
+      # lines of shell.
+      - name: Detect chart-relevant changes
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          # A push to main revalidates everything; only pull requests filter.
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            echo "chart=true" >> "${GITHUB_OUTPUT}"
+            echo "::notice::event=${GITHUB_EVENT_NAME}; running all validation jobs."
+            exit 0
+          fi
+
+          # Fail safe, in the direction of doing more work rather than less: if
+          # the base commit is somehow not fetched, run everything instead of
+          # silently skipping validation.
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "chart=true" >> "${GITHUB_OUTPUT}"
+            echo "::warning::Base commit ${BASE_SHA} unavailable; running all validation jobs."
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "${BASE_SHA}" HEAD)"
+          echo "Changed files:"
+          echo "${changed}" | sed 's/^/  /'
+
+          # Exactly the path list that used to gate the `on:` trigger, so chart
+          # pull requests behave identically to before this change.
+          if printf '%s\n' "${changed}" | grep -Eq \
+            '^(Chart\.yaml|values[^/]*\.yaml|values\.schema\.json|sbom\.cdx\.json|zarf\.yaml|ct\.yaml|\.kube-linter\.yaml)$|^(templates|files|tests|argocd)/|^\.github/workflows/lint\.yaml$'; then
+            echo "chart=true" >> "${GITHUB_OUTPUT}"
+            echo "::notice::Chart-relevant paths changed; running validation jobs."
+          else
+            echo "chart=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::No chart-relevant paths changed; validation jobs will skip."
+          fi
+
   helm-lint:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,6 +114,8 @@ jobs:
         run: helm template ai-stack . -f values.yaml -f values-prod.yaml --debug > /dev/null
 
   helm-unittest:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,6 +142,8 @@ jobs:
     # Unit tests for the async ingestion worker's Qdrant interaction (collection
     # bootstrap + per-task routing). The HTTP layer is mocked with respx, so no
     # backing services are needed. See files/ingestion-worker/test_worker.py.
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -103,6 +167,8 @@ jobs:
     # identity threaded from the agent run into the Qdrant query filter. The HTTP
     # layer is mocked with respx (TestModel stands in for the LLM), so no backing
     # services are needed. See files/pydanticai/test_app.py.
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -122,6 +188,8 @@ jobs:
         run: python -m pytest files/pydanticai -q
 
   chart-testing:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -143,6 +211,8 @@ jobs:
         run: ct lint --config ct.yaml --charts .
 
   sbom-validate:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -644,6 +714,8 @@ jobs:
           retention-days: 90
 
   kubeconform:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -707,6 +779,8 @@ jobs:
             argocd/
 
   kube-linter:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -756,6 +830,8 @@ jobs:
             | kube-linter lint --config .kube-linter.yaml -
 
   zarf-lint:
+    needs: changes
+    if: needs.changes.outputs.chart == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -790,3 +866,59 @@ jobs:
       # chart-variable / metadata drift that the image-parity check cannot see).
       - name: Zarf dev lint
         run: zarf dev lint
+
+  # The single requireable status check for this repository (infra BACKLOG F13).
+  #
+  # This is the only job here guaranteed to report on every pull request, which
+  # is what makes it safe to mark required: a pull request that touches no
+  # chart path skips every validation job and this one still reports success,
+  # so requiring it can never wedge a docs-only change.
+  #
+  # `if: always()` so it reports even when a dependency failed, was skipped, or
+  # was cancelled; the step below turns those results into the verdict. A
+  # skipped dependency passes (the `changes` filter judged it irrelevant, or it
+  # is push-only); a failed or cancelled one fails.
+  #
+  # Note what this is NOT: a trivial always-green job. One of those would give
+  # native auto-merge something to wait on while going green in seconds
+  # regardless of the diff, which converts the gap into the appearance of a
+  # gate. This job's verdict is a function of the real jobs' results.
+  ci-success:
+    name: ci-success
+    if: always()
+    needs:
+      - changes
+      - helm-lint
+      - helm-unittest
+      - worker-tests
+      - pydanticai-tests
+      - chart-testing
+      - sbom-validate
+      - syft-sbom
+      - cve-scan
+      - kubeconform
+      - kube-linter
+      - zarf-lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Require every gate to have passed or been skipped
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${NEEDS_JSON}"
+          failed="$(printf '%s' "${NEEDS_JSON}" | python3 -c '
+          import json, sys
+          results = json.load(sys.stdin)
+          print(" ".join(
+              name for name, job in sorted(results.items())
+              if job.get("result") not in ("success", "skipped")
+          ))
+          ')"
+          if [ -n "${failed}" ]; then
+            echo "::error::Gate(s) did not pass: ${failed}"
+            exit 1
+          fi
+          echo "All gates passed or were skipped."

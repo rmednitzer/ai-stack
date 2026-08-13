@@ -49,13 +49,22 @@
   prHourlyLimit: 2,
   packageRules: [
     {
-      // This repo has no requireable status check: every PR-triggered workflow
-      // (docs.yaml, lint.yaml, sync-image-artifacts.yml) carries a paths filter,
-      // so a required check would permanently block PRs that miss those paths.
-      // GitHub native auto-merge would therefore have nothing to wait on and
-      // would land helm-values image bumps unattended. Fall back to Renovate
-      // own branch-status evaluation, which inspects all reported checks.
-      "description": "No platform automerge: no requireable status check exists on this repo.",
+      // Historically this repo had no requireable status check: every
+      // PR-triggered workflow (docs.yaml, lint.yaml, sync-image-artifacts.yml)
+      // carried a paths filter, so a required check would permanently block PRs
+      // that missed those paths, and GitHub native auto-merge had nothing to
+      // wait on and would land helm-values image bumps unattended.
+      //
+      // lint.yaml now always runs on pull requests and ends in an aggregate
+      // `ci-success` job precisely so that a required check becomes possible
+      // (infra BACKLOG F13). This override nevertheless stays `false` until
+      // `ci-success` is actually added to the `main-protection` ruleset
+      // (id 15857143). Flipping it before the ruleset is updated would hand
+      // merging to native auto-merge while there is still nothing required for
+      // it to wait on, which is the exact failure this override exists to
+      // prevent. Once the context is required, this rule can be dropped and the
+      // preset default (`platformAutomerge: true`) restored.
+      "description": "No platform automerge until ci-success is a required check on this repo.",
       "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
       "platformAutomerge": false
     },
