@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`lint.yaml` now runs on every pull request and ends in a requireable
+  `ci-success` aggregate (infra BACKLOG F13).** This was the only repository in
+  the fleet with no required status check, and the reason was structural: every
+  PR-triggered workflow carried a `paths` filter, so no check was guaranteed to
+  report, and a check that never reports cannot be required. Combined with
+  repository-level `allow_auto_merge`, that meant an ordinary pull request could
+  be auto-merged with no validation having run at all.
+
+  The path filter moved off the `on:` trigger into a new cheap `changes` job
+  (checkout plus one `git diff`, plain git rather than a third-party
+  paths-filter action, since every action here is digest-pinned and reviewed).
+  The nine chart-validation jobs are now gated on `needs.changes.outputs.chart`,
+  so a docs-only pull request costs one job instead of eleven and chart pull
+  requests behave exactly as before: the regex reproduces the previous path list
+  entry for entry. The filter fails safe toward running everything if the base
+  commit is unavailable.
+
+  `ci-success` runs with `if: always()` over all twelve jobs and fails when any
+  dependency is anything other than `success` or `skipped`. It is deliberately
+  **not** a trivial always-green job: one of those would give native auto-merge
+  something to wait on while going green in seconds regardless of the diff,
+  which converts the gap into the appearance of a gate rather than closing it.
+
+  `renovate.json5` keeps `platformAutomerge: false` for now. It is only safe to
+  drop once `ci-success` is actually added to the `main-protection` ruleset
+  (id 15857143), which is a repository-settings change outside this PR; the
+  comment there records the sequencing. No template, no image, no chart-version
+  change.
+
 ### Added
 
 - **`NOTICE` file, closing the Apache-2.0 paperwork gap.** The repository shipped
