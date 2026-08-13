@@ -48,26 +48,21 @@
   prConcurrentLimit: 8,
   prHourlyLimit: 2,
   packageRules: [
-    {
-      // Historically this repo had no requireable status check: every
-      // PR-triggered workflow (docs.yaml, lint.yaml, sync-image-artifacts.yml)
-      // carried a paths filter, so a required check would permanently block PRs
-      // that missed those paths, and GitHub native auto-merge had nothing to
-      // wait on and would land helm-values image bumps unattended.
-      //
-      // lint.yaml now always runs on pull requests and ends in an aggregate
-      // `ci-success` job precisely so that a required check becomes possible
-      // (infra BACKLOG F13). This override nevertheless stays `false` until
-      // `ci-success` is actually added to the `main-protection` ruleset
-      // (id 15857143). Flipping it before the ruleset is updated would hand
-      // merging to native auto-merge while there is still nothing required for
-      // it to wait on, which is the exact failure this override exists to
-      // prevent. Once the context is required, this rule can be dropped and the
-      // preset default (`platformAutomerge: true`) restored.
-      "description": "No platform automerge until ci-success is a required check on this repo.",
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "platformAutomerge": false
-    },
+    // The `platformAutomerge: false` override that used to sit here is gone
+    // (infra BACKLOG F13, closed). It existed because this repository had no
+    // requireable status check: every PR-triggered workflow carried a paths
+    // filter, so nothing was guaranteed to report, GitHub native auto-merge had
+    // nothing to wait on, and it would land helm-values image bumps unattended.
+    //
+    // Both halves of that are now fixed. `lint.yaml` always runs on pull
+    // requests and ends in an aggregate `ci-success` job, and `ci-success` is a
+    // required status check on the `main-protection` ruleset (id 15857143,
+    // verified 2026-08-13 with bypass_actors still empty). Native auto-merge
+    // therefore has a real gate to wait on, so this repository can use the
+    // shared preset's `platformAutomerge: true` like the rest of the fleet.
+    //
+    // If the required check is ever removed from the ruleset, restore this
+    // override in the same change.
     {
       matchManagers: [
         'helm-values',
