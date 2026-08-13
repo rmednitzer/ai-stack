@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dropped the `platformAutomerge: false` override in `renovate.json5`
+  (infra BACKLOG F13, closed).** It existed only because this repository had no
+  requireable status check. Both halves of that are now fixed: `lint.yaml`
+  always runs and ends in the `ci-success` aggregate, and `ci-success` is now a
+  required status check on the `main-protection` ruleset (id 15857143, verified
+  2026-08-13 with all four pre-existing rules intact and `bypass_actors` still
+  empty). Native auto-merge now has a real gate to wait on, so this repository
+  uses the shared preset's `platformAutomerge: true` like the rest of the fleet.
+  The comment left in its place records what to restore if the required check is
+  ever removed.
+
 - **`lint.yaml` now runs on every pull request and ends in a requireable
   `ci-success` aggregate (infra BACKLOG F13).** This was the only repository in
   the fleet with no required status check, and the reason was structural: every
