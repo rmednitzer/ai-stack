@@ -180,11 +180,11 @@ aiGateway:
   controller:
     image:
       repository: docker.io/envoyproxy/ai-gateway-controller
-      tag: "v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0"
+      tag: "v1.1.0@sha256:e7662d3502ad894b5937e6747998449892219778299bc2e612baed93ad17418b"
   extproc:
     image:
       repository: docker.io/envoyproxy/ai-gateway-extproc
-      tag: "v1.0.0@sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e"
+      tag: "v1.1.0@sha256:a6633382aed19905d81ae36c4bd1637499ce56af4c510f9f4b9f080b2139c845"
 
   # -- Pre-existing Gateway(s) the AIGatewayRoute attaches to (BYO; not
   # provisioned by this chart). At least one entry is required when enabled.
@@ -565,7 +565,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42"
+    tag: "0.33.1@sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c"
   service:
     type: ClusterIP
     port: 11434
@@ -1218,7 +1218,7 @@ postgres:
     replicaCount: 1
     image:
       repository: docker.io/library/postgres
-      tag: "18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
+      tag: "18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2"
     env: {}
     persistence:
       enabled: true
@@ -1332,7 +1332,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "9.1.1@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd"
+    tag: "9.1.1@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf"
   # -- Optional Valkey AUTH (`requirepass`, ADR-008). Defense-in-depth on top of
   # the default-deny NetworkPolicy: with AUTH on, a compromised pod that is on
   # the Valkey ingress allowlist still needs the password to read sessions or
@@ -1411,7 +1411,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc"
+    tag: "3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
@@ -1542,7 +1542,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5"
+    tag: "0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
