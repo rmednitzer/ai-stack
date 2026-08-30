@@ -101,9 +101,9 @@
       "type": "container",
       "bom-ref": "ollama",
       "name": "ollama",
-      "version": "0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42",
+      "version": "0.33.1@sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c",
       "description": "Local LLM inference server",
-      "purl": "pkg:docker/ollama/ollama@0.32.6?checksum=sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42",
+      "purl": "pkg:docker/ollama/ollama@0.33.1?checksum=sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c",
       "licenses": [
         {
           "license": {
@@ -134,7 +134,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42"
+          "content": "075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c"
         }
       ]
     },
@@ -269,9 +269,9 @@
       "type": "container",
       "bom-ref": "valkey",
       "name": "valkey",
-      "version": "9.1.1@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd",
+      "version": "9.1.1@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf",
       "description": "In-memory session cache and rate-limiting backend",
-      "purl": "pkg:docker/valkey/valkey@9.1.1?checksum=sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd",
+      "purl": "pkg:docker/valkey/valkey@9.1.1?checksum=sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf",
       "licenses": [
         {
           "license": {
@@ -302,7 +302,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd"
+          "content": "70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf"
         }
       ]
     },
@@ -310,9 +310,9 @@
       "type": "container",
       "bom-ref": "otel-collector",
       "name": "opentelemetry-collector-contrib",
-      "version": "0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5",
+      "version": "0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc",
       "description": "OpenTelemetry Collector for observability pipeline",
-      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.158.0?checksum=sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5",
+      "purl": "pkg:docker/otel/opentelemetry-collector-contrib@0.159.0?checksum=sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc",
       "licenses": [
         {
           "license": {
@@ -343,7 +343,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5"
+          "content": "1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc"
         }
       ]
     },
@@ -397,9 +397,9 @@
       "type": "container",
       "bom-ref": "postgres",
       "name": "postgres",
-      "version": "18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15",
+      "version": "18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
       "description": "PostgreSQL for LangGraph checkpoint persistence",
-      "purl": "pkg:docker/library/postgres@18-alpine?checksum=sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15&repository_url=docker.io",
+      "purl": "pkg:docker/library/postgres@18-alpine?checksum=sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -430,7 +430,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
+          "content": "d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2"
         }
       ]
     },
@@ -608,9 +608,9 @@
       "type": "container",
       "bom-ref": "ingestion-worker",
       "name": "python",
-      "version": "3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc",
+      "version": "3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5",
       "description": "Async document ingestion worker for Tika extract, chunk, embed, and Qdrant upsert via Valkey Streams",
-      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc&repository_url=docker.io",
+      "purl": "pkg:docker/library/python@3.14-slim?checksum=sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -641,7 +641,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc"
+          "content": "cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5"
         }
       ]
     },
@@ -699,9 +699,9 @@
       "type": "container",
       "bom-ref": "ai-gateway-controller",
       "name": "ai-gateway-controller",
-      "version": "v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0",
+      "version": "v1.1.0@sha256:e7662d3502ad894b5937e6747998449892219778299bc2e612baed93ad17418b",
       "description": "Envoy AI Gateway controller for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart, installed by the platform from the upstream controller chart.",
-      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v1.0.0?checksum=sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0&repository_url=docker.io",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-controller@v1.1.0?checksum=sha256:e7662d3502ad894b5937e6747998449892219778299bc2e612baed93ad17418b&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -732,7 +732,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0"
+          "content": "e7662d3502ad894b5937e6747998449892219778299bc2e612baed93ad17418b"
         }
       ]
     },
@@ -740,9 +740,9 @@
       "type": "container",
       "bom-ref": "ai-gateway-extproc",
       "name": "ai-gateway-extproc",
-      "version": "v1.0.0@sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e",
+      "version": "v1.1.0@sha256:a6633382aed19905d81ae36c4bd1637499ce56af4c510f9f4b9f080b2139c845",
       "description": "Envoy AI Gateway external processor (extproc) for the opt-in Envoy AI Gateway component (ADR-006). Mirrored for air-gap; BYO — not rendered by the chart.",
-      "purl": "pkg:docker/envoyproxy/ai-gateway-extproc@v1.0.0?checksum=sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e&repository_url=docker.io",
+      "purl": "pkg:docker/envoyproxy/ai-gateway-extproc@v1.1.0?checksum=sha256:a6633382aed19905d81ae36c4bd1637499ce56af4c510f9f4b9f080b2139c845&repository_url=docker.io",
       "licenses": [
         {
           "license": {
@@ -773,7 +773,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e"
+          "content": "a6633382aed19905d81ae36c4bd1637499ce56af4c510f9f4b9f080b2139c845"
         }
       ]
     }

@@ -68,7 +68,7 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.11.0@sha256:72c0ba641ba75e7aa52655cb242570906ececd09b1140fb736483038a22b3228
       # Ollama
-      - ollama/ollama:0.32.6@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42
+      - ollama/ollama:0.33.1@sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c
       # Qdrant
       - qdrant/qdrant:v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
       # Apache Tika
@@ -78,9 +78,9 @@ components:
       # Open Terminal
       - ghcr.io/open-webui/open-terminal:0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e
       # Valkey
-      - valkey/valkey:9.1.1@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd
+      - valkey/valkey:9.1.1@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf
       # Ingestion worker
-      - python:3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc
+      - python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows
@@ -104,7 +104,7 @@ components:
             path: postgres.enabled
     images:
       - docker.io/langchain/langgraph-server:0.12-py3.12@sha256:a7769b0e64ce7a050612e54f80228b7ebb24c5ca6ee817020a6b2f876d1f8077
-      - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+      - docker.io/library/postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
 
   # ---------------------------------------------------------------------------
   # Optional: Pydantic AI agentic runtime (MIT alternative to LangGraph)
@@ -128,7 +128,7 @@ components:
             path: postgres.enabled
     images:
       - ghcr.io/astral-sh/uv:python3.13-trixie-slim@sha256:5f3c58899cb4ab5b723f81641d6aed08968e6c93f9a84641321ae66ba7103f42
-      - docker.io/library/postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+      - docker.io/library/postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
 
   # ---------------------------------------------------------------------------
   # Optional: CloudNativePG PostgreSQL (postgres.mode=cnpg, production HA)
@@ -194,7 +194,7 @@ components:
             description: "Maps the OTEL_ENABLED variable to global.otel.enabled"
             path: global.otel.enabled
     images:
-      - otel/opentelemetry-collector-contrib:0.158.0@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5
+      - otel/opentelemetry-collector-contrib:0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
@@ -236,5 +236,5 @@ components:
             description: "Maps the AI_GATEWAY_ENABLED variable to aiGateway.enabled"
             path: aiGateway.enabled
     images:
-      - docker.io/envoyproxy/ai-gateway-controller:v1.0.0@sha256:8efefd3154d70205d6400055c93f982602f4ad7d9ffc32e97e6373d97e549ef0
-      - docker.io/envoyproxy/ai-gateway-extproc:v1.0.0@sha256:a38ac314b2b977561be3deaa722138ecb04a91e97122807cef08fccda880fa7e
+      - docker.io/envoyproxy/ai-gateway-controller:v1.1.0@sha256:e7662d3502ad894b5937e6747998449892219778299bc2e612baed93ad17418b
+      - docker.io/envoyproxy/ai-gateway-extproc:v1.1.0@sha256:a6633382aed19905d81ae36c4bd1637499ce56af4c510f9f4b9f080b2139c845
