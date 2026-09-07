@@ -565,7 +565,7 @@ ollama:
   replicaCount: 1
   image:
     repository: ollama/ollama
-    tag: "0.33.1@sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c"
+    tag: "0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2"
   service:
     type: ClusterIP
     port: 11434
@@ -673,7 +673,7 @@ qdrant:
     p2pPort: 6335
   image:
     repository: qdrant/qdrant
-    tag: "v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc"
+    tag: "v1.19.1@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10"
   service:
     type: ClusterIP
     httpPort: 6333
@@ -1332,7 +1332,7 @@ valkey:
   replicaCount: 1
   image:
     repository: valkey/valkey
-    tag: "9.1.1@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf"
+    tag: "9.1.2@sha256:475ee65cc75c327407458f5096cdd36954b3de3fc83f4c8ac31a4a8edecbf49e"
   # -- Optional Valkey AUTH (`requirepass`, ADR-008). Defense-in-depth on top of
   # the default-deny NetworkPolicy: with AUTH on, a compromised pod that is on
   # the Valkey ingress allowlist still needs the password to read sessions or
@@ -1411,7 +1411,7 @@ ingestionWorker:
     targetMemoryUtilizationPercentage: 80
   image:
     repository: python
-    tag: "3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5"
+    tag: "3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6"
   # -- Install Python dependencies at pod startup via an initContainer (default).
   # The worker source (files/ingestion-worker/worker.py) is always mounted from a
   # ConfigMap. Set false for air-gapped/hardened clusters where you supply a
@@ -1542,7 +1542,7 @@ otelCollector:
   replicaCount: 1
   image:
     repository: otel/opentelemetry-collector-contrib
-    tag: "0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc"
+    tag: "0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6"
   logLevel: info
   memoryLimitMiB: 450
   spikeMemoryLimitMiB: 128
