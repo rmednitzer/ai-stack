@@ -68,9 +68,9 @@ components:
       # Open WebUI
       - ghcr.io/open-webui/open-webui:v0.11.0@sha256:72c0ba641ba75e7aa52655cb242570906ececd09b1140fb736483038a22b3228
       # Ollama
-      - ollama/ollama:0.33.1@sha256:075246f72d4109385b4a01c3ac8e9cbd26a0bcb21cd7aa30edbccd24e1b3180c
+      - ollama/ollama:0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
       # Qdrant
-      - qdrant/qdrant:v1.19.0@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
+      - qdrant/qdrant:v1.19.1@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10
       # Apache Tika
       - apache/tika:3.3.1.0@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
       # SearXNG
@@ -78,9 +78,9 @@ components:
       # Open Terminal
       - ghcr.io/open-webui/open-terminal:0.11.34@sha256:5e040fe357ce4fbd3d5e59c40247dd32172fa10c51c22ded3a7843e739d06a0e
       # Valkey
-      - valkey/valkey:9.1.1@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf
+      - valkey/valkey:9.1.2@sha256:475ee65cc75c327407458f5096cdd36954b3de3fc83f4c8ac31a4a8edecbf49e
       # Ingestion worker
-      - python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5
+      - python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
 
   # ---------------------------------------------------------------------------
   # Optional: LangGraph agentic workflows
@@ -194,7 +194,7 @@ components:
             description: "Maps the OTEL_ENABLED variable to global.otel.enabled"
             path: global.otel.enabled
     images:
-      - otel/opentelemetry-collector-contrib:0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc
+      - otel/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
 
   # ---------------------------------------------------------------------------
   # Optional: Authelia (OIDC/SSO/MFA)
